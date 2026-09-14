@@ -23,7 +23,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-OutputDir=I:\Application\WEB\Installer\Output
+OutputDir=Output
 OutputBaseFilename=DentalRay_Setup_1.0.0
 
 Compression=lzma2
@@ -65,7 +65,7 @@ Source: "..\Publish\DentalRay.SetupHelper\Database\DentalRay.Database.Install.sq
 ;
 ; ============================================================
 
-Source: "I:\Application\WEB\Publish\DentalRay\*"; \
+Source: "..\Publish\DentalRay\*"; \
     DestDir: "{app}"; \
     Excludes: "appsettings.json,appsettings.Development.json"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
@@ -83,7 +83,7 @@ Source: "I:\Application\WEB\Publish\DentalRay\*"; \
 ;
 ; ============================================================
 
-Source: "I:\Application\WEB\Publish\DentalRay.SetupHelper\*"; \
+Source: "..\Publish\DentalRay.SetupHelper\*"; \
     DestDir: "{tmp}\DentalRay.SetupHelper"; \
     Flags: ignoreversion recursesubdirs createallsubdirs deleteafterinstall
 
@@ -165,6 +165,16 @@ var
     StoragePage:
         TInputDirWizardPage;
 
+
+
+// RunHiddenAndWait در InitializeWizard استفاده می‌شود، بنابراین
+// قبل از آن به صورت forward معرفی می‌شود.
+function RunHiddenAndWait(
+    FileName: String;
+    Parameters: String;
+    WorkingDirectory: String;
+    var ResultCode: Integer
+): Boolean; forward;
 
 
 // ============================================================
