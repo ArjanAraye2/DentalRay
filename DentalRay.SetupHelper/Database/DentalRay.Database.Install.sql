@@ -201,3 +201,146 @@ IF OBJECT_ID(N'dbo.tblRadiologyImages', N'U') IS NULL
 
 PRINT N'DentalRay database initialization completed successfully.';
 GO
+
+
+/* ============================================================
+   Version 2 - Authentication, Users and Audit Log
+   ------------------------------------------------------------
+   این بخش Upgrade-safe است و اطلاعات قبلی را حذف نمی‌کند.
+   ============================================================ */
+
+USE [DentalRay];
+GO
+
+IF OBJECT_ID(N'dbo.tblUsers', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblUsers
+    (
+        UserID          INT IDENTITY(1,1) NOT NULL,
+        UserName        NVARCHAR(50) NOT NULL,
+        DisplayName     NVARCHAR(100) NOT NULL,
+        PasswordHash    NVARCHAR(500) NOT NULL,
+        Role            NVARCHAR(20) NOT NULL
+            CONSTRAINT DF_tblUsers_Role DEFAULT (N'User'),
+        IsActive        BIT NOT NULL
+            CONSTRAINT DF_tblUsers_IsActive DEFAULT (1),
+        CreatedDate     DATETIME2(0) NOT NULL
+            CONSTRAINT DF_tblUsers_CreatedDate DEFAULT (SYSDATETIME()),
+        ModifiedDate    DATETIME2(0) NULL,
+        LastLoginDate   DATETIME2(0) NULL,
+
+        CONSTRAINT PK_tblUsers
+            PRIMARY KEY CLUSTERED (UserID),
+
+        CONSTRAINT CK_tblUsers_Role
+            CHECK (Role IN (N'Admin', N'User'))
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_tblUsers_UserName'
+      AND object_id = OBJECT_ID(N'dbo.tblUsers')
+)
+BEGIN
+    CREATE UNIQUE INDEX UX_tblUsers_UserName
+        ON dbo.tblUsers (UserName);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.tblAuditLogs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblAuditLogs
+    (
+        AuditLogID      BIGINT IDENTITY(1,1) NOT NULL,
+        UserID          INT NULL,
+        UserName        NVARCHAR(50) NULL,
+        Action          NVARCHAR(150) NOT NULL,
+        HttpMethod      NVARCHAR(10) NULL,
+        Path            NVARCHAR(500) NULL,
+        StatusCode      INT NULL,
+        IsSuccess       BIT NOT NULL
+            CONSTRAINT DF_tblAuditLogs_IsSuccess DEFAULT (1),
+        Details         NVARCHAR(2000) NULL,
+        IpAddress       NVARCHAR(64) NULL,
+        UserAgent       NVARCHAR(500) NULL,
+        CreatedDate     DATETIME2(0) NOT NULL
+            CONSTRAINT DF_tblAuditLogs_CreatedDate DEFAULT (SYSDATETIME()),
+
+        CONSTRAINT PK_tblAuditLogs
+            PRIMARY KEY CLUSTERED (AuditLogID)
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_tblAuditLogs_CreatedDate'
+      AND object_id = OBJECT_ID(N'dbo.tblAuditLogs')
+)
+BEGIN
+    CREATE INDEX IX_tblAuditLogs_CreatedDate
+        ON dbo.tblAuditLogs (CreatedDate DESC);
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_tblAuditLogs_UserID'
+      AND object_id = OBJECT_ID(N'dbo.tblAuditLogs')
+)
+BEGIN
+    CREATE INDEX IX_tblAuditLogs_UserID
+        ON dbo.tblAuditLogs (UserID, CreatedDate DESC);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.tblSchemaVersions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblSchemaVersions
+    (
+        VersionNumber   INT NOT NULL,
+        Description     NVARCHAR(300) NOT NULL,
+        AppliedDate     DATETIME2(0) NOT NULL
+            CONSTRAINT DF_tblSchemaVersions_AppliedDate
+            DEFAULT (SYSDATETIME()),
+
+        CONSTRAINT PK_tblSchemaVersions
+            PRIMARY KEY CLUSTERED (VersionNumber)
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.tblSchemaVersions
+    WHERE VersionNumber = 2
+)
+BEGIN
+    INSERT INTO dbo.tblSchemaVersions
+    (
+        VersionNumber,
+        Description
+    )
+    VALUES
+    (
+        2,
+        N'Users, authentication and audit logging'
+    );
+END;
+GO
+
+IF OBJECT_ID(N'dbo.tblUsers', N'U') IS NULL
+    THROW 51003, 'dbo.tblUsers is missing after initialization.', 1;
+
+IF OBJECT_ID(N'dbo.tblAuditLogs', N'U') IS NULL
+    THROW 51004, 'dbo.tblAuditLogs is missing after initialization.', 1;
+GO
