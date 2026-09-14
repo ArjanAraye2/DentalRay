@@ -1,0 +1,70 @@
+# ============================================================
+# DentalRay - Git Ignore
+# ============================================================
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET build output
+**/bin/
+**/obj/
+
+# Test / coverage output
+TestResults/
+coverage/
+coverage.*
+
+# NuGet generated files
+*.nupkg
+*.snupkg
+packages/
+
+# Publish output
+Publish/
+publish/
+**/Publish/
+**/publish/
+
+# Installer compiled output
+Installer/Output/
+**/Installer/Output/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.log
+~$*
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ============================================================
+# Sensitive / machine-specific configuration
+# ============================================================
+
+# Current appsettings files may contain local SQL credentials.
+# Do not commit them.
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.*.json
+
+# Environment / secret files
+.env
+.env.*
+*.secrets.json
+
+# Certificates / private keys
+*.pfx
+*.p12
+*.key
+*.pem
+
+# Runtime external DentalRay configuration
+DentalRay.config.json

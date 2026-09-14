@@ -1,0 +1,1508 @@
+﻿<!DOCTYPE html>
+
+<html lang="fa"
+      dir="rtl">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0" />
+
+    <title>
+        DentalRay
+    </title>
+
+
+    <!--
+        CSS اصلی Frontend
+    -->
+    <link rel="stylesheet"
+          href="/css/site.css" />
+
+</head>
+
+
+<body>
+
+    <!-- ======================================================
+         Header
+         ====================================================== -->
+
+    <header class="main-header">
+
+        <div class="header-content">
+
+            <div class="brand-block">
+
+                <div class="brand-mark">
+                    DR
+                </div>
+
+
+                <div>
+
+                    <h1>
+                        DentalRay
+                    </h1>
+
+                    <p>
+                        مدیریت پرونده و تصاویر رادیولوژی بیماران
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- ======================================================
+         Main
+         ====================================================== -->
+
+    <main class="page-container">
+
+
+        <!-- ==================================================
+             لیست بیماران
+             ================================================== -->
+
+        <section id="patientsSection"
+                 class="card">
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        بیماران
+                    </h2>
+
+                    <p>
+                        جستجو، ثبت و مدیریت پرونده بیماران
+                    </p>
+
+                </div>
+
+
+                <button id="newPatientButton"
+                        type="button"
+                        class="primary-button">
+
+                    + بیمار جدید
+
+                </button>
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 Search / Filter
+                 ---------------------------------------------- -->
+
+            <div class="search-panel">
+
+                <div class="search-container">
+
+                    <input id="patientSearch"
+                           type="text"
+                           placeholder="نام، نام خانوادگی، کد ملی یا موبایل..."
+                           autocomplete="off" />
+
+
+                    <button id="searchButton"
+                            type="button">
+
+                        جستجو
+
+                    </button>
+
+
+                    <button id="clearSearchButton"
+                            type="button"
+                            class="secondary-button">
+
+                        پاک کردن
+
+                    </button>
+
+                </div>
+
+
+                <!--
+                    نمایش بیماران غیرفعال
+                -->
+
+                <label class="checkbox-row">
+
+                    <input id="includeInactivePatients"
+                           type="checkbox" />
+
+
+                    <span>
+                        نمایش بیماران غیرفعال
+                    </span>
+
+                </label>
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 Status
+                 ---------------------------------------------- -->
+
+            <div id="statusMessage"
+                 class="status-message">
+
+                در حال دریافت اطلاعات...
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 Patients Table
+                 ---------------------------------------------- -->
+
+            <div class="table-container">
+
+                <table class="patient-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                نام
+                            </th>
+
+                            <th>
+                                نام خانوادگی
+                            </th>
+
+                            <th>
+                                کد ملی
+                            </th>
+
+                            <th>
+                                موبایل
+                            </th>
+
+                            <th>
+                                عملیات
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="patientsTableBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             پرونده بیمار
+             ================================================== -->
+
+        <section id="patientDetailsSection"
+                 class="card hidden">
+
+            <!-- ----------------------------------------------
+                 Toolbar
+                 ---------------------------------------------- -->
+
+            <div class="details-toolbar">
+
+                <button id="backToPatientsButton"
+                        type="button"
+                        class="secondary-button">
+
+                    ← بازگشت
+
+                </button>
+
+
+                <button id="editPatientButton"
+                        type="button">
+
+                    ویرایش بیمار
+
+                </button>
+
+
+                <button id="newStudyButton"
+                        type="button">
+
+                    ثبت رادیولوژی جدید
+
+                </button>
+
+
+                <button id="mergePatientButton"
+                        type="button"
+                        class="warning-button">
+
+                    ادغام بیمار
+
+                </button>
+
+
+                <button id="deactivatePatientButton"
+                        type="button"
+                        class="danger-button">
+
+                    غیرفعال‌سازی
+
+                </button>
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 عنوان پرونده
+                 ---------------------------------------------- -->
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2 id="patientFullName">
+                        پرونده بیمار
+                    </h2>
+
+                    <p id="patientNationalCode">
+                    </p>
+
+                </div>
+
+
+                <!--
+                    Active / Inactive
+                -->
+
+                <span id="patientStatusBadge"
+                      class="status-badge">
+                </span>
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 مشخصات بیمار
+                 ---------------------------------------------- -->
+
+            <div class="patient-info-grid">
+
+                <div class="info-item">
+
+                    <span class="info-label">
+                        نام:
+                    </span>
+
+                    <span id="detailFirstName">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span class="info-label">
+                        نام خانوادگی:
+                    </span>
+
+                    <span id="detailLastName">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span class="info-label">
+                        کد ملی:
+                    </span>
+
+                    <span id="detailNationalCode">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span class="info-label">
+                        موبایل:
+                    </span>
+
+                    <span id="detailMobile">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span class="info-label">
+                        تاریخ تولد:
+                    </span>
+
+                    <span id="detailBirthDate">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span class="info-label">
+                        وضعیت:
+                    </span>
+
+                    <span id="detailIsActive">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item full-width">
+
+                    <span class="info-label">
+                        آدرس:
+                    </span>
+
+                    <span id="detailAddress">
+                        -
+                    </span>
+
+                </div>
+
+
+                <div class="info-item full-width">
+
+                    <span class="info-label">
+                        توضیحات:
+                    </span>
+
+                    <span id="detailDescription">
+                        -
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 Summary
+                 ---------------------------------------------- -->
+
+            <div class="summary-row">
+
+                <div class="summary-box">
+
+                    <span id="studyCount"
+                          class="summary-number">
+
+                        0
+
+                    </span>
+
+                    <span class="summary-label">
+                        تعداد رادیولوژی
+                    </span>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <span id="totalImageCount"
+                          class="summary-number">
+
+                        0
+
+                    </span>
+
+                    <span class="summary-label">
+                        تعداد تصاویر
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- ----------------------------------------------
+                 Study List
+                 ---------------------------------------------- -->
+
+            <div class="subsection-header">
+
+                <h3>
+                    رادیولوژی‌ها
+                </h3>
+
+            </div>
+
+
+            <div id="studiesContainer"
+                 class="studies-container">
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             تصاویر یک Study
+             ================================================== -->
+
+
+
+        <!-- ==================================================
+             ثبت بیمار جدید
+             ================================================== -->
+
+        <section id="newPatientSection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+
+                <button id="cancelNewPatientButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        ثبت بیمار جدید
+                    </h2>
+
+                    <p>
+                        اطلاعات اصلی بیمار را وارد کنید.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="newPatientForm">
+
+                <div class="form-grid">
+
+
+                    <!-- نام -->
+
+                    <div class="form-field">
+
+                        <label for="newFirstName">
+                            نام
+                        </label>
+
+                        <input id="newFirstName"
+                               type="text"
+                               maxlength="100"
+                               required />
+
+                    </div>
+
+
+                    <!-- نام خانوادگی -->
+
+                    <div class="form-field">
+
+                        <label for="newLastName">
+                            نام خانوادگی
+                        </label>
+
+                        <input id="newLastName"
+                               type="text"
+                               maxlength="100"
+                               required />
+
+                    </div>
+
+
+                    <!-- کد ملی -->
+
+                    <div class="form-field">
+
+                        <label for="newNationalCode">
+                            کد ملی
+                        </label>
+
+                        <input id="newNationalCode"
+                               type="text"
+                               maxlength="20"
+                               inputmode="numeric"
+                               required />
+
+
+                        <small class="field-hint">
+                            فقط عدد
+                        </small>
+
+                    </div>
+
+
+                    <!-- موبایل -->
+
+                    <div class="form-field">
+
+                        <label for="newMobile">
+                            موبایل
+                        </label>
+
+                        <input id="newMobile"
+                               type="text"
+                               maxlength="30"
+                               inputmode="tel" />
+
+                    </div>
+
+
+                    <!-- تاریخ تولد -->
+
+                    <div class="form-field">
+
+                        <label for="newBirthDate">
+                            تاریخ تولد شمسی
+                        </label>
+
+                        <input id="newBirthDate"
+                               type="text"
+                               maxlength="10"
+                               inputmode="numeric"
+                               placeholder="مثال: 1363/07/15" />
+
+
+                        <small class="field-hint">
+                            فرمت: سال/ماه/روز
+                        </small>
+
+                    </div>
+
+
+                    <!-- جنسیت -->
+
+                    <div class="form-field">
+
+                        <label for="newGender">
+                            جنسیت
+                        </label>
+
+                        <select id="newGender">
+
+                            <option value="">
+                                انتخاب نشده
+                            </option>
+
+                            <option value="1">
+                                مرد
+                            </option>
+
+                            <option value="2">
+                                زن
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- آدرس -->
+
+                    <div class="form-field full-width">
+
+                        <label for="newAddress">
+                            آدرس
+                        </label>
+
+                        <textarea id="newAddress"
+                                  maxlength="500"
+                                  rows="3"></textarea>
+
+                    </div>
+
+
+                    <!-- توضیحات -->
+
+                    <div class="form-field full-width">
+
+                        <label for="newDescription">
+                            توضیحات
+                        </label>
+
+                        <textarea id="newDescription"
+                                  maxlength="1000"
+                                  rows="4"></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div id="newPatientStatus"
+                     class="status-message">
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button type="submit">
+                        ثبت بیمار
+                    </button>
+
+
+                    <button id="cancelNewPatientButtonBottom"
+                            type="button"
+                            class="secondary-button">
+
+                        انصراف
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- ==================================================
+             ویرایش بیمار
+             ================================================== -->
+
+        <section id="editPatientSection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+
+                <button id="cancelEditPatientButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        ویرایش بیمار
+                    </h2>
+
+                    <p>
+                        اطلاعات پرونده را اصلاح کنید.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="editPatientForm">
+
+                <div class="form-grid">
+
+
+                    <!-- نام -->
+
+                    <div class="form-field">
+
+                        <label for="editFirstName">
+                            نام
+                        </label>
+
+                        <input id="editFirstName"
+                               type="text"
+                               maxlength="100"
+                               required />
+
+                    </div>
+
+
+                    <!-- نام خانوادگی -->
+
+                    <div class="form-field">
+
+                        <label for="editLastName">
+                            نام خانوادگی
+                        </label>
+
+                        <input id="editLastName"
+                               type="text"
+                               maxlength="100"
+                               required />
+
+                    </div>
+
+
+                    <!-- کد ملی -->
+
+                    <div class="form-field">
+
+                        <label for="editNationalCode">
+                            کد ملی
+                        </label>
+
+                        <input id="editNationalCode"
+                               type="text"
+                               maxlength="20"
+                               inputmode="numeric"
+                               required />
+
+
+                        <small class="field-hint">
+                            تغییر کد ملی، نام فایل‌های تصاویر بیمار را نیز هماهنگ می‌کند.
+                        </small>
+
+                    </div>
+
+
+                    <!-- موبایل -->
+
+                    <div class="form-field">
+
+                        <label for="editMobile">
+                            موبایل
+                        </label>
+
+                        <input id="editMobile"
+                               type="text"
+                               maxlength="30"
+                               inputmode="tel" />
+
+                    </div>
+
+
+                    <!-- BirthDate -->
+
+                    <div class="form-field">
+
+                        <label for="editBirthDate">
+                            تاریخ تولد شمسی
+                        </label>
+
+                        <input id="editBirthDate"
+                               type="text"
+                               maxlength="10"
+                               inputmode="numeric"
+                               placeholder="مثال: 1363/07/15" />
+
+
+                        <small class="field-hint">
+                            فرمت: سال/ماه/روز
+                        </small>
+
+                    </div>
+
+
+                    <!-- Gender -->
+
+                    <div class="form-field">
+
+                        <label for="editGender">
+                            جنسیت
+                        </label>
+
+                        <select id="editGender">
+
+                            <option value="">
+                                انتخاب نشده
+                            </option>
+
+                            <option value="1">
+                                مرد
+                            </option>
+
+                            <option value="2">
+                                زن
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Address -->
+
+                    <div class="form-field full-width">
+
+                        <label for="editAddress">
+                            آدرس
+                        </label>
+
+                        <textarea id="editAddress"
+                                  maxlength="500"
+                                  rows="3"></textarea>
+
+                    </div>
+
+
+                    <!-- Description -->
+
+                    <div class="form-field full-width">
+
+                        <label for="editDescription">
+                            توضیحات
+                        </label>
+
+                        <textarea id="editDescription"
+                                  maxlength="1000"
+                                  rows="4"></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div id="editPatientStatus"
+                     class="status-message">
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button type="submit">
+                        ذخیره تغییرات
+                    </button>
+
+
+                    <button id="cancelEditPatientButtonBottom"
+                            type="button"
+                            class="secondary-button">
+
+                        انصراف
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- ==================================================
+             ثبت Study جدید
+             ================================================== -->
+
+        <section id="newStudySection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+
+                <button id="cancelNewStudyButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        ثبت رادیولوژی جدید
+                    </h2>
+
+                    <p>
+                        تاریخ و زمان پیش‌فرض، زمان فعلی است.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="newStudyForm">
+
+                <div class="form-grid">
+
+
+                    <!-- StudyType -->
+
+                    <div class="form-field">
+
+                        <label for="newStudyType">
+                            نوع رادیولوژی
+                        </label>
+
+                        <input id="newStudyType"
+                               type="text"
+                               maxlength="50"
+                               required />
+
+                    </div>
+
+
+                    <!-- BodyPart -->
+
+                    <div class="form-field">
+
+                        <label for="newBodyPart">
+                            ناحیه
+                        </label>
+
+                        <input id="newBodyPart"
+                               type="text"
+                               maxlength="100" />
+
+                    </div>
+
+
+                    <!-- StudyDate -->
+
+                    <div class="form-field">
+
+                        <label for="newStudyDate">
+                            تاریخ و زمان شمسی
+                        </label>
+
+                        <input id="newStudyDate"
+                               type="text"
+                               maxlength="16"
+                               placeholder="مثال: 1405/06/22 14:30" />
+
+
+                        <small class="field-hint">
+                            فرمت: سال/ماه/روز ساعت:دقیقه
+                        </small>
+
+                    </div>
+
+
+                    <!-- Description -->
+
+                    <div class="form-field full-width">
+
+                        <label for="newStudyDescription">
+                            توضیحات
+                        </label>
+
+                        <textarea id="newStudyDescription"
+                                  maxlength="1000"
+                                  rows="3"></textarea>
+
+                    </div>
+
+
+                    <!-- Report -->
+
+                    <div class="form-field full-width">
+
+                        <label for="newStudyReport">
+                            گزارش
+                        </label>
+
+                        <textarea id="newStudyReport"
+                                  rows="4"></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div id="newStudyStatus"
+                     class="status-message">
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button type="submit">
+                        ثبت رادیولوژی
+                    </button>
+
+
+                    <button id="cancelNewStudyButtonBottom"
+                            type="button"
+                            class="secondary-button">
+
+                        انصراف
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- ==================================================
+             ویرایش Study
+             ================================================== -->
+
+        <section id="editStudySection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+
+                <button id="cancelEditStudyButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        ویرایش رادیولوژی
+                    </h2>
+
+                    <p id="editStudySubtitle">
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="editStudyForm">
+
+                <div class="form-grid">
+
+
+                    <!-- StudyType -->
+
+                    <div class="form-field">
+
+                        <label for="editStudyType">
+                            نوع رادیولوژی
+                        </label>
+
+                        <input id="editStudyType"
+                               type="text"
+                               maxlength="50"
+                               required />
+
+                    </div>
+
+
+                    <!-- BodyPart -->
+
+                    <div class="form-field">
+
+                        <label for="editBodyPart">
+                            ناحیه
+                        </label>
+
+                        <input id="editBodyPart"
+                               type="text"
+                               maxlength="100" />
+
+                    </div>
+
+
+                    <!-- StudyDate -->
+
+                    <div class="form-field">
+
+                        <label for="editStudyDate">
+                            تاریخ و زمان شمسی
+                        </label>
+
+                        <input id="editStudyDate"
+                               type="text"
+                               maxlength="16" />
+
+
+                        <small class="field-hint">
+                            فرمت: سال/ماه/روز ساعت:دقیقه
+                        </small>
+
+                    </div>
+
+
+                    <!-- Description -->
+
+                    <div class="form-field full-width">
+
+                        <label for="editStudyDescription">
+                            توضیحات
+                        </label>
+
+                        <textarea id="editStudyDescription"
+                                  maxlength="1000"
+                                  rows="3"></textarea>
+
+                    </div>
+
+
+                    <!-- Report -->
+
+                    <div class="form-field full-width">
+
+                        <label for="editStudyReport">
+                            گزارش
+                        </label>
+
+                        <textarea id="editStudyReport"
+                                  rows="4"></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div id="editStudyStatus"
+                     class="status-message">
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button type="submit">
+                        ذخیره تغییرات
+                    </button>
+
+
+                    <button id="cancelEditStudyButtonBottom"
+                            type="button"
+                            class="secondary-button">
+
+                        انصراف
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- ==================================================
+             Upload تصویر
+             ================================================== -->
+
+        <section id="uploadImageSection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+
+                <button id="cancelUploadImageButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        افزودن تصویر
+                    </h2>
+
+                    <p id="uploadImageStudyInfo">
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="uploadImageForm">
+
+                <div class="form-field">
+
+                    <label for="imageFileInput">
+                        فایل تصویر
+                    </label>
+
+                    <input id="imageFileInput"
+                           type="file"
+                           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                           required />
+
+
+                    <small class="field-hint">
+                        JPG / JPEG / PNG — حداکثر 25MB
+                    </small>
+
+                </div>
+
+
+                <div id="uploadImageStatus"
+                     class="status-message">
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button type="submit">
+                        ذخیره تصویر
+                    </button>
+
+
+                    <button id="cancelUploadImageButtonBottom"
+                            type="button"
+                            class="secondary-button">
+
+                        انصراف
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- ==================================================
+             Merge Patient
+             ================================================== -->
+
+        <section id="mergePatientSection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+
+                <button id="cancelMergePatientButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+
+            <div class="section-header">
+
+                <div>
+
+                    <h2>
+                        ادغام بیمار
+                    </h2>
+
+                    <p>
+                        پرونده فعلی Source خواهد بود.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="warning-box">
+
+                این عملیات مهم است.
+                رادیولوژی‌ها و تصاویر Source به بیمار مقصد منتقل می‌شوند
+                و پرونده Source حذف خواهد شد.
+
+            </div>
+
+
+            <form id="mergePatientForm">
+
+                <div class="form-field">
+
+                    <label for="mergeTargetNationalCode">
+                        کد ملی بیمار مقصد
+                    </label>
+
+                    <input id="mergeTargetNationalCode"
+                           type="text"
+                           inputmode="numeric"
+                           maxlength="20"
+                           required />
+
+                </div>
+
+
+                <div id="mergePatientStatus"
+                     class="status-message">
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button type="submit"
+                            class="warning-button">
+
+                        بررسی و انجام Merge
+
+                    </button>
+
+
+                    <button id="cancelMergePatientButtonBottom"
+                            type="button"
+                            class="secondary-button">
+
+                        انصراف
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <!-- ======================================================
+         Image Modal
+         ====================================================== -->
+
+    <div id="imageModal"
+         class="image-modal hidden">
+
+        <div class="image-modal-content">
+
+            <button id="closeImageModalButton"
+                    type="button"
+                    class="modal-close-button">
+
+                ×
+
+            </button>
+
+
+            <img id="largeImage"
+                 alt="تصویر رادیولوژی" />
+
+
+            <div id="largeImageCaption"
+                 class="image-caption">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         Confirm Modal
+         ======================================================
+
+         جایگزین Confirm ساده Browser می‌شود.
+         ====================================================== -->
+
+    <div id="confirmModal"
+         class="confirm-overlay hidden">
+
+        <div class="confirm-dialog">
+
+            <div id="confirmIcon"
+                 class="confirm-icon">
+
+                !
+
+            </div>
+
+
+            <h3 id="confirmTitle">
+                تأیید عملیات
+            </h3>
+
+
+            <p id="confirmMessage">
+            </p>
+
+
+            <div class="confirm-actions">
+
+                <button id="confirmYesButton"
+                        type="button"
+                        class="danger-button">
+
+                    تأیید
+
+                </button>
+
+
+                <button id="confirmNoButton"
+                        type="button"
+                        class="secondary-button">
+
+                    انصراف
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         Toast Container
+         ======================================================
+
+         پیام‌های موفقیت / خطا / هشدار
+         بدون Alert ساده Browser نمایش داده می‌شوند.
+         ====================================================== -->
+
+    <div id="toastContainer"
+         class="toast-container">
+    </div>
+
+
+    <!-- ======================================================
+         JavaScript
+         ====================================================== -->
+
+    <script src="/js/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,321 @@
+@DentalRay.Api_HostAddress = http://localhost:5202
+
+GET {{DentalRay.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+GET {{DentalRay.Api_HostAddress}}/api/test/database
+Accept: application/json
+
+###
+
+POST {{DentalRay.Api_HostAddress}}/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "1234567890",
+  "firstName": "Test",
+  "lastName": "Patient",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": "09120000000",
+  "address": "Test Address",
+  "description": "DentalRay POST test"
+}
+
+###
+###
+POST {{DentalRay.Api_HostAddress}}/api/storagetest/study
+Accept: application/json
+
+###
+POST {{DentalRay.Api_HostAddress}}/api/radiologystudies
+Content-Type: application/json
+
+{
+  "patientID": 1,
+  "studyDate": "2026-09-13T12:00:00",
+  "studyType": "Panoramic",
+  "bodyPart": "Jaw",
+  "description": "DentalRay Study Test",
+  "report": null
+}
+### Create Merge Test Patient
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "9999999999",
+  "firstName": "Merge",
+  "lastName": "Source",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": null,
+  "address": null,
+  "description": "DentalRay Merge Test - Source",
+  "createdDate": "2026-01-01T00:00:00",
+  "modifiedDate": null,
+  "isActive": true
+}
+### Create Merge Test Study
+POST http://localhost:5202/api/RadiologyStudies
+Content-Type: application/json
+
+{
+  "patientID": 3,
+  "studyDate": "2026-09-13T12:30:00",
+  "studyType": "MergeTest",
+  "bodyPart": "Jaw",
+  "description": "Study belonging to Source patient - Merge Test",
+  "report": "This study should be transferred to Target patient.",
+  "createdDate": "2026-09-13T12:30:00",
+  "modifiedDate": null
+}
+### Create Merge Test Target Patient
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "8888888888",
+  "firstName": "Merge",
+  "lastName": "Target",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": null,
+  "address": null,
+  "description": "DentalRay Merge Test - Target",
+  "createdDate": "2026-01-01T00:00:00",
+  "modifiedDate": null,
+  "isActive": true
+}
+### Check Source Patient
+GET http://localhost:5202/api/patients/9999999999
+### Check Target Patient
+GET http://localhost:5202/api/patients/8888888888
+
+### Merge Test Patients
+POST http://localhost:5202/api/Patients/merge
+Content-Type: application/json
+
+{
+  "sourcePatientID": 3,
+  "targetPatientID": 4
+}
+
+  GET http://localhost:5202/api/patients/9999999999
+### Check Merged Study
+GET http://localhost:5202/api/RadiologyStudies/7
+
+  ### Create Test Study
+POST http://localhost:5202/api/storagetest/study
+
+
+### Save Image 1
+POST http://localhost:5202/api/storagetest/save/5
+Content-Type: multipart/form-data; boundary=DentalRayBoundary
+
+--DentalRayBoundary
+Content-Disposition: form-data; name="file"; filename="2.jpeg"
+Content-Type: image/jpeg
+
+< D:\2.jpeg
+--DentalRayBoundary--
+
+  ### Create Merge Source Patient
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "7777777777",
+  "firstName": "Merge",
+  "lastName": "Source2",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": null,
+  "address": null,
+  "description": "Comprehensive Merge Test - Source",
+  "createdDate": "2026-09-13T18:45:00",
+  "modifiedDate": null,
+  "isActive": true
+}
+
+### Create Merge Target Patient
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "6666666666",
+  "firstName": "Merge",
+  "lastName": "Target2",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": null,
+  "address": null,
+  "description": "Comprehensive Merge Test - Target",
+  "createdDate": "2026-09-13T18:46:00",
+  "modifiedDate": null,
+  "isActive": true
+}
+
+  ### Create Study for Merge Source
+POST http://localhost:5202/api/radiologystudies
+Content-Type: application/json
+
+{
+  "patientID": 5,
+  "studyDate": "2026-09-13T19:50:00",
+  "studyType": "MergeFinalTest",
+  "bodyPart": "Jaw",
+  "description": "Comprehensive Merge Test Study",
+  "report": "This study should move from Source patient to Target patient.",
+  "createdDate": "2026-09-13T19:50:00",
+  "modifiedDate": null
+}
+
+  ### Comprehensive Merge Test
+POST http://localhost:5202/api/patients/merge
+Content-Type: application/json
+
+{
+  "sourcePatientID": 5,
+  "targetPatientID": 6
+}
+
+### Comprehensive Backend Test - Create Patient
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "5555555555",
+  "firstName": "Backend",
+  "lastName": "Test",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": "09120000000",
+  "address": "Test Address",
+  "description": "DentalRay Comprehensive Backend Test"
+}
+
+### Comprehensive Backend Test - Update Patient
+PUT http://localhost:5202/api/patients/7
+Content-Type: application/json
+
+{
+  "nationalCode": "5555555555",
+  "firstName": "Backend",
+  "lastName": "Test Updated",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": "09121111111",
+  "address": "Updated Test Address",
+  "description": "DentalRay Comprehensive Backend Test - Updated"
+}
+
+  ### Comprehensive Backend Test - Create Study
+POST http://localhost:5202/api/radiologystudies
+Content-Type: application/json
+
+{
+  "patientID": 7,
+  "studyDate": "2026-09-13T20:16:00",
+  "studyType": "NationalCodeChangeTest",
+  "bodyPart": "Jaw",
+  "description": "Study for NationalCode rename test",
+  "report": null
+}
+
+  ### Comprehensive Backend Test - Change NationalCode
+PUT http://localhost:5202/api/patients/7
+Content-Type: application/json
+
+{
+  "nationalCode": "4444444444",
+  "firstName": "Backend",
+  "lastName": "Test Updated",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": "09121111111",
+  "address": "Updated Test Address",
+  "description": "NationalCode changed successfully"
+}
+
+  ### Comprehensive Backend Test - List Study Images
+GET http://localhost:5202/api/radiologyimages/study/8
+
+
+  ### Comprehensive Backend Test - List Patient Studies
+GET http://localhost:5202/api/radiologystudies/patient/9
+
+### Comprehensive Backend Test - Deactivate Patient
+PUT http://localhost:5202/api/patients/7/deactivate
+
+### Verify Deactivated Patient
+GET http://localhost:5202/api/patients/4444444444
+
+
+  ### Final Backend Merge Test - Source
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "3333333333",
+  "firstName": "Final",
+  "lastName": "MergeSource",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": null,
+  "address": null,
+  "description": "Final backend merge source"
+}
+
+### Final Backend Merge Test - Target
+POST http://localhost:5202/api/patients
+Content-Type: application/json
+
+{
+  "nationalCode": "2222222222",
+  "firstName": "Final",
+  "lastName": "MergeTarget",
+  "birthDate": null,
+  "gender": 1,
+  "mobile": null,
+  "address": null,
+  "description": "Final backend merge target"
+}
+
+  ### Final Backend Merge Test - Create Source Study
+POST http://localhost:5202/api/radiologystudies
+Content-Type: application/json
+
+{
+  "patientID": 8,
+  "studyDate": "2026-09-13T20:30:00",
+  "studyType": "FinalMergeTest",
+  "bodyPart": "Jaw",
+  "description": "Final backend merge study",
+  "report": "This study should move to PatientID 9."
+}
+
+### Final Backend Merge Test
+POST http://localhost:5202/api/patients/merge
+Content-Type: application/json
+
+{
+  "sourcePatientID": 8,
+  "targetPatientID": 9
+}
+
+GET http://localhost:5202/api/radiologystudies/9
+
+
+### List active patients
+GET http://localhost:5202/api/patients
+
+
+### Search patient by NationalCode
+GET http://localhost:5202/api/patients?search=4444444444
+
+### Include inactive patients
+
+GET http://localhost:5202/api/patients/9/details

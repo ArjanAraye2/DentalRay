@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DentalRay.Api/DentalRay.Api.csproj" />
+  <Project Path="DentalRay.SetupHelper/DentalRay.SetupHelper.csproj" Id="5896f5e3-9e4d-45ca-abfa-49b2b856b158" />
+</Solution>
