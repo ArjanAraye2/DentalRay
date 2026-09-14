@@ -177,6 +177,306 @@ function RunHiddenAndWait(
 ): Boolean; forward;
 
 
+
+function ExtractJsonStringValue(
+    JsonText: String;
+    KeyName: String
+): String;
+
+var
+    KeyPos:
+        Integer;
+
+    ColonPos:
+        Integer;
+
+    QuoteStart:
+        Integer;
+
+    QuoteEnd:
+        Integer;
+
+    I:
+        Integer;
+
+    Ch:
+        Char;
+
+    ValueText:
+        String;
+
+begin
+
+    Result :=
+        '';
+
+
+    KeyPos :=
+        Pos(
+            '"' + KeyName + '"',
+            JsonText
+        );
+
+
+    if KeyPos = 0 then
+    begin
+
+        Exit;
+
+    end;
+
+
+    ColonPos :=
+        Pos(
+            ':',
+            Copy(
+                JsonText,
+                KeyPos,
+                Length(JsonText) -
+                KeyPos +
+                1
+            )
+        );
+
+
+    if ColonPos = 0 then
+    begin
+
+        Exit;
+
+    end;
+
+
+    ColonPos :=
+        KeyPos +
+        ColonPos -
+        1;
+
+
+    QuoteStart :=
+        0;
+
+
+    for I :=
+        ColonPos + 1 to
+        Length(JsonText) do
+    begin
+
+        if JsonText[I] = '"' then
+        begin
+
+            QuoteStart :=
+                I + 1;
+
+            Break;
+
+        end;
+
+    end;
+
+
+    if QuoteStart = 0 then
+    begin
+
+        Exit;
+
+    end;
+
+
+    QuoteEnd :=
+        0;
+
+    I :=
+        QuoteStart;
+
+
+    while I <=
+        Length(JsonText) do
+    begin
+
+        Ch :=
+            JsonText[I];
+
+
+        if Ch = '"' then
+        begin
+
+            if (I = QuoteStart) or
+               (JsonText[I - 1] <> '\') then
+            begin
+
+                QuoteEnd :=
+                    I - 1;
+
+                Break;
+
+            end;
+
+        end;
+
+
+        I :=
+            I + 1;
+
+    end;
+
+
+    if QuoteEnd <
+        QuoteStart then
+    begin
+
+        Exit;
+
+    end;
+
+
+    ValueText :=
+        Copy(
+            JsonText,
+            QuoteStart,
+            QuoteEnd -
+            QuoteStart +
+            1
+        );
+
+
+    StringChangeEx(
+        ValueText,
+        '\\',
+        '\',
+        True
+    );
+
+
+    StringChangeEx(
+        ValueText,
+        '\"',
+        '"',
+        True
+    );
+
+
+    Result :=
+        ValueText;
+
+end;
+
+
+
+function DetectExistingRadiologyStoragePath(): String;
+
+var
+    ConfigFile:
+        String;
+
+    ConfigText:
+        AnsiString;
+
+    ExistingPath:
+        String;
+
+begin
+
+    Result :=
+        '';
+
+
+    // اولویت اول:
+    // اگر DentalRay قبلاً نصب شده باشد، مسیر واقعی ذخیره تصاویر
+    // از فایل تنظیمات موجود خوانده می‌شود.
+    ConfigFile :=
+        ExpandConstant(
+            '{commonappdata}\DentalRay\DentalRay.config.json'
+        );
+
+
+    if FileExists(
+        ConfigFile
+    ) then
+    begin
+
+        if LoadStringFromFile(
+            ConfigFile,
+            ConfigText
+        ) then
+        begin
+
+            ExistingPath :=
+                ExtractJsonStringValue(
+                    String(ConfigText),
+                    'RootPath'
+                );
+
+
+            if (
+                Trim(
+                    ExistingPath
+                ) <> ''
+            ) and
+               DirExists(
+                    ExistingPath
+               ) then
+            begin
+
+                Result :=
+                    ExistingPath;
+
+                Exit;
+
+            end;
+
+        end;
+
+    end;
+
+
+    // اولویت دوم:
+    // مسیر پیش‌فرض قدیمی را فقط اگر واقعاً وجود داشته باشد انتخاب کن.
+    if DirExists(
+        'D:\RadiologyData'
+    ) then
+    begin
+
+        Result :=
+            'D:\RadiologyData';
+
+        Exit;
+
+    end;
+
+
+    // اولویت سوم:
+    // اگر پوشه‌ای با نام RadiologyData روی چند درایو رایج وجود داشت،
+    // همان مسیر موجود را پیشنهاد بده.
+    if DirExists(
+        'E:\RadiologyData'
+    ) then
+    begin
+
+        Result :=
+            'E:\RadiologyData';
+
+        Exit;
+
+    end;
+
+
+    if DirExists(
+        'F:\RadiologyData'
+    ) then
+    begin
+
+        Result :=
+            'F:\RadiologyData';
+
+        Exit;
+
+    end;
+
+end;
+
+
+
 // ============================================================
 // InitializeWizard
 // ============================================================
@@ -297,7 +597,18 @@ begin
 
 
     StoragePage.Values[0] :=
-        'D:\RadiologyData';
+        DetectExistingRadiologyStoragePath();
+
+
+    if Trim(
+        StoragePage.Values[0]
+    ) = '' then
+    begin
+
+        StoragePage.Values[0] :=
+            'D:\RadiologyData';
+
+    end;
 
 end;
 
