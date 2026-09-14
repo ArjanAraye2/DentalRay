@@ -43,6 +43,15 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 
+; Helper و SQL Script قبل از مرحله کپی اصلی نیز برای تشخیص و
+; اعتبارسنجی SQL Server در {tmp} در دسترس قرار می‌گیرند.
+Source: "..\Publish\DentalRay.SetupHelper\DentalRay.SetupHelper.exe"; \
+    Flags: dontcopy noencryption
+
+Source: "..\Publish\DentalRay.SetupHelper\Database\DentalRay.Database.Install.sql"; \
+    Flags: dontcopy noencryption
+
+
 ; ============================================================
 ; DentalRay Main Application
 ; ============================================================
@@ -171,20 +180,37 @@ var
 
 procedure InitializeWizard;
 
+var
+    ResultCode:
+        Integer;
+
+    DetectFile:
+        String;
+
+    DetectedServer:
+        String;
+
 begin
 
-    // --------------------------------------------------------
-    // SQL Server
-    // --------------------------------------------------------
+    // Helper را قبل از ورود کاربر به مراحل اصلی استخراج می‌کنیم
+    // تا بتوانیم SQL Serverهای نصب‌شده را بررسی کنیم.
+    ExtractTemporaryFile(
+        'DentalRay.SetupHelper.exe'
+    );
+
+    ExtractTemporaryFile(
+        'DentalRay.Database.Install.sql'
+    );
+
 
     SqlPage :=
         CreateInputQueryPage(
             wpSelectDir,
             'SQL Server',
-            'SQL Server مورد استفاده DentalRay را مشخص کنید.',
-            'نام Server و Instance را وارد کنید.' +
+            'انتخاب SQL Server',
+            'DentalRay ابتدا Instanceهای محلی SQL Server را بررسی می‌کند.' +
             CRLF +
-            'مثال: .\DENTALRAY'
+            'در صورت نیاز می‌توانید مقدار شناسایی‌شده را تغییر دهید.'
         );
 
 
@@ -198,10 +224,51 @@ begin
         '.\DENTALRAY';
 
 
+    // --------------------------------------------------------
+    // Detect local SQL Server instance
+    // --------------------------------------------------------
 
-    // --------------------------------------------------------
-    // Radiology Storage
-    // --------------------------------------------------------
+    DetectFile :=
+        ExpandConstant(
+            '{tmp}\DentalRay.SqlDetect.ini'
+        );
+
+
+    if RunHiddenAndWait(
+        ExpandConstant(
+            '{tmp}\DentalRay.SetupHelper.exe'
+        ),
+        '--detect-output "' +
+        DetectFile +
+        '"',
+        ExpandConstant('{tmp}'),
+        ResultCode
+    ) then
+    begin
+
+        DetectedServer :=
+            GetIniString(
+                'Sql',
+                'Server',
+                '',
+                DetectFile
+            );
+
+
+        if Trim(
+            DetectedServer
+        ) <> '' then
+        begin
+
+            SqlPage.Values[0] :=
+                Trim(
+                    DetectedServer
+                );
+
+        end;
+
+    end;
+
 
     StoragePage :=
         CreateInputDirPage(
@@ -239,36 +306,73 @@ function NextButtonClick(
     CurPageID: Integer
 ): Boolean;
 
+var
+    ResultCode:
+        Integer;
+
+    SqlServer:
+        String;
+
 begin
 
     Result :=
         True;
 
 
-
-    // --------------------------------------------------------
-    // SQL Server validation
-    // --------------------------------------------------------
-
     if CurPageID =
         SqlPage.ID then
     begin
 
-        if Trim(
-            SqlPage.Values[0]
-        ) = '' then
+        SqlServer :=
+            Trim(
+                SqlPage.Values[0]
+            );
+
+
+        if SqlServer = '' then
         begin
 
             MsgBox(
-                'لطفاً نام SQL Server را وارد کنید.',
+                'SQL Server / Instance را وارد کنید.',
                 mbError,
                 MB_OK
             );
 
-
             Result :=
                 False;
 
+            Exit;
+
+        end;
+
+
+        // فقط وجود نام Instance کافی نیست؛ اتصال واقعی باید
+        // قبل از اجازه ادامه نصب موفق باشد.
+        if not RunHiddenAndWait(
+            ExpandConstant(
+                '{tmp}\DentalRay.SetupHelper.exe'
+            ),
+            '--probe --server "' +
+            SqlServer +
+            '"',
+            ExpandConstant('{tmp}'),
+            ResultCode
+        ) or
+           (ResultCode <> 0) then
+        begin
+
+            MsgBox(
+                'اتصال به SQL Server برقرار نشد.' +
+                CRLF +
+                'نام Server/Instance و Windows Authentication را بررسی کنید.' +
+                CRLF +
+                'نصب تا برقراری اتصال ادامه پیدا نمی‌کند.',
+                mbError,
+                MB_OK
+            );
+
+            Result :=
+                False;
 
             Exit;
 
@@ -276,11 +380,6 @@ begin
 
     end;
 
-
-
-    // --------------------------------------------------------
-    // Storage path validation
-    // --------------------------------------------------------
 
     if CurPageID =
         StoragePage.ID then
@@ -292,17 +391,13 @@ begin
         begin
 
             MsgBox(
-                'لطفاً مسیر ذخیره تصاویر را مشخص کنید.',
+                'مسیر ذخیره تصاویر را مشخص کنید.',
                 mbError,
                 MB_OK
             );
 
-
             Result :=
                 False;
-
-
-            Exit;
 
         end;
 
@@ -439,9 +534,11 @@ function PrepareToInstall(
 ): String;
 
 var
-
     ResultCode:
         Integer;
+
+    SqlServer:
+        String;
 
 begin
 
@@ -449,9 +546,55 @@ begin
         '';
 
 
-    // --------------------------------------------------------
-    // Stop old Service
-    // --------------------------------------------------------
+    SqlServer :=
+        Trim(
+            SqlPage.Values[0]
+        );
+
+
+    // Database باید قبل از ورود Setup به مرحله جایگزینی فایل‌ها
+    // با موفقیت ایجاد/Upgrade شود.
+    if not RunHiddenAndWait(
+        ExpandConstant(
+            '{tmp}\DentalRay.SetupHelper.exe'
+        ),
+        '--server "' +
+        SqlServer +
+        '" --script "' +
+        ExpandConstant(
+            '{tmp}\DentalRay.Database.Install.sql'
+        ) +
+        '"',
+        ExpandConstant('{tmp}'),
+        ResultCode
+    ) then
+    begin
+
+        Result :=
+            'امکان اجرای آماده‌سازی دیتابیس وجود ندارد.';
+
+        Exit;
+
+    end;
+
+
+    if ResultCode <> 0 then
+    begin
+
+        Result :=
+            'آماده‌سازی یا بروزرسانی دیتابیس انجام نشد.' +
+            CRLF +
+            'SetupHelper Exit Code: ' +
+            IntToStr(
+                ResultCode
+            ) +
+            CRLF +
+            'نصب متوقف شد و فایل‌های برنامه جایگزین نشدند.';
+
+        Exit;
+
+    end;
+
 
     RunHiddenAndWait(
         ExpandConstant(
@@ -467,11 +610,6 @@ begin
         1000
     );
 
-
-
-    // --------------------------------------------------------
-    // Delete old Service registration
-    // --------------------------------------------------------
 
     RunHiddenAndWait(
         ExpandConstant(
@@ -563,88 +701,7 @@ begin
 
 
 
-    // ========================================================
-    // 1. Database Setup
-    // ========================================================
-
-    HelperDirectory :=
-        ExpandConstant(
-            '{tmp}\DentalRay.SetupHelper'
-        );
-
-
-    HelperExe :=
-        HelperDirectory +
-        '\DentalRay.SetupHelper.exe';
-
-
-
-    // --------------------------------------------------------
-    // Check SetupHelper
-    // --------------------------------------------------------
-
-    if not FileExists(
-        HelperExe
-    ) then
-    begin
-
-        RaiseException(
-            'DentalRay SetupHelper پیدا نشد.'
-        );
-
-    end;
-
-
-
-    // --------------------------------------------------------
-    // Run SetupHelper
-    //
-    // SetupHelper:
-    //
-    // - به SQL Server وصل می‌شود.
-    // - Database را ایجاد / آماده می‌کند.
-    // - Database Script را اجرا می‌کند.
-    // - دسترسی NT AUTHORITY\SYSTEM را تنظیم می‌کند.
-    //
-    // --------------------------------------------------------
-
-    if not RunHiddenAndWait(
-        HelperExe,
-        '--server "' +
-        SqlServer +
-        '"',
-        HelperDirectory,
-        ResultCode
-    ) then
-    begin
-
-        RaiseException(
-            'SetupHelper اجرا نشد.'
-        );
-
-    end;
-
-
-
-    // --------------------------------------------------------
-    // Check SetupHelper Exit Code
-    // --------------------------------------------------------
-
-    if ResultCode <> 0 then
-    begin
-
-        RaiseException(
-            'آماده‌سازی دیتابیس انجام نشد.' +
-            CRLF +
-            'SetupHelper Exit Code: ' +
-            IntToStr(
-                ResultCode
-            )
-        );
-
-    end;
-
-
+    // Database قبلاً در PrepareToInstall با موفقیت Upgrade شده است.
 
     // ========================================================
     // 2. Radiology Storage
