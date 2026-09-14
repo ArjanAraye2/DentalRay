@@ -1,5 +1,5 @@
 #define MyAppName "DentalRay"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Rahim Namazi"
 #define MyAppExeName "DentalRay.Api.exe"
 
@@ -24,7 +24,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 OutputDir=Output
-OutputBaseFilename=DentalRay_Setup_1.0.0
+OutputBaseFilename=DentalRay_Setup_1.0.1
 
 Compression=lzma2
 SolidCompression=yes
