@@ -639,8 +639,35 @@ namespace DentalRay.Api.Controllers
 
 
                 // ------------------------------------------------
+                // اعتبارسنجی مطب و دندانپزشک
+                // ------------------------------------------------
+                if (request.OrganizationID.HasValue)
+                {
+                    if (!await _context.Organizations.AnyAsync(x => x.OrganizationID == request.OrganizationID.Value && x.IsActive))
+                        return BadRequest(new { success = false, message = "Organization not found or inactive." });
+                }
+
+                if (request.DentistPersonID.HasValue)
+                {
+                    if (!request.OrganizationID.HasValue)
+                        return BadRequest(new { success = false, message = "Organization is required when a dentist is selected." });
+
+                    bool validDentist = await _context.OrganizationMembers.AnyAsync(m =>
+                        m.OrganizationID == request.OrganizationID.Value &&
+                        m.PersonID == request.DentistPersonID.Value && m.IsActive)
+                        && await _context.Persons.AnyAsync(p => p.PersonID == request.DentistPersonID.Value && p.IsActive);
+
+                    if (!validDentist)
+                        return BadRequest(new { success = false, message = "Selected dentist does not belong to this organization." });
+                }
+
+
+                // ------------------------------------------------
                 // Update اطلاعات
                 // ------------------------------------------------
+
+                study.OrganizationID = request.OrganizationID;
+                study.DentistPersonID = request.DentistPersonID;
 
                 study.StudyDate =
                     request.StudyDate;
