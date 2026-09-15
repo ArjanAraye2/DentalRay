@@ -344,3 +344,97 @@ IF OBJECT_ID(N'dbo.tblUsers', N'U') IS NULL
 IF OBJECT_ID(N'dbo.tblAuditLogs', N'U') IS NULL
     THROW 51004, 'dbo.tblAuditLogs is missing after initialization.', 1;
 GO
+
+
+/* ============================================================
+   Version 3 - Clinic and dentist MVP
+   Upgrade-safe: existing patient/study/image data is preserved.
+   ============================================================ */
+USE [DentalRay];
+GO
+
+IF OBJECT_ID(N'dbo.tblOrganizations', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblOrganizations
+    (
+        OrganizationID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblOrganizations PRIMARY KEY,
+        OrganizationGuid UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_tblOrganizations_Guid DEFAULT NEWID(),
+        OrganizationType TINYINT NOT NULL CONSTRAINT DF_tblOrganizations_Type DEFAULT (1),
+        Name NVARCHAR(150) NOT NULL,
+        Phone NVARCHAR(30) NULL,
+        Mobile NVARCHAR(20) NULL,
+        Address NVARCHAR(500) NULL,
+        IsActive BIT NOT NULL CONSTRAINT DF_tblOrganizations_IsActive DEFAULT (1),
+        CreatedDate DATETIME2(0) NOT NULL CONSTRAINT DF_tblOrganizations_CreatedDate DEFAULT SYSDATETIME(),
+        ModifiedDate DATETIME2(0) NULL
+    );
+END;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblOrganizations_Guid' AND object_id=OBJECT_ID(N'dbo.tblOrganizations'))
+    CREATE UNIQUE INDEX UX_tblOrganizations_Guid ON dbo.tblOrganizations(OrganizationGuid);
+GO
+
+IF OBJECT_ID(N'dbo.tblPersons', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblPersons
+    (
+        PersonID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblPersons PRIMARY KEY,
+        PersonGuid UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_tblPersons_Guid DEFAULT NEWID(),
+        FirstName NVARCHAR(100) NOT NULL,
+        LastName NVARCHAR(100) NOT NULL,
+        PositionName NVARCHAR(100) NOT NULL CONSTRAINT DF_tblPersons_Position DEFAULT N'دندانپزشک',
+        MedicalCouncilCode NVARCHAR(30) NULL,
+        Mobile NVARCHAR(20) NULL,
+        IsActive BIT NOT NULL CONSTRAINT DF_tblPersons_IsActive DEFAULT (1),
+        CreatedDate DATETIME2(0) NOT NULL CONSTRAINT DF_tblPersons_CreatedDate DEFAULT SYSDATETIME(),
+        ModifiedDate DATETIME2(0) NULL
+    );
+END;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblPersons_Guid' AND object_id=OBJECT_ID(N'dbo.tblPersons'))
+    CREATE UNIQUE INDEX UX_tblPersons_Guid ON dbo.tblPersons(PersonGuid);
+GO
+
+IF OBJECT_ID(N'dbo.tblOrganizationMembers', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblOrganizationMembers
+    (
+        OrganizationMemberID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblOrganizationMembers PRIMARY KEY,
+        OrganizationID INT NOT NULL,
+        PersonID INT NOT NULL,
+        IsActive BIT NOT NULL CONSTRAINT DF_tblOrganizationMembers_IsActive DEFAULT (1),
+        CreatedDate DATETIME2(0) NOT NULL CONSTRAINT DF_tblOrganizationMembers_CreatedDate DEFAULT SYSDATETIME(),
+        ModifiedDate DATETIME2(0) NULL,
+        CONSTRAINT FK_tblOrganizationMembers_Organizations FOREIGN KEY(OrganizationID) REFERENCES dbo.tblOrganizations(OrganizationID),
+        CONSTRAINT FK_tblOrganizationMembers_Persons FOREIGN KEY(PersonID) REFERENCES dbo.tblPersons(PersonID)
+    );
+END;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblOrganizationMembers_Organization_Person' AND object_id=OBJECT_ID(N'dbo.tblOrganizationMembers'))
+    CREATE UNIQUE INDEX UX_tblOrganizationMembers_Organization_Person ON dbo.tblOrganizationMembers(OrganizationID, PersonID);
+GO
+
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'OrganizationID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD OrganizationID INT NULL;
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'DentistPersonID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD DentistPersonID INT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_Organizations')
+    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_Organizations FOREIGN KEY(OrganizationID) REFERENCES dbo.tblOrganizations(OrganizationID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_DentistPerson')
+    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_DentistPerson FOREIGN KEY(DentistPersonID) REFERENCES dbo.tblPersons(PersonID);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_OrganizationID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_OrganizationID ON dbo.tblRadiologyStudies(OrganizationID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_DentistPersonID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_DentistPersonID ON dbo.tblRadiologyStudies(DentistPersonID);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=3)
+    INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description) VALUES(3, N'Clinic, dentist and study ownership MVP');
+GO
