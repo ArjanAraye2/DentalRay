@@ -17,6 +17,9 @@ namespace DentalRay.Api.Data
 
         public DbSet<AppUser> Users { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Organization> Organizations { get; set; }
+        public DbSet<Person> Persons { get; set; }
+        public DbSet<OrganizationMember> OrganizationMembers { get; set; }
 
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
@@ -44,6 +47,30 @@ namespace DentalRay.Api.Data
 
             modelBuilder.Entity<AuditLog>()
                 .HasIndex(log => log.UserID);
+
+            modelBuilder.Entity<Organization>()
+                .HasIndex(x => x.OrganizationGuid)
+                .IsUnique();
+
+            modelBuilder.Entity<Person>()
+                .HasIndex(x => x.PersonGuid)
+                .IsUnique();
+
+            modelBuilder.Entity<OrganizationMember>()
+                .HasIndex(x => new { x.OrganizationID, x.PersonID })
+                .IsUnique();
+
+            modelBuilder.Entity<OrganizationMember>()
+                .HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<OrganizationMember>()
+                .HasOne<Person>()
+                .WithMany()
+                .HasForeignKey(x => x.PersonID)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }
