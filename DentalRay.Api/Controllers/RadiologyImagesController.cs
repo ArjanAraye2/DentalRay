@@ -96,7 +96,8 @@ namespace DentalRay.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> UploadImage(
             int studyID,
-            IFormFile file)
+            IFormFile file,
+            [FromForm] string? description = null)
         {
             try
             {
@@ -406,6 +407,9 @@ namespace DentalRay.Api.Controllers
 
                         ContentType =
                             contentType,
+
+                        Description =
+                            string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
 
                         CreatedDate =
                             DateTime.Now
@@ -719,6 +723,7 @@ namespace DentalRay.Api.Controllers
                         i.RelativePath,
 
                         i.ContentType,
+                        i.Description,
 
                         i.CreatedDate
                     })
