@@ -423,12 +423,18 @@ const studyDiscountValue = byId("studyDiscountValue");
 const studyDiscountValueLabel = byId("studyDiscountValueLabel");
 
 const studyPaymentForm = byId("studyPaymentForm");
+const studyPaymentID = byId("studyPaymentID");
 const studyPaymentAmount = byId("studyPaymentAmount");
 const studyPaymentMethod = byId("studyPaymentMethod");
 const studyPaymentDate = byId("studyPaymentDate");
 const studyPaymentReference = byId("studyPaymentReference");
 const studyPaymentDescription = byId("studyPaymentDescription");
+const saveStudyPaymentButton = byId("saveStudyPaymentButton");
+const cancelStudyPaymentEditButton = byId("cancelStudyPaymentEditButton");
 const studyPaymentsList = byId("studyPaymentsList");
+const loadStudyFinancialAuditButton = byId("loadStudyFinancialAuditButton");
+const studyFinancialAuditPanel = byId("studyFinancialAuditPanel");
+const studyFinancialAuditList = byId("studyFinancialAuditList");
 
 
 // ============================================================
@@ -859,11 +865,23 @@ function getApiError(
         "Action amount cannot be negative.":
             "مبلغ اقدام نمی‌تواند منفی باشد.",
 
+        "Action amount must be a whole number of rials.":
+            "مبلغ اقدام باید به ریال کامل وارد شود.",
+
         "Action description cannot exceed 1000 characters.":
             "توضیح اقدام نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.",
 
         "Payment amount must be greater than zero.":
             "مبلغ پرداخت باید بیشتر از صفر باشد.",
+
+        "Payment amount must be a whole number of rials.":
+            "مبلغ پرداخت باید به ریال کامل وارد شود.",
+
+        "Study payment not found.":
+            "پرداخت پیدا نشد.",
+
+        "Discount amount must be a whole number of rials.":
+            "مبلغ تخفیف باید به ریال کامل وارد شود.",
 
         "Invalid payment method.":
             "روش پرداخت معتبر نیست.",
@@ -1770,6 +1788,31 @@ function renderFinancialPayments(payments) {
         }
 
         row.appendChild(content);
+
+        if (window.DentalRaySecurity?.getCurrentUser()?.role === "Admin") {
+            const actionsContainer = document.createElement("div");
+            actionsContainer.className = "financial-item-actions";
+
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "secondary-button";
+            editButton.textContent = "ویرایش";
+            editButton.addEventListener("click", () => {
+                studyPaymentID.value = String(item.studyPaymentID);
+                studyPaymentAmount.value = formatMoney(item.amount);
+                studyPaymentMethod.value = String(item.paymentMethod);
+                studyPaymentDate.value = formatPersianDateTimeForInput(item.paymentDate);
+                studyPaymentReference.value = item.referenceNumber || "";
+                studyPaymentDescription.value = item.description || "";
+                saveStudyPaymentButton.textContent = "ذخیره اصلاح پرداخت";
+                cancelStudyPaymentEditButton.classList.remove("hidden");
+                studyPaymentAmount.focus();
+            });
+
+            actionsContainer.appendChild(editButton);
+            row.appendChild(actionsContainer);
+        }
+
         studyPaymentsList.appendChild(row);
     });
 }
@@ -1808,12 +1851,106 @@ async function loadStudyFinancials() {
 }
 
 
+async function loadStudyFinancialAudit() {
+    const response = await fetch(`/api/studyfinancials/${selectedStudyID}/audit`);
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(getApiError(result, "دریافت تاریخچه مالی انجام نشد."));
+    }
+
+    studyFinancialAuditList.innerHTML = "";
+
+    if (!result.entries || result.entries.length === 0) {
+        studyFinancialAuditList.innerHTML = '<div class="financial-empty">هنوز رویداد مالی ثبت نشده است.</div>';
+    }
+    else {
+        result.entries.forEach(entry => {
+            const row = document.createElement("div");
+            row.className = "financial-list-item financial-audit-entry";
+
+            const content = document.createElement("div");
+            content.className = "financial-item-content";
+
+            const title = document.createElement("strong");
+            title.textContent = `${financialAuditEntityTitle(entry.entityType)} — ${financialAuditOperationTitle(entry.operation)}`;
+            content.appendChild(title);
+
+            const meta = document.createElement("small");
+            meta.textContent = `${formatPersianDateTime(entry.createdDate)}${entry.userName ? ` — ${entry.userName}` : ""}`;
+            content.appendChild(meta);
+
+            if (entry.notes) {
+                const notes = document.createElement("small");
+                notes.textContent = entry.notes;
+                content.appendChild(notes);
+            }
+
+            const details = document.createElement("details");
+            const summary = document.createElement("summary");
+            summary.textContent = "مشاهده مقادیر قبل و بعد";
+            details.appendChild(summary);
+
+            const before = document.createElement("pre");
+            before.textContent = `قبل:\n${prettyFinancialAuditJson(entry.beforeJson)}`;
+            details.appendChild(before);
+
+            const after = document.createElement("pre");
+            after.textContent = `بعد:\n${prettyFinancialAuditJson(entry.afterJson)}`;
+            details.appendChild(after);
+
+            content.appendChild(details);
+            row.appendChild(content);
+            studyFinancialAuditList.appendChild(row);
+        });
+    }
+
+    studyFinancialAuditPanel.classList.remove("hidden");
+    loadStudyFinancialAuditButton.textContent = "پنهان کردن تاریخچه";
+}
+
+
+function prettyFinancialAuditJson(value) {
+    if (!value) return "—";
+
+    try {
+        return JSON.stringify(JSON.parse(value), null, 2);
+    }
+    catch {
+        return value;
+    }
+}
+
+
+function financialAuditEntityTitle(value) {
+    return ({
+        StudyAction: "اقدام مالی",
+        StudyPayment: "پرداخت",
+        StudyDiscount: "تخفیف"
+    })[value] || "رویداد مالی";
+}
+
+
+function financialAuditOperationTitle(value) {
+    return ({
+        Created: "ثبت",
+        Updated: "ویرایش",
+        Deleted: "حذف",
+        Recalculated: "محاسبه مجدد"
+    })[value] || value || "تغییر";
+}
+
+
 async function openStudyFinancials(study) {
     selectedStudyID = study.studyID;
     selectedStudy = study;
     resetStudyActionForm();
-    studyPaymentForm.reset();
-    studyPaymentDate.value = formatPersianDateTimeForInput(new Date());
+    resetStudyPaymentForm();
+    studyFinancialAuditPanel.classList.add("hidden");
+    loadStudyFinancialAuditButton.classList.toggle(
+        "hidden",
+        window.DentalRaySecurity?.getCurrentUser()?.role !== "Admin"
+    );
     financialStudySubtitle.textContent =
         `رادیولوژی شماره ${study.studyID} — ${study.studyType || "بدون عنوان"}`;
 
@@ -1935,29 +2072,66 @@ async function saveStudyPayment() {
         throw new Error("تاریخ پرداخت را وارد کنید.");
     }
 
+    const paymentID = Number(studyPaymentID.value || 0);
     const payload = {
         amount: parseMoney(studyPaymentAmount.value, false),
         paymentMethod: Number(studyPaymentMethod.value),
         paymentDate,
         referenceNumber: emptyToNull(studyPaymentReference.value),
-        description: emptyToNull(studyPaymentDescription.value)
+        description: emptyToNull(studyPaymentDescription.value),
+        confirmOverpayment: false
     };
 
-    const response = await fetch(`/api/studyfinancials/${selectedStudyID}/payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
-    const result = await response.json();
+    const url = paymentID
+        ? `/api/studyfinancials/${selectedStudyID}/payments/${paymentID}`
+        : `/api/studyfinancials/${selectedStudyID}/payments`;
+    const method = paymentID ? "PUT" : "POST";
 
-    if (!response.ok) {
-        throw new Error(getApiError(result, "ثبت پرداخت انجام نشد."));
+    const sendPayment = async confirmOverpayment => {
+        const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, confirmOverpayment })
+        });
+        return { response, result: await response.json() };
+    };
+
+    let { response, result } = await sendPayment(false);
+
+    if (response.status === 409 && result.confirmationRequired) {
+        const confirmed = await askConfirmation({
+            title: "تأیید اضافه‌پرداخت",
+            message: `مبلغ پرداخت (${formatMoney(result.requestedAmount)} ریال) از مانده بدهی (${formatMoney(result.balanceAmount)} ریال) بیشتر است؛ مبلغ اضافه ${formatMoney(result.excessAmount)} ریال خواهد بود. با این حال ثبت شود؟`,
+            confirmText: "ثبت با اضافه‌پرداخت",
+            danger: false
+        });
+
+        if (!confirmed) {
+            setFormStatus(financialStatus, "ثبت پرداخت لغو شد.", false);
+            return;
+        }
+
+        ({ response, result } = await sendPayment(true));
     }
 
-    studyPaymentForm.reset();
-    studyPaymentDate.value = formatPersianDateTimeForInput(new Date());
+    if (!response.ok) {
+        throw new Error(getApiError(result, paymentID
+            ? "اصلاح پرداخت انجام نشد."
+            : "ثبت پرداخت انجام نشد."));
+    }
+
+    resetStudyPaymentForm();
     await loadStudyFinancials();
-    showToast("پرداخت با موفقیت ثبت شد.", "success");
+    showToast(paymentID ? "پرداخت با موفقیت اصلاح شد." : "پرداخت با موفقیت ثبت شد.", "success");
+}
+
+
+function resetStudyPaymentForm() {
+    studyPaymentForm.reset();
+    studyPaymentID.value = "";
+    studyPaymentDate.value = formatPersianDateTimeForInput(new Date());
+    saveStudyPaymentButton.textContent = "ثبت پرداخت";
+    cancelStudyPaymentEditButton.classList.add("hidden");
 }
 
 
@@ -5653,6 +5827,27 @@ studyPaymentForm.addEventListener("submit", async event => {
     }
     catch (error) {
         setFormStatus(financialStatus, error.message, true);
+    }
+});
+
+cancelStudyPaymentEditButton.addEventListener("click", resetStudyPaymentForm);
+
+loadStudyFinancialAuditButton.addEventListener("click", async () => {
+    if (!studyFinancialAuditPanel.classList.contains("hidden")) {
+        studyFinancialAuditPanel.classList.add("hidden");
+        loadStudyFinancialAuditButton.textContent = "تاریخچه مالی";
+        return;
+    }
+
+    try {
+        loadStudyFinancialAuditButton.disabled = true;
+        await loadStudyFinancialAudit();
+    }
+    catch (error) {
+        showToast(error.message, "error");
+    }
+    finally {
+        loadStudyFinancialAuditButton.disabled = false;
     }
 });
 

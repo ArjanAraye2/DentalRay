@@ -519,3 +519,64 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=4)
     INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description) VALUES(4, N'Study actions, payments and discounts');
 GO
+
+/* ============================================================
+   Version 5 - Immutable study financial audit history
+   ============================================================ */
+IF COL_LENGTH(N'dbo.tblStudyPayments', N'ModifiedDate') IS NULL
+    ALTER TABLE dbo.tblStudyPayments ADD ModifiedDate DATETIME2(0) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.tblStudyFinancialAuditLogs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblStudyFinancialAuditLogs
+    (
+        StudyFinancialAuditLogID BIGINT IDENTITY(1,1) NOT NULL
+            CONSTRAINT PK_tblStudyFinancialAuditLogs PRIMARY KEY,
+        StudyID INT NOT NULL,
+        EntityType NVARCHAR(30) NOT NULL,
+        EntityID INT NULL,
+        Operation NVARCHAR(30) NOT NULL,
+        UserID INT NULL,
+        UserName NVARCHAR(50) NULL,
+        BeforeJson NVARCHAR(MAX) NULL,
+        AfterJson NVARCHAR(MAX) NULL,
+        Notes NVARCHAR(500) NULL,
+        CreatedDate DATETIME2(0) NOT NULL
+            CONSTRAINT DF_tblStudyFinancialAuditLogs_CreatedDate DEFAULT SYSDATETIME()
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_tblStudyFinancialAuditLogs_StudyID_CreatedDate'
+      AND object_id = OBJECT_ID(N'dbo.tblStudyFinancialAuditLogs'))
+    CREATE INDEX IX_tblStudyFinancialAuditLogs_StudyID_CreatedDate
+        ON dbo.tblStudyFinancialAuditLogs(StudyID, CreatedDate);
+GO
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_tblStudyFinancialAuditLogs_EntityType_EntityID'
+      AND object_id = OBJECT_ID(N'dbo.tblStudyFinancialAuditLogs'))
+    CREATE INDEX IX_tblStudyFinancialAuditLogs_EntityType_EntityID
+        ON dbo.tblStudyFinancialAuditLogs(EntityType, EntityID);
+GO
+
+-- Keep history if its study or payment is later removed; reject UPDATE and DELETE.
+IF OBJECT_ID(N'dbo.trg_tblStudyFinancialAuditLogs_Immutable', N'TR') IS NULL
+    EXEC(N'CREATE TRIGGER dbo.trg_tblStudyFinancialAuditLogs_Immutable
+        ON dbo.tblStudyFinancialAuditLogs
+        INSTEAD OF UPDATE, DELETE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            ;THROW 51000, ''Financial audit history is immutable.'', 1;
+        END');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=5)
+    INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description)
+        VALUES(5, N'Immutable study financial history and payment editing');
+GO

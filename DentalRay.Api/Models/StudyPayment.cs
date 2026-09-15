@@ -16,5 +16,6 @@ namespace DentalRay.Api.Models
         [MaxLength(100)] public string? ReferenceNumber { get; set; }
         [MaxLength(1000)] public string? Description { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime? ModifiedDate { get; set; }
     }
 }

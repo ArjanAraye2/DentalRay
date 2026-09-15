@@ -22,6 +22,7 @@ namespace DentalRay.Api.Data
         public DbSet<OrganizationMember> OrganizationMembers { get; set; }
         public DbSet<StudyAction> StudyActions { get; set; }
         public DbSet<StudyPayment> StudyPayments { get; set; }
+        public DbSet<StudyFinancialAuditLog> StudyFinancialAuditLogs { get; set; }
 
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
@@ -102,6 +103,14 @@ namespace DentalRay.Api.Data
                 .WithMany()
                 .HasForeignKey(x => x.StudyID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // سابقه مالی مستقل از ردیف‌های مالی نگهداری می‌شود و Cascade ندارد.
+            // برای اینکه تاریخچه با حذف اقدام یا پرداخت از بین نرود، به آنها FK نمی‌زنیم.
+            modelBuilder.Entity<StudyFinancialAuditLog>()
+                .HasIndex(x => new { x.StudyID, x.CreatedDate });
+
+            modelBuilder.Entity<StudyFinancialAuditLog>()
+                .HasIndex(x => new { x.EntityType, x.EntityID });
         }
     }
 }

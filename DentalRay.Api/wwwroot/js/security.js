@@ -1965,8 +1965,8 @@
 
 
     window.DentalRaySecurity = {
-
-        start
+        start,
+        getCurrentUser: () => currentUser
     };
 
 })();

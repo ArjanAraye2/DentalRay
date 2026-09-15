@@ -33,6 +33,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<StudyFinancialAuditService>();
 
 builder.Services.Configure<RadiologyStorageOptions>(
     builder.Configuration.GetSection("RadiologyStorage"));

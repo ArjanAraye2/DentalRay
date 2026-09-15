@@ -1423,9 +1423,11 @@
 
                     <div class="subsection-header payment-heading">
                         <h3>پرداخت‌های بیمار</h3>
+                        <button id="loadStudyFinancialAuditButton" class="secondary-button hidden" type="button">تاریخچه مالی</button>
                     </div>
 
                     <form id="studyPaymentForm">
+                        <input id="studyPaymentID" type="hidden" />
                         <div class="form-grid">
                             <div class="form-field">
                                 <label for="studyPaymentAmount">مبلغ پرداخت (ریال)</label>
@@ -1453,11 +1455,16 @@
                             </div>
                         </div>
                         <div class="form-actions compact-actions">
-                            <button type="submit">ثبت پرداخت</button>
+                            <button id="saveStudyPaymentButton" type="submit">ثبت پرداخت</button>
+                            <button id="cancelStudyPaymentEditButton" class="secondary-button hidden" type="button">لغو ویرایش</button>
                         </div>
                     </form>
 
                     <div id="studyPaymentsList" class="financial-list"></div>
+                    <div id="studyFinancialAuditPanel" class="hidden">
+                        <div class="subsection-header"><h3>تاریخچه تغییرات مالی</h3></div>
+                        <div id="studyFinancialAuditList" class="financial-list"></div>
+                    </div>
                 </div>
             </div>
         </section>

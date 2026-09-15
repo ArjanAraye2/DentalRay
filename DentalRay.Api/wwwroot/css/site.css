@@ -668,9 +668,27 @@ button {
 .compact-actions { margin-top: 4px; }
 
 .payment-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
     margin-top: 26px;
     padding-top: 18px;
     border-top: 1px solid var( --border );
+}
+
+.financial-audit-entry details { margin-top: 6px; }
+.financial-audit-entry summary { cursor: pointer; color: var( --primary ); }
+.financial-audit-entry pre {
+    max-height: 220px;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    direction: ltr;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .financial-list {
