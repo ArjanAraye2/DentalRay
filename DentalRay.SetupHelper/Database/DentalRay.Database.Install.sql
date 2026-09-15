@@ -463,3 +463,59 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=3)
     INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description) VALUES(3, N'Clinic, dentist and study ownership MVP');
 GO
+
+
+/* ============================================================
+   Version 4 - Study financials
+   ============================================================ */
+IF OBJECT_ID(N'dbo.tblStudyActions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblStudyActions
+    (
+        StudyActionID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblStudyActions PRIMARY KEY,
+        StudyID INT NOT NULL,
+        Title NVARCHAR(200) NOT NULL,
+        Amount DECIMAL(18,0) NOT NULL,
+        Description NVARCHAR(1000) NULL,
+        CreatedDate DATETIME2(0) NOT NULL CONSTRAINT DF_tblStudyActions_CreatedDate DEFAULT SYSDATETIME(),
+        ModifiedDate DATETIME2(0) NULL,
+        CONSTRAINT FK_tblStudyActions_Studies FOREIGN KEY(StudyID) REFERENCES dbo.tblRadiologyStudies(StudyID) ON DELETE CASCADE,
+        CONSTRAINT CK_tblStudyActions_Amount CHECK (Amount >= 0)
+    );
+    CREATE INDEX IX_tblStudyActions_StudyID ON dbo.tblStudyActions(StudyID);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.tblStudyPayments', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblStudyPayments
+    (
+        StudyPaymentID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblStudyPayments PRIMARY KEY,
+        StudyID INT NOT NULL,
+        Amount DECIMAL(18,0) NOT NULL,
+        PaymentMethod TINYINT NOT NULL,
+        PaymentDate DATETIME2(0) NOT NULL,
+        ReferenceNumber NVARCHAR(100) NULL,
+        Description NVARCHAR(1000) NULL,
+        CreatedDate DATETIME2(0) NOT NULL CONSTRAINT DF_tblStudyPayments_CreatedDate DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_tblStudyPayments_Studies FOREIGN KEY(StudyID) REFERENCES dbo.tblRadiologyStudies(StudyID) ON DELETE CASCADE,
+        CONSTRAINT CK_tblStudyPayments_Amount CHECK (Amount > 0),
+        CONSTRAINT CK_tblStudyPayments_Method CHECK (PaymentMethod IN (1,2,3))
+    );
+    CREATE INDEX IX_tblStudyPayments_StudyID ON dbo.tblStudyPayments(StudyID);
+END;
+GO
+
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'DiscountType') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD DiscountType TINYINT NOT NULL CONSTRAINT DF_tblRadiologyStudies_DiscountType DEFAULT(0);
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'DiscountValue') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD DiscountValue DECIMAL(18,2) NOT NULL CONSTRAINT DF_tblRadiologyStudies_DiscountValue DEFAULT(0);
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'DiscountAmount') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD DiscountAmount DECIMAL(18,0) NOT NULL CONSTRAINT DF_tblRadiologyStudies_DiscountAmount DEFAULT(0);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=4)
+    INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description) VALUES(4, N'Study actions, payments and discounts');
+GO
