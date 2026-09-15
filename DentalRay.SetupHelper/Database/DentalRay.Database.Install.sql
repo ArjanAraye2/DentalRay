@@ -394,6 +394,11 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblPersons_Guid' AND object_id=OBJECT_ID(N'dbo.tblPersons'))
     CREATE UNIQUE INDEX UX_tblPersons_Guid ON dbo.tblPersons(PersonGuid);
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblPersons_MedicalCouncilCode' AND object_id=OBJECT_ID(N'dbo.tblPersons'))
+    CREATE UNIQUE INDEX UX_tblPersons_MedicalCouncilCode
+        ON dbo.tblPersons(MedicalCouncilCode)
+        WHERE MedicalCouncilCode IS NOT NULL;
+GO
 
 IF OBJECT_ID(N'dbo.tblOrganizationMembers', N'U') IS NULL
 BEGIN
