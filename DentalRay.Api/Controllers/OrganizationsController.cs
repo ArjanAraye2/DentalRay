@@ -75,10 +75,31 @@ namespace DentalRay.Api.Controllers
             if (person.FirstName.Length == 0 || person.LastName.Length == 0)
                 return BadRequest(new { success = false, message = "Dentist first name and last name are required." });
             person.CreatedDate = DateTime.Now; person.IsActive = true;
-            _context.Persons.Add(person); await _context.SaveChangesAsync();
-            _context.OrganizationMembers.Add(new OrganizationMember { OrganizationID = organizationID, PersonID = person.PersonID, CreatedDate = DateTime.Now, IsActive = true });
-            await _context.SaveChangesAsync();
-            return Ok(person);
+            // هر دو رکورد باید با هم ثبت شوند؛ اگر ایجاد عضویت شکست خورد،
+            // شخص نیمه‌کاره در دیتابیس باقی نماند.
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Persons.Add(person);
+                await _context.SaveChangesAsync();
+
+                _context.OrganizationMembers.Add(new OrganizationMember
+                {
+                    OrganizationID = organizationID,
+                    PersonID = person.PersonID,
+                    CreatedDate = DateTime.Now,
+                    IsActive = true
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok(person);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }
