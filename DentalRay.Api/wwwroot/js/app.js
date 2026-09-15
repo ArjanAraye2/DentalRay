@@ -821,6 +821,9 @@ function getApiError(
         "Selected dentist does not belong to this organization.":
             "دندانپزشک انتخاب‌شده عضو این مطب نیست.",
 
+        "Dentist selection is required for organizations with multiple dentists.":
+            "این مطب بیش از یک دندانپزشک دارد؛ لطفاً دندانپزشک Study را انتخاب کنید.",
+
         "Dentist first name and last name are required.":
             "نام و نام خانوادگی دندانپزشک الزامی است.",
 
