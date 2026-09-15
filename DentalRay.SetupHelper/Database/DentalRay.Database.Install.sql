@@ -456,6 +456,10 @@ BEGIN
 END;
 GO
 
+IF COL_LENGTH(N'dbo.tblRadiologyImages', N'Description') IS NULL
+    ALTER TABLE dbo.tblRadiologyImages ADD Description NVARCHAR(1000) NULL;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=3)
     INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description) VALUES(3, N'Clinic, dentist and study ownership MVP');
 GO
