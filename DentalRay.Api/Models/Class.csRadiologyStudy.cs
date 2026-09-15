@@ -53,6 +53,16 @@ namespace DentalRay.Api.Models
         // دندانپزشک مسئول Study. برای سازگاری با اطلاعات قدیمی Nullable است.
         public int? DentistPersonID { get; set; }
 
+        // تخفیف Study: صفر=بدون تخفیف، 1=مبلغ ثابت، 2=درصدی.
+        public byte DiscountType { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal DiscountValue { get; set; } = 0;
+
+        // مبلغ نهایی تخفیف در لحظه محاسبه ذخیره می‌شود تا سوابق مالی ثابت بمانند.
+        [Column(TypeName = "decimal(18,0)")]
+        public decimal DiscountAmount { get; set; } = 0;
+
 
         // --------------------------------------------------------
         // StudyDate
