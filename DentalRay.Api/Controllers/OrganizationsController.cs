@@ -75,6 +75,17 @@ namespace DentalRay.Api.Controllers
             if (person.FirstName.Length == 0 || person.LastName.Length == 0)
                 return BadRequest(new { success = false, message = "Dentist first name and last name are required." });
             person.CreatedDate = DateTime.Now; person.IsActive = true;
+
+            // شماره نظام پزشکی، در صورت ثبت، باید برای هر شخص یکتا باشد.
+            if (!string.IsNullOrWhiteSpace(person.MedicalCouncilCode))
+            {
+                person.MedicalCouncilCode = person.MedicalCouncilCode.Trim();
+                bool duplicateCouncilCode = await _context.Persons.AnyAsync(p =>
+                    p.MedicalCouncilCode == person.MedicalCouncilCode);
+                if (duplicateCouncilCode)
+                    return Conflict(new { success = false, message = "A person with this MedicalCouncilCode already exists." });
+            }
+
             // هر دو رکورد باید با هم ثبت شوند؛ اگر ایجاد عضویت شکست خورد،
             // شخص نیمه‌کاره در دیتابیس باقی نماند.
             await using var transaction = await _context.Database.BeginTransactionAsync();
