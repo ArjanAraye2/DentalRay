@@ -440,6 +440,22 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_Den
     CREATE INDEX IX_tblRadiologyStudies_DentistPersonID ON dbo.tblRadiologyStudies(DentistPersonID);
 GO
 
+-- Seed a safe default clinic only when upgrading an installation that has
+-- existing studies but no clinic yet. This keeps the old data immediately usable.
+IF NOT EXISTS (SELECT 1 FROM dbo.tblOrganizations)
+   AND EXISTS (SELECT 1 FROM dbo.tblRadiologyStudies)
+BEGIN
+    INSERT INTO dbo.tblOrganizations(OrganizationType, Name)
+    VALUES(1, N'مطب اصلی');
+
+    DECLARE @DefaultOrganizationID INT = SCOPE_IDENTITY();
+
+    UPDATE dbo.tblRadiologyStudies
+       SET OrganizationID = @DefaultOrganizationID
+     WHERE OrganizationID IS NULL;
+END;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=3)
     INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description) VALUES(3, N'Clinic, dentist and study ownership MVP');
 GO
