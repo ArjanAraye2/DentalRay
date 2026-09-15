@@ -451,7 +451,7 @@ namespace DentalRay.Api.Controllers
                         string physicalPath =
                             _storageService
                                 .GetPhysicalPath(
-                                    image.FileName);
+                                    image.RelativePath);
 
                         if (System.IO.File
                             .Exists(
@@ -845,12 +845,11 @@ namespace DentalRay.Api.Controllers
             // مسیر فایل اصلی
             // ----------------------------------------------------
             //
-            // GetPhysicalPath برای امنیت فقط FileName را می‌پذیرد.
-            //
+            // RelativePath مسیر واقعی فایل را زیر RootPath مشخص می‌کند.
             string originalPhysicalPath =
                 _storageService
                     .GetPhysicalPath(
-                        image.FileName);
+                        image.RelativePath);
 
             // ----------------------------------------------------
             // اگر فایل فیزیکی پیدا نشد
