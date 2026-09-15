@@ -815,6 +815,9 @@ function getApiError(
         "Organization name is required.":
             "نام مطب یا مرکز الزامی است.",
 
+        "An active organization with this name already exists.":
+            "مطب یا مرکز فعالی با این نام قبلاً ثبت شده است.",
+
         "Organization is required when a dentist is selected.":
             "برای انتخاب دندانپزشک ابتدا مطب را مشخص کنید.",
 
