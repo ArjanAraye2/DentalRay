@@ -7,6 +7,7 @@ namespace DentalRay.Api.Controllers
 {
     [ApiController]
     [Route("api/organizations")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class OrganizationsController : ControllerBase
     {
         private readonly DentalRayDbContext _context;
