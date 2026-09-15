@@ -32,6 +32,11 @@ namespace DentalRay.Api.Models
         //
         public DateTime StudyDate { get; set; }
 
+        // مطب/مرکز و دندانپزشک مسئول Study.
+        // Nullable برای سازگاری با Studyهای قدیمی.
+        public int? OrganizationID { get; set; }
+        public int? DentistPersonID { get; set; }
+
 
         // --------------------------------------------------------
         // نوع رادیولوژی
