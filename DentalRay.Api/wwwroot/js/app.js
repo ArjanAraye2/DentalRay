@@ -824,6 +824,9 @@ function getApiError(
         "Dentist first name and last name are required.":
             "نام و نام خانوادگی دندانپزشک الزامی است.",
 
+        "A person with this MedicalCouncilCode already exists.":
+            "شخصی با این شماره نظام پزشکی قبلاً ثبت شده است.",
+
         "Image not found.":
             "تصویر پیدا نشد.",
 
