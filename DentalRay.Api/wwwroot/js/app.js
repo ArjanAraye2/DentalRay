@@ -416,6 +416,9 @@ const uploadImageStudyInfo =
 const imageFileInput =
     byId("imageFileInput");
 
+const imageDescription =
+    byId("imageDescription");
+
 const uploadImageStatus =
     byId("uploadImageStatus");
 
@@ -832,6 +835,9 @@ function getApiError(
 
         "A person with this MedicalCouncilCode already exists.":
             "شخصی با این شماره نظام پزشکی قبلاً ثبت شده است.",
+
+        "Image description cannot be longer than 1000 characters.":
+            "توضیح تصویر نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.",
 
         "Image not found.":
             "تصویر پیدا نشد.",
@@ -1587,6 +1593,10 @@ function renderImagesInGrid(images, imageGrid, study, imageStatus, imagesButton)
         title.className = "image-card-title";
         title.textContent = image.fileName;
 
+        const description = document.createElement("div");
+        description.className = "image-card-description";
+        description.textContent = image.description || "";
+
         const actions = document.createElement("div");
         actions.className = "image-card-actions";
 
@@ -1600,6 +1610,7 @@ function renderImagesInGrid(images, imageGrid, study, imageStatus, imagesButton)
         actions.appendChild(deleteButton);
         card.appendChild(img);
         card.appendChild(title);
+        if (image.description) card.appendChild(description);
         card.appendChild(actions);
         imageGrid.appendChild(card);
     });
@@ -2980,6 +2991,11 @@ async function uploadImage() {
             "file",
             file
         );
+
+        const description = imageDescription.value.trim();
+        if (description) {
+            formData.append("description", description);
+        }
 
 
         setFormStatus(
