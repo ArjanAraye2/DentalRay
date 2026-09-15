@@ -2,6 +2,7 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,6 +41,7 @@ namespace DentalRay.Api.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RadiologyImagesController :
         ControllerBase
     {
@@ -49,6 +51,9 @@ namespace DentalRay.Api.Controllers
 
         private readonly RadiologyStorageService
             _storageService;
+
+        private readonly ResourceAccessService
+            _access;
 
 
         // ========================================================
@@ -69,7 +74,8 @@ namespace DentalRay.Api.Controllers
 
         public RadiologyImagesController(
             DentalRayDbContext context,
-            RadiologyStorageService storageService)
+            RadiologyStorageService storageService,
+            ResourceAccessService access)
         {
             _context =
                 context;
@@ -77,6 +83,58 @@ namespace DentalRay.Api.Controllers
 
             _storageService =
                 storageService;
+
+            _access =
+                access;
+        }
+
+
+        [HttpPost("{imageID:long}/attachments")]
+        public async Task<IActionResult> AttachImageToStudy(
+            long imageID,
+            AttachImageToStudyRequest request)
+        {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (imageID <= 0 || request.StudyID <= 0)
+                return BadRequest(new { success = false, message = "Invalid image or study." });
+
+            var image = await _context.RadiologyImages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.ImageID == imageID);
+
+            if (image == null ||
+                !await _access.CanReadImageAsync(imageID, currentUserID))
+            {
+                return NotFound(new { success = false, message = "Image not found." });
+            }
+
+            if (!await _access.CanManageStudyAsync(request.StudyID, currentUserID))
+                return NotFound(new { success = false, message = "Target study not found." });
+
+            bool alreadyAttached = await _context.StudyImageAttachments.AnyAsync(item =>
+                item.StudyID == request.StudyID && item.ImageID == imageID);
+
+            if (!alreadyAttached)
+            {
+                _context.StudyImageAttachments.Add(new StudyImageAttachment
+                {
+                    StudyID = request.StudyID,
+                    ImageID = imageID,
+                    AttachedByUserID = currentUserID,
+                    AttachedDate = DateTime.Now
+                });
+
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                success = true,
+                alreadyAttached,
+                imageID,
+                targetStudyID = request.StudyID,
+                originalStudyID = image.StudyID
+            });
         }
 
 
@@ -97,8 +155,10 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> UploadImage(
             int studyID,
             IFormFile file,
-            [FromForm] string? description = null)
+            [FromForm] string? description = null,
+            [FromForm] byte visibility = ResourceAccessService.PrivateVisibility)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
             try
             {
                 // ------------------------------------------------
@@ -115,6 +175,9 @@ namespace DentalRay.Api.Controllers
                             "StudyID must be greater than zero."
                     });
                 }
+
+                if (visibility > ResourceAccessService.PublicVisibility)
+                    return BadRequest(new { success = false, message = "Invalid visibility." });
 
 
                 // ------------------------------------------------
@@ -244,6 +307,9 @@ namespace DentalRay.Api.Controllers
                             "Study not found."
                     });
                 }
+
+                if (study.OwnerUserID != currentUserID)
+                    return NotFound(new { success = false, message = "Study not found." });
 
 
                 // ------------------------------------------------
@@ -405,6 +471,12 @@ namespace DentalRay.Api.Controllers
                         StudyID =
                             studyID,
 
+                        OwnerUserID =
+                            currentUserID,
+
+                        Visibility =
+                            visibility,
+
                         FileName =
                             Path.GetFileName(
                                 relativePath),
@@ -432,6 +504,9 @@ namespace DentalRay.Api.Controllers
                 //
                 // =================================================
 
+                await using var metadataTransaction =
+                    await _context.Database.BeginTransactionAsync();
+
                 try
                 {
                     _context
@@ -441,9 +516,29 @@ namespace DentalRay.Api.Controllers
 
                     await _context
                         .SaveChangesAsync();
+
+                    _context.StudyImageAttachments.Add(new StudyImageAttachment
+                    {
+                        StudyID = studyID,
+                        ImageID = image.ImageID,
+                        AttachedByUserID = currentUserID,
+                        AttachedDate = DateTime.Now
+                    });
+
+                    await _context.SaveChangesAsync();
+                    await metadataTransaction.CommitAsync();
                 }
                 catch
                 {
+                    try
+                    {
+                        await metadataTransaction.RollbackAsync();
+                    }
+                    catch
+                    {
+                        // Rollback failure must not hide the original database error.
+                    }
+
                     // ---------------------------------------------
                     // Cleanup فایل فیزیکی
                     // ---------------------------------------------
@@ -592,6 +687,10 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanReadImageAsync(imageID, currentUserID))
+                return NotFound(new { success = false, message = "Image not found." });
+
 
             // ----------------------------------------------------
             // Physical Path
@@ -691,7 +790,9 @@ namespace DentalRay.Api.Controllers
                              studyID);
 
 
-            if (!studyExists)
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!studyExists ||
+                !await _access.CanReadStudyAsync(studyID, currentUserID))
             {
                 return NotFound(new
                 {
@@ -707,35 +808,26 @@ namespace DentalRay.Api.Controllers
             // دریافت Metadata تصاویر
             // ----------------------------------------------------
 
-            var images =
-                await _context
-                    .RadiologyImages
-                    .AsNoTracking()
-
-                    .Where(
-                        i => i.StudyID ==
-                             studyID)
-
-                    .OrderBy(
-                        i => i.ImageID)
-
-                    .Select(i => new
-                    {
-                        i.ImageID,
-
-                        i.StudyID,
-
-                        i.FileName,
-
-                        i.RelativePath,
-
-                        i.ContentType,
-                        i.Description,
-
-                        i.CreatedDate
-                    })
-
-                    .ToListAsync();
+            var images = await (
+                from attachment in _context.StudyImageAttachments.AsNoTracking()
+                join image in _access.ReadableImages(currentUserID).AsNoTracking()
+                    on attachment.ImageID equals image.ImageID
+                where attachment.StudyID == studyID
+                orderby image.ImageID
+                select new
+                {
+                    image.ImageID,
+                    StudyID = studyID,
+                    SourceStudyID = image.StudyID,
+                    image.OwnerUserID,
+                    image.Visibility,
+                    image.FileName,
+                    image.RelativePath,
+                    image.ContentType,
+                    image.Description,
+                    image.CreatedDate
+                })
+                .ToListAsync();
 
 
             // ----------------------------------------------------
@@ -851,6 +943,11 @@ namespace DentalRay.Api.Controllers
                         "Image not found."
                 });
             }
+
+
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (image.OwnerUserID != currentUserID)
+                return NotFound(new { success = false, message = "Image not found." });
 
 
             // ----------------------------------------------------

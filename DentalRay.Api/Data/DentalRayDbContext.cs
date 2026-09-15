@@ -23,6 +23,8 @@ namespace DentalRay.Api.Data
         public DbSet<StudyAction> StudyActions { get; set; }
         public DbSet<StudyPayment> StudyPayments { get; set; }
         public DbSet<StudyFinancialAuditLog> StudyFinancialAuditLogs { get; set; }
+        public DbSet<ResourceAccessGrant> ResourceAccessGrants { get; set; }
+        public DbSet<StudyImageAttachment> StudyImageAttachments { get; set; }
 
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
@@ -103,6 +105,43 @@ namespace DentalRay.Api.Data
                 .WithMany()
                 .HasForeignKey(x => x.StudyID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudyImageAttachment>()
+                .HasOne<RadiologyStudy>()
+                .WithMany()
+                .HasForeignKey(x => x.StudyID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudyImageAttachment>()
+                .HasOne<RadiologyImage>()
+                .WithMany()
+                .HasForeignKey(x => x.ImageID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudyImageAttachment>()
+                .HasIndex(x => new { x.StudyID, x.ImageID })
+                .IsUnique();
+
+            modelBuilder.Entity<StudyImageAttachment>()
+                .HasIndex(x => x.ImageID);
+
+            modelBuilder.Entity<ResourceAccessGrant>()
+                .HasIndex(x => new
+                {
+                    x.ResourceType,
+                    x.ResourceID,
+                    x.RecipientUserID
+                });
+
+            modelBuilder.Entity<ResourceAccessGrant>()
+                .HasIndex(x => new
+                {
+                    x.ResourceType,
+                    x.ResourceID,
+                    x.GrantedByUserID,
+                    x.RecipientUserID
+                })
+                .IsUnique();
 
             // سابقه مالی مستقل از ردیف‌های مالی نگهداری می‌شود و Cascade ندارد.
             // برای اینکه تاریخچه با حذف اقدام یا پرداخت از بین نرود، به آنها FK نمی‌زنیم.

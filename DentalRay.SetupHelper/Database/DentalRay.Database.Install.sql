@@ -580,3 +580,162 @@ IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=5)
     INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description)
         VALUES(5, N'Immutable study financial history and payment editing');
 GO
+
+/* ============================================================
+   Version 6 - Private/Public resources, permanent grants and attachments
+   ============================================================ */
+IF COL_LENGTH(N'dbo.tblPatients', N'OwnerUserID') IS NULL
+    ALTER TABLE dbo.tblPatients ADD OwnerUserID INT NULL;
+GO
+
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'OwnerUserID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD OwnerUserID INT NULL;
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'Visibility') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD Visibility TINYINT NOT NULL
+        CONSTRAINT DF_tblRadiologyStudies_Visibility DEFAULT(0);
+GO
+
+IF COL_LENGTH(N'dbo.tblRadiologyImages', N'OwnerUserID') IS NULL
+    ALTER TABLE dbo.tblRadiologyImages ADD OwnerUserID INT NULL;
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyImages', N'Visibility') IS NULL
+    ALTER TABLE dbo.tblRadiologyImages ADD Visibility TINYINT NOT NULL
+        CONSTRAINT DF_tblRadiologyImages_Visibility DEFAULT(0);
+GO
+
+-- Old records become private and belong to an existing administrator when possible.
+DECLARE @LegacyOwnerUserID INT =
+(
+    SELECT TOP (1) UserID
+    FROM dbo.tblUsers
+    WHERE IsActive = 1
+    ORDER BY CASE WHEN Role = N'Admin' THEN 0 ELSE 1 END, UserID
+);
+
+IF @LegacyOwnerUserID IS NOT NULL
+BEGIN
+    UPDATE dbo.tblPatients
+       SET OwnerUserID = @LegacyOwnerUserID
+     WHERE OwnerUserID IS NULL;
+
+    UPDATE dbo.tblRadiologyStudies
+       SET OwnerUserID = @LegacyOwnerUserID
+     WHERE OwnerUserID IS NULL;
+
+    UPDATE image
+       SET OwnerUserID = COALESCE(study.OwnerUserID, @LegacyOwnerUserID)
+    FROM dbo.tblRadiologyImages AS image
+    LEFT JOIN dbo.tblRadiologyStudies AS study ON study.StudyID = image.StudyID
+    WHERE image.OwnerUserID IS NULL;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblPatients_OwnerUser')
+    ALTER TABLE dbo.tblPatients ADD CONSTRAINT FK_tblPatients_OwnerUser
+        FOREIGN KEY(OwnerUserID) REFERENCES dbo.tblUsers(UserID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_OwnerUser')
+    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_OwnerUser
+        FOREIGN KEY(OwnerUserID) REFERENCES dbo.tblUsers(UserID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyImages_OwnerUser')
+    ALTER TABLE dbo.tblRadiologyImages ADD CONSTRAINT FK_tblRadiologyImages_OwnerUser
+        FOREIGN KEY(OwnerUserID) REFERENCES dbo.tblUsers(UserID);
+GO
+
+IF OBJECT_ID(N'dbo.tblStudyImageAttachments', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblStudyImageAttachments
+    (
+        StudyImageAttachmentID BIGINT IDENTITY(1,1) NOT NULL
+            CONSTRAINT PK_tblStudyImageAttachments PRIMARY KEY,
+        StudyID INT NOT NULL,
+        ImageID BIGINT NOT NULL,
+        AttachedByUserID INT NULL,
+        AttachedDate DATETIME2(0) NOT NULL
+            CONSTRAINT DF_tblStudyImageAttachments_AttachedDate DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_tblStudyImageAttachments_Studies
+            FOREIGN KEY(StudyID) REFERENCES dbo.tblRadiologyStudies(StudyID) ON DELETE CASCADE,
+        CONSTRAINT FK_tblStudyImageAttachments_Images
+            FOREIGN KEY(ImageID) REFERENCES dbo.tblRadiologyImages(ImageID) ON DELETE CASCADE,
+        CONSTRAINT FK_tblStudyImageAttachments_Users
+            FOREIGN KEY(AttachedByUserID) REFERENCES dbo.tblUsers(UserID)
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblStudyImageAttachments_Study_Image'
+    AND object_id=OBJECT_ID(N'dbo.tblStudyImageAttachments'))
+    CREATE UNIQUE INDEX UX_tblStudyImageAttachments_Study_Image
+        ON dbo.tblStudyImageAttachments(StudyID, ImageID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_tblStudyImageAttachments_ImageID'
+    AND object_id=OBJECT_ID(N'dbo.tblStudyImageAttachments'))
+    CREATE INDEX IX_tblStudyImageAttachments_ImageID
+        ON dbo.tblStudyImageAttachments(ImageID);
+GO
+
+-- Existing images are already attached to their original Study.
+INSERT INTO dbo.tblStudyImageAttachments(StudyID, ImageID, AttachedByUserID, AttachedDate)
+SELECT image.StudyID, image.ImageID, image.OwnerUserID, image.CreatedDate
+FROM dbo.tblRadiologyImages AS image
+WHERE NOT EXISTS
+(
+    SELECT 1 FROM dbo.tblStudyImageAttachments AS attachment
+    WHERE attachment.StudyID = image.StudyID AND attachment.ImageID = image.ImageID
+);
+GO
+
+IF OBJECT_ID(N'dbo.tblResourceAccessGrants', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblResourceAccessGrants
+    (
+        ResourceAccessGrantID BIGINT IDENTITY(1,1) NOT NULL
+            CONSTRAINT PK_tblResourceAccessGrants PRIMARY KEY,
+        ResourceType TINYINT NOT NULL,
+        ResourceID BIGINT NOT NULL,
+        OwnerUserID INT NOT NULL,
+        GrantedByUserID INT NOT NULL,
+        RecipientUserID INT NOT NULL,
+        CreatedDate DATETIME2(0) NOT NULL
+            CONSTRAINT DF_tblResourceAccessGrants_CreatedDate DEFAULT SYSDATETIME(),
+        CONSTRAINT CK_tblResourceAccessGrants_ResourceType CHECK(ResourceType IN (1,2)),
+        CONSTRAINT CK_tblResourceAccessGrants_ResourceID CHECK(ResourceID > 0),
+        CONSTRAINT FK_tblResourceAccessGrants_OwnerUser
+            FOREIGN KEY(OwnerUserID) REFERENCES dbo.tblUsers(UserID),
+        CONSTRAINT FK_tblResourceAccessGrants_GrantedByUser
+            FOREIGN KEY(GrantedByUserID) REFERENCES dbo.tblUsers(UserID),
+        CONSTRAINT FK_tblResourceAccessGrants_RecipientUser
+            FOREIGN KEY(RecipientUserID) REFERENCES dbo.tblUsers(UserID)
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_tblResourceAccessGrants_Resource_Recipient'
+    AND object_id=OBJECT_ID(N'dbo.tblResourceAccessGrants'))
+    CREATE INDEX IX_tblResourceAccessGrants_Resource_Recipient
+        ON dbo.tblResourceAccessGrants(ResourceType, ResourceID, RecipientUserID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblResourceAccessGrants_Resource_Sharer_Recipient'
+    AND object_id=OBJECT_ID(N'dbo.tblResourceAccessGrants'))
+    CREATE UNIQUE INDEX UX_tblResourceAccessGrants_Resource_Sharer_Recipient
+        ON dbo.tblResourceAccessGrants(ResourceType, ResourceID, GrantedByUserID, RecipientUserID);
+GO
+
+-- Grants can be re-shared by a recipient, but never edited or revoked.
+IF OBJECT_ID(N'dbo.trg_tblResourceAccessGrants_Immutable', N'TR') IS NULL
+    EXEC(N'CREATE TRIGGER dbo.trg_tblResourceAccessGrants_Immutable
+        ON dbo.tblResourceAccessGrants
+        INSTEAD OF UPDATE, DELETE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            ;THROW 51000, ''Access grants are permanent and cannot be changed or revoked.'', 1;
+        END');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.tblSchemaVersions WHERE VersionNumber=6)
+    INSERT INTO dbo.tblSchemaVersions(VersionNumber, Description)
+        VALUES(6, N'Private/Public Study and image access, permanent sharing, and image attachments');
+GO

@@ -49,6 +49,12 @@ namespace DentalRay.Api.Models
         // tblRadiologyImages
         public int StudyID { get; set; }
 
+        // مالک فایل اصلی تصویر؛ گیرندهٔ Grant مالک تصویر نمی‌شود.
+        public int? OwnerUserID { get; set; }
+
+        // 0 = Private، 1 = Public برای کاربران احرازشدهٔ همین برنامه.
+        public byte Visibility { get; set; } = 0;
+
 
         // --------------------------------------------------------
         // FileName

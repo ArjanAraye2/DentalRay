@@ -18,6 +18,9 @@ namespace DentalRay.Api.Models
         [Key]
         public int PatientID { get; set; }
 
+        // مالک پروفایل بیمار؛ دسترسی به Studyهای اشتراکی جداگانه ارزیابی می‌شود.
+        public int? OwnerUserID { get; set; }
+
 
         // NationalCode شناسه یکتای بیمار در DentalRay است.
         //

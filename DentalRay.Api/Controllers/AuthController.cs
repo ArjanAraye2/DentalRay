@@ -109,6 +109,16 @@ namespace DentalRay.Api.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+            // If a database was upgraded before its first administrator was
+            // created, claim legacy records that could not be assigned by the
+            // schema migration. New resources always receive an owner at creation.
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.tblPatients SET OwnerUserID = {user.UserID} WHERE OwnerUserID IS NULL;");
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.tblRadiologyStudies SET OwnerUserID = {user.UserID} WHERE OwnerUserID IS NULL;");
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE image SET OwnerUserID = COALESCE(study.OwnerUserID, {user.UserID}) FROM dbo.tblRadiologyImages AS image LEFT JOIN dbo.tblRadiologyStudies AS study ON study.StudyID = image.StudyID WHERE image.OwnerUserID IS NULL;");
+
             await _auditService.LogAsync(
                 action: "BootstrapAdmin",
                 userID: user.UserID,

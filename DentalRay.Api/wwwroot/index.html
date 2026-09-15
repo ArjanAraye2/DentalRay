@@ -1111,6 +1111,15 @@
 
                     </div>
 
+                    <div class="form-field">
+                        <label for="newStudyVisibility">دسترسی اولیه پرونده</label>
+                        <select id="newStudyVisibility">
+                            <option value="0" selected>خصوصی — فقط خودم</option>
+                            <option value="1">عمومی — همه کاربران واردشده</option>
+                        </select>
+                        <small class="field-hint">عمومی یعنی کاربران واردشده به همین سامانه DentalRay؛ نه دسترسی اینترنتی.</small>
+                    </div>
+
                 </div>
 
 
@@ -1532,6 +1541,15 @@
                               placeholder="توضیح اختیاری ایجادکننده تصویر"></textarea>
                 </div>
 
+                <div class="form-field">
+                    <label for="imageVisibility">دسترسی اولیه تصویر</label>
+                    <select id="imageVisibility">
+                        <option value="0" selected>خصوصی — فقط خودم</option>
+                        <option value="1">عمومی — همه کاربران واردشده</option>
+                    </select>
+                    <small class="field-hint">عمومی یعنی کاربران واردشده به همین سامانه DentalRay؛ نه دسترسی اینترنتی.</small>
+                </div>
+
 
                 <div id="uploadImageStatus"
                      class="status-message">
@@ -1683,6 +1701,48 @@
 
         </div>
 
+    </div>
+
+    <div id="resourceAccessModal" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="resourceAccessTitle">
+        <div class="access-dialog">
+            <div class="access-dialog-header">
+                <div>
+                    <h3 id="resourceAccessTitle">دسترسی و اشتراک</h3>
+                    <p id="resourceAccessSubtitle"></p>
+                </div>
+                <button id="closeResourceAccessButton" type="button" class="secondary-button" aria-label="بستن">×</button>
+            </div>
+
+            <div id="resourceAccessStatus" class="status-message"></div>
+
+            <section class="access-section">
+                <h4>وضعیت دسترسی</h4>
+                <div class="access-visibility-row">
+                    <select id="resourceVisibilitySelect" aria-label="سطح دسترسی">
+                        <option value="0">خصوصی</option>
+                        <option value="1">عمومی برای کاربران واردشده</option>
+                    </select>
+                    <button id="saveResourceVisibilityButton" type="button">ذخیره وضعیت</button>
+                </div>
+                <small class="field-hint">خصوصی‌کردن، دسترسی‌هایی را که قبلاً به‌طور مستقیم واگذار شده‌اند لغو نمی‌کند.</small>
+            </section>
+
+            <section class="access-section">
+                <h4>واگذاری دسترسی دائمی</h4>
+                <div class="access-visibility-row">
+                    <select id="resourceRecipientSelect" aria-label="انتخاب کاربر">
+                        <option value="">انتخاب کاربر...</option>
+                    </select>
+                    <button id="grantResourceAccessButton" type="button">اشتراک‌گذاری</button>
+                </div>
+                <small class="field-hint access-warning">این دسترسی قابل لغو نیست. دریافت‌کننده نیز می‌تواند همین دسترسی را با همکاران خود به اشتراک بگذارد.</small>
+            </section>
+
+            <section class="access-section">
+                <h4>تاریخچه واگذاری‌ها</h4>
+                <div id="resourceGrantList" class="access-grant-list"></div>
+            </section>
+        </div>
     </div>
 
 

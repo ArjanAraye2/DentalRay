@@ -1,5 +1,7 @@
 ﻿using DentalRay.Api.Data;
 using DentalRay.Api.Models;
+using DentalRay.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,9 +33,11 @@ namespace DentalRay.Api.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RadiologyStudiesController : ControllerBase
     {
         private readonly DentalRayDbContext _context;
+        private readonly ResourceAccessService _access;
 
 
         // ========================================================
@@ -41,9 +45,11 @@ namespace DentalRay.Api.Controllers
         // ========================================================
 
         public RadiologyStudiesController(
-            DentalRayDbContext context)
+            DentalRayDbContext context,
+            ResourceAccessService access)
         {
             _context = context;
+            _access = access;
         }
 
 
@@ -62,6 +68,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> CreateStudy(
             RadiologyStudy study)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
             try
             {
                 // ------------------------------------------------
@@ -101,6 +108,12 @@ namespace DentalRay.Api.Controllers
                             "Patient not found."
                     });
                 }
+
+                if (!await _access.CanReadPatientAsync(study.PatientID, currentUserID))
+                    return NotFound(new { success = false, message = "Patient not found." });
+
+                if (study.Visibility > ResourceAccessService.PublicVisibility)
+                    return BadRequest(new { success = false, message = "Invalid visibility." });
 
 
                 // ------------------------------------------------
@@ -268,6 +281,7 @@ namespace DentalRay.Api.Controllers
                 // ------------------------------------------------
 
                 study.StudyID = 0;
+                study.OwnerUserID = currentUserID;
 
 
                 study.CreatedDate =
@@ -357,7 +371,9 @@ namespace DentalRay.Api.Controllers
                              studyID);
 
 
-            if (study == null)
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (study == null ||
+                !await _access.CanReadStudyAsync(studyID, currentUserID))
             {
                 return NotFound(new
                 {
@@ -428,13 +444,17 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanReadPatientAsync(patientID, currentUserID))
+                return NotFound(new { success = false, message = "Patient not found." });
+
 
             // ----------------------------------------------------
             // دریافت Studyها
             // ----------------------------------------------------
 
             var studies =
-                await (from s in _context.RadiologyStudies.AsNoTracking()
+                await (from s in _access.ReadableStudies(currentUserID).AsNoTracking()
                        join o in _context.Organizations.AsNoTracking()
                            on s.OrganizationID equals o.OrganizationID into organizations
                        from o in organizations.DefaultIfEmpty()
@@ -447,6 +467,8 @@ namespace DentalRay.Api.Controllers
                        {
                            s.StudyID,
                            s.PatientID,
+                           s.OwnerUserID,
+                           s.Visibility,
                            s.OrganizationID,
                            s.DentistPersonID,
                            OrganizationName = o == null ? null : o.Name,
@@ -662,6 +684,10 @@ namespace DentalRay.Api.Controllers
                             "Study not found."
                     });
                 }
+
+                int currentUserID = _access.GetCurrentUserID(User);
+                if (study.OwnerUserID != currentUserID)
+                    return NotFound(new { success = false, message = "Study not found." });
 
 
                 // ------------------------------------------------

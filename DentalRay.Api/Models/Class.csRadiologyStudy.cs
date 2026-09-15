@@ -53,6 +53,13 @@ namespace DentalRay.Api.Models
         // دندانپزشک مسئول Study. برای سازگاری با اطلاعات قدیمی Nullable است.
         public int? DentistPersonID { get; set; }
 
+        // مالک Study همان کاربری است که آن را ایجاد کرده است.
+        // هنگام ایجاد، مقدار ارسالی Client نادیده گرفته می‌شود.
+        public int? OwnerUserID { get; set; }
+
+        // 0 = Private، 1 = Public برای کاربران احرازشدهٔ همین برنامه.
+        public byte Visibility { get; set; } = 0;
+
         // تخفیف Study: صفر=بدون تخفیف، 1=مبلغ ثابت، 2=درصدی.
         public byte DiscountType { get; set; } = 0;
 

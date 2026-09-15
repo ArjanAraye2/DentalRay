@@ -50,6 +50,12 @@ let selectedPatient = null;
 
 let selectedStudyID = null;
 let selectedStudy = null;
+let displayedStudies = [];
+let activeResourceAccess = null;
+
+function getCurrentUserID() {
+    return Number(window.DentalRaySecurity?.getCurrentUser()?.userID || 0);
+}
 
 
 
@@ -351,6 +357,7 @@ const newStudyReport =
 
 const newStudyStatus =
     byId("newStudyStatus");
+const newStudyVisibility = byId("newStudyVisibility");
 
 
 // ============================================================
@@ -462,8 +469,20 @@ const imageFileInput =
 const imageDescription =
     byId("imageDescription");
 
+const imageVisibility = byId("imageVisibility");
+
 const uploadImageStatus =
     byId("uploadImageStatus");
+
+const resourceAccessModal = byId("resourceAccessModal");
+const resourceAccessSubtitle = byId("resourceAccessSubtitle");
+const resourceAccessStatus = byId("resourceAccessStatus");
+const resourceVisibilitySelect = byId("resourceVisibilitySelect");
+const saveResourceVisibilityButton = byId("saveResourceVisibilityButton");
+const resourceRecipientSelect = byId("resourceRecipientSelect");
+const grantResourceAccessButton = byId("grantResourceAccessButton");
+const resourceGrantList = byId("resourceGrantList");
+const closeResourceAccessButton = byId("closeResourceAccessButton");
 
 
 // ============================================================
@@ -1369,6 +1388,11 @@ function renderPatientDetails(
     selectedPatient =
         patient;
 
+    const ownsPatient = Number(patient.ownerUserID) === getCurrentUserID();
+    editPatientButton.classList.toggle("hidden", !ownsPatient);
+    mergePatientButton.classList.toggle("hidden", !ownsPatient);
+    deactivatePatientButton.classList.toggle("hidden", !ownsPatient);
+
 
     // --------------------------------------------------------
     // Header
@@ -1520,9 +1544,10 @@ function renderPatientDetails(
 function renderStudies(
     studies
 ) {
+    displayedStudies = Array.isArray(studies) ? studies : [];
     studiesContainer.innerHTML = "";
 
-    if (!studies || studies.length === 0) {
+    if (displayedStudies.length === 0) {
         const message = document.createElement("div");
         message.className = "status-message";
         message.textContent = "برای این بیمار هنوز رادیولوژی ثبت نشده است.";
@@ -1530,10 +1555,11 @@ function renderStudies(
         return;
     }
 
-    studies.forEach(study => {
+    displayedStudies.forEach(study => {
         const card = document.createElement("div");
         card.className = "study-card";
         card.dataset.studyId = String(study.studyID);
+        const canManage = Number(study.ownerUserID) === getCurrentUserID();
 
         const header = document.createElement("div");
         header.className = "study-card-header";
@@ -1544,30 +1570,48 @@ function renderStudies(
 
         const buttons = document.createElement("div");
         buttons.className = "study-action-buttons";
+        const isAdmin = window.DentalRaySecurity?.getCurrentUser()?.role === "Admin";
 
         const imagesButton = document.createElement("button");
         imagesButton.classList.add("study-images-button");
         imagesButton.dataset.imageCount = String(study.imageCount || 0);
         imagesButton.textContent = `تصاویر (${study.imageCount || 0})`;
 
-        const uploadButton = document.createElement("button");
-        uploadButton.textContent = "افزودن تصویر";
-        uploadButton.addEventListener("click", () => openUploadImageForm(study));
-
-        const financialButton = document.createElement("button");
-        financialButton.textContent = "امور مالی";
-        financialButton.className = "financial-button";
-        financialButton.addEventListener("click", () => openStudyFinancials(study));
-
-        const editButton = document.createElement("button");
-        editButton.textContent = "ویرایش";
-        editButton.className = "secondary-button";
-        editButton.addEventListener("click", () => openEditStudyForm(study));
-
         buttons.appendChild(imagesButton);
-        buttons.appendChild(uploadButton);
-        buttons.appendChild(financialButton);
-        buttons.appendChild(editButton);
+        if (canManage) {
+            const uploadButton = document.createElement("button");
+            uploadButton.textContent = "افزودن تصویر";
+            uploadButton.addEventListener("click", () => openUploadImageForm(study));
+
+            const editButton = document.createElement("button");
+            editButton.textContent = "ویرایش";
+            editButton.className = "secondary-button";
+            editButton.addEventListener("click", () => openEditStudyForm(study));
+
+            buttons.appendChild(uploadButton);
+            buttons.appendChild(editButton);
+        }
+
+        if (canManage || isAdmin) {
+            const financialButton = document.createElement("button");
+            financialButton.textContent = "امور مالی";
+            financialButton.className = "financial-button";
+            financialButton.addEventListener("click", () => openStudyFinancials(study));
+            buttons.appendChild(financialButton);
+        }
+
+        const accessButton = document.createElement("button");
+        accessButton.type = "button";
+        accessButton.className = "secondary-button";
+        accessButton.textContent = "دسترسی";
+        accessButton.addEventListener("click", () => openResourceAccess({
+            resourceType: 1,
+            resourceID: study.studyID,
+            ownerUserID: study.ownerUserID,
+            visibility: study.visibility,
+            title: study.studyType || `رادیولوژی ${study.studyID}`
+        }));
+        buttons.appendChild(accessButton);
         header.appendChild(title);
         header.appendChild(buttons);
         card.appendChild(header);
@@ -1580,6 +1624,7 @@ function renderStudies(
         meta.appendChild(createInfoLine("ناحیه", study.bodyPart || "-"));
         meta.appendChild(createInfoLine("توضیحات", study.description || "-"));
         meta.appendChild(createInfoLine("گزارش", study.report || "-"));
+        meta.appendChild(createInfoLine("دسترسی", Number(study.visibility) === 1 ? "عمومی برای کاربران واردشده" : "خصوصی"));
         card.appendChild(meta);
 
         // تصاویر هر Study داخل همان کارت نمایش داده می‌شوند.
@@ -1944,6 +1989,10 @@ function financialAuditOperationTitle(value) {
 async function openStudyFinancials(study) {
     selectedStudyID = study.studyID;
     selectedStudy = study;
+    const isOwner = Number(study.ownerUserID) === getCurrentUserID();
+    studyActionForm.classList.toggle("hidden", !isOwner);
+    studyDiscountForm.classList.toggle("hidden", !isOwner);
+    studyPaymentForm.classList.toggle("hidden", !isOwner);
     resetStudyActionForm();
     resetStudyPaymentForm();
     studyFinancialAuditPanel.classList.add("hidden");
@@ -2222,20 +2271,247 @@ function renderImagesInGrid(images, imageGrid, study, imageStatus, imagesButton)
         const actions = document.createElement("div");
         actions.className = "image-card-actions";
 
-        const deleteButton = document.createElement("button");
-        deleteButton.className = "image-delete-button";
-        deleteButton.textContent = "حذف تصویر";
-        deleteButton.addEventListener("click", async () => {
-            await deleteImageInline(image, study, imageGrid, imageStatus, imagesButton);
-        });
+        const isOwner = Number(image.ownerUserID) === getCurrentUserID();
+        if (isOwner) {
+            const deleteButton = document.createElement("button");
+            deleteButton.className = "image-delete-button";
+            deleteButton.textContent = "حذف تصویر";
+            deleteButton.addEventListener("click", async () => {
+                await deleteImageInline(image, study, imageGrid, imageStatus, imagesButton);
+            });
+            actions.appendChild(deleteButton);
+        }
 
-        actions.appendChild(deleteButton);
+        const accessButton = document.createElement("button");
+        accessButton.type = "button";
+        accessButton.className = "secondary-button";
+        accessButton.textContent = "دسترسی";
+        accessButton.addEventListener("click", () => openResourceAccess({
+            resourceType: 2,
+            resourceID: image.imageID,
+            ownerUserID: image.ownerUserID,
+            visibility: image.visibility,
+            title: image.fileName
+        }));
+        actions.appendChild(accessButton);
+
+        const targetStudies = displayedStudies.filter(item =>
+            Number(item.ownerUserID) === getCurrentUserID() &&
+            Number(item.studyID) !== Number(study.studyID));
+        if (!isOwner && targetStudies.length > 0) {
+            const attachSelect = document.createElement("select");
+            attachSelect.className = "image-attach-select";
+            attachSelect.setAttribute("aria-label", "پرونده مقصد");
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "انتخاب پرونده خودم...";
+            attachSelect.appendChild(placeholder);
+            targetStudies.forEach(target => {
+                const option = document.createElement("option");
+                option.value = String(target.studyID);
+                option.textContent = `${target.studyType || "رادیولوژی"} — ${formatPersianDate(target.studyDate)}`;
+                attachSelect.appendChild(option);
+            });
+
+            const attachButton = document.createElement("button");
+            attachButton.type = "button";
+            attachButton.className = "image-attach-button";
+            attachButton.textContent = "پیوست به پرونده من";
+            attachButton.addEventListener("click", async () => {
+                if (!attachSelect.value) {
+                    showToast("ابتدا پرونده مقصد خود را انتخاب کنید.", "warning");
+                    return;
+                }
+                await attachImageToOwnedStudy(image, Number(attachSelect.value));
+            });
+
+            actions.appendChild(attachSelect);
+            actions.appendChild(attachButton);
+        }
+
         card.appendChild(img);
         card.appendChild(title);
         if (image.description) card.appendChild(description);
         card.appendChild(actions);
         imageGrid.appendChild(card);
     });
+}
+
+
+async function attachImageToOwnedStudy(image, targetStudyID) {
+    try {
+        const response = await fetch(`/api/radiologyimages/${image.imageID}/attachments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studyID: targetStudyID })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(getApiError(result, "پیوست تصویر انجام نشد."));
+        }
+
+        showToast(result.alreadyAttached ? "این تصویر از قبل در پرونده مقصد وجود دارد." : "تصویر به پرونده شما پیوست شد.", "success");
+        await openPatient(selectedPatientID);
+        const targetCard = document.querySelector(`[data-study-id="${targetStudyID}"]`);
+        targetCard?.querySelector(".study-images-button")?.click();
+    }
+    catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+
+async function openResourceAccess(resource) {
+    activeResourceAccess = resource;
+    const isOwner = Number(resource.ownerUserID) === getCurrentUserID();
+    resourceAccessSubtitle.textContent = resource.title || "";
+    resourceAccessStatus.textContent = "";
+    resourceAccessStatus.classList.remove("error");
+    resourceVisibilitySelect.value = String(Number(resource.visibility) || 0);
+    resourceVisibilitySelect.disabled = !isOwner;
+    saveResourceVisibilityButton.classList.toggle("hidden", !isOwner);
+    resourceRecipientSelect.innerHTML = '<option value="">در حال دریافت کاربران...</option>';
+    resourceGrantList.innerHTML = '<div class="financial-empty">در حال دریافت...</div>';
+    resourceAccessModal.classList.remove("hidden");
+
+    try {
+        const [usersResponse, grantsResponse] = await Promise.all([
+            fetch("/api/access/users"),
+            fetch(`/api/access/grants?resourceType=${resource.resourceType}&resourceID=${resource.resourceID}`)
+        ]);
+        const [usersResult, grantsResult] = await Promise.all([usersResponse.json(), grantsResponse.json()]);
+        if (!usersResponse.ok || !usersResult.success) {
+            throw new Error(getApiError(usersResult, "دریافت کاربران انجام نشد."));
+        }
+        if (!grantsResponse.ok || !grantsResult.success) {
+            throw new Error(getApiError(grantsResult, "دریافت تاریخچه اشتراک انجام نشد."));
+        }
+
+        resourceRecipientSelect.innerHTML = '<option value="">انتخاب کاربر...</option>';
+        usersResult.users.forEach(user => {
+            const option = document.createElement("option");
+            option.value = String(user.userID);
+            option.textContent = `${user.displayName} (${user.userName})`;
+            resourceRecipientSelect.appendChild(option);
+        });
+
+        renderResourceGrants(grantsResult.grants);
+    }
+    catch (error) {
+        resourceAccessStatus.textContent = error.message;
+        resourceAccessStatus.classList.add("error");
+    }
+}
+
+
+function renderResourceGrants(grants) {
+    resourceGrantList.innerHTML = "";
+    if (!grants || grants.length === 0) {
+        resourceGrantList.innerHTML = '<div class="financial-empty">هنوز دسترسی مستقیمی واگذار نشده است.</div>';
+        return;
+    }
+
+    grants.forEach(grant => {
+        const row = document.createElement("div");
+        row.className = "access-grant-row";
+        const recipient = document.createElement("strong");
+        recipient.textContent = grant.recipientName;
+        const chain = document.createElement("span");
+        chain.textContent = `واگذارکننده: ${grant.grantedBy || "نامشخص"}`;
+        const date = document.createElement("small");
+        date.textContent = formatPersianDateTime(grant.createdDate);
+        row.appendChild(recipient);
+        row.appendChild(chain);
+        row.appendChild(date);
+        resourceGrantList.appendChild(row);
+    });
+}
+
+
+async function saveResourceVisibility() {
+    if (!activeResourceAccess) return;
+    const visibility = Number(resourceVisibilitySelect.value);
+    if (visibility === Number(activeResourceAccess.visibility)) return;
+
+    const message = visibility === 1
+        ? "این مورد برای تمام کاربران واردشده به همین سامانه قابل مشاهده می‌شود. ادامه می‌دهید؟"
+        : "مورد خصوصی می‌شود، اما واگذاری‌های مستقیم قبلی قابل لغو نیستند و باقی می‌مانند. ادامه می‌دهید؟";
+    if (!await askConfirmation({ title: "تغییر سطح دسترسی", message, confirmText: "تأیید تغییر" })) return;
+
+    try {
+        const path = activeResourceAccess.resourceType === 1
+            ? `/api/access/studies/${activeResourceAccess.resourceID}/visibility`
+            : `/api/access/images/${activeResourceAccess.resourceID}/visibility`;
+        const response = await fetch(path, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ visibility })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(getApiError(result, "تغییر سطح دسترسی انجام نشد."));
+        }
+
+        resourceAccessModal.classList.add("hidden");
+        await openPatient(selectedPatientID);
+        showToast("سطح دسترسی به‌روزرسانی شد.", "success");
+    }
+    catch (error) {
+        resourceAccessStatus.textContent = error.message;
+        resourceAccessStatus.classList.add("error");
+    }
+}
+
+
+async function createResourceGrant() {
+    if (!activeResourceAccess) return;
+    const recipientUserID = Number(resourceRecipientSelect.value);
+    if (!recipientUserID) {
+        showToast("کاربر دریافت‌کننده را انتخاب کنید.", "warning");
+        return;
+    }
+
+    const recipientName = resourceRecipientSelect.selectedOptions[0]?.textContent || "کاربر انتخاب‌شده";
+    const confirmed = await askConfirmation({
+        title: "اشتراک دائمی",
+        message: `دسترسی «${activeResourceAccess.title}» برای ${recipientName} دائمی است و لغو نمی‌شود. دریافت‌کننده نیز می‌تواند آن را بازاشتراک‌گذاری کند. ادامه می‌دهید؟`,
+        confirmText: "ثبت واگذاری"
+    });
+    if (!confirmed) return;
+
+    try {
+        grantResourceAccessButton.disabled = true;
+        const response = await fetch("/api/access/grants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                resourceType: activeResourceAccess.resourceType,
+                resourceID: activeResourceAccess.resourceID,
+                recipientUserID
+            })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(getApiError(result, "اشتراک‌گذاری انجام نشد."));
+        }
+
+        resourceAccessStatus.textContent = "دسترسی دائمی ثبت شد.";
+        resourceAccessStatus.classList.remove("error");
+        const grantsResponse = await fetch(`/api/access/grants?resourceType=${activeResourceAccess.resourceType}&resourceID=${activeResourceAccess.resourceID}`);
+        const grantsResult = await grantsResponse.json();
+        if (!grantsResponse.ok || !grantsResult.success) {
+            throw new Error(getApiError(grantsResult, "واگذاری ثبت شد، اما تاریخچه قابل بارگذاری نبود."));
+        }
+        renderResourceGrants(grantsResult.grants);
+        resourceRecipientSelect.value = "";
+    }
+    catch (error) {
+        resourceAccessStatus.textContent = error.message;
+        resourceAccessStatus.classList.add("error");
+    }
+    finally {
+        grantResourceAccessButton.disabled = false;
+    }
 }
 
 
@@ -3109,7 +3385,10 @@ async function createStudy() {
             report:
                 emptyToNull(
                     newStudyReport.value
-                )
+                ),
+
+            visibility:
+                Number(newStudyVisibility.value)
         };
 
 
@@ -3237,6 +3516,8 @@ async function openEditStudyForm(
 
     selectedStudy =
         study;
+
+    imageVisibility.value = "0";
 
     try {
         await loadEditStudyOrganizations(study.organizationID, study.dentistPersonID);
@@ -3618,6 +3899,7 @@ async function uploadImage() {
         if (description) {
             formData.append("description", description);
         }
+        formData.append("visibility", imageVisibility.value);
 
 
         setFormStatus(
@@ -5866,6 +6148,21 @@ uploadImageForm.addEventListener(
         await uploadImage();
     }
 );
+
+closeResourceAccessButton.addEventListener("click", () => {
+    resourceAccessModal.classList.add("hidden");
+    activeResourceAccess = null;
+});
+
+resourceAccessModal.addEventListener("click", event => {
+    if (event.target === resourceAccessModal) {
+        resourceAccessModal.classList.add("hidden");
+        activeResourceAccess = null;
+    }
+});
+
+saveResourceVisibilityButton.addEventListener("click", saveResourceVisibility);
+grantResourceAccessButton.addEventListener("click", createResourceGrant);
 
 
 function cancelUploadImage() {

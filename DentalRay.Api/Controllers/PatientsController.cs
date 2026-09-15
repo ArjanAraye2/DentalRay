@@ -2,6 +2,8 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
+using DentalRay.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +26,7 @@ namespace DentalRay.Api.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PatientsController : ControllerBase
     {
         // --------------------------------------------------------
@@ -45,6 +48,7 @@ namespace DentalRay.Api.Controllers
         //
         // استفاده می‌شود.
         private readonly RadiologyStorageService _storageService;
+        private readonly ResourceAccessService _access;
 
 
         // ========================================================
@@ -53,10 +57,12 @@ namespace DentalRay.Api.Controllers
 
         public PatientsController(
             DentalRayDbContext context,
-            RadiologyStorageService storageService)
+            RadiologyStorageService storageService,
+            ResourceAccessService access)
         {
             _context = context;
             _storageService = storageService;
+            _access = access;
         }
 
         // ========================================================
@@ -108,10 +114,10 @@ namespace DentalRay.Api.Controllers
             //
             // IQueryable به ما اجازه می‌دهد شرط‌های مختلف را
             // مرحله‌به‌مرحله به Query اضافه کنیم.
-            var query =
-                _context.Patients
-                    .AsNoTracking()
-                    .AsQueryable();
+            int currentUserID = _access.GetCurrentUserID(User);
+            var query = _access.ReadablePatients(currentUserID)
+                .AsNoTracking()
+                .AsQueryable();
 
 
             // ----------------------------------------------------
@@ -239,7 +245,8 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetPatient(
             string nationalCode)
         {
-            var patient = await _context.Patients
+            int currentUserID = _access.GetCurrentUserID(User);
+            var patient = await _access.ReadablePatients(currentUserID)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     p => p.NationalCode == nationalCode);
@@ -268,6 +275,7 @@ namespace DentalRay.Api.Controllers
         {
             try
             {
+                int currentUserID = _access.GetCurrentUserID(User);
                 // حذف Spaceهای ابتدا و انتهای NationalCode
                 patient.NationalCode =
                     patient.NationalCode.Trim();
@@ -316,6 +324,7 @@ namespace DentalRay.Api.Controllers
 
                 // PatientID توسط SQL Server تولید می‌شود.
                 patient.PatientID = 0;
+                patient.OwnerUserID = currentUserID;
 
                 // تاریخ ایجاد رکورد.
                 patient.CreatedDate = DateTime.Now;
@@ -453,6 +462,10 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (patient.OwnerUserID != currentUserID)
+                return NotFound(new { success = false, message = "Patient not found." });
+
 
             // ----------------------------------------------------
             // بررسی اینکه NationalCode تغییر کرده یا خیر
@@ -463,6 +476,27 @@ namespace DentalRay.Api.Controllers
                     patient.NationalCode,
                     newNationalCode,
                     StringComparison.Ordinal);
+
+            if (nationalCodeChanged)
+            {
+                var studyIDs = await _context.RadiologyStudies
+                    .Where(study => study.PatientID == patientID)
+                    .Select(study => study.StudyID)
+                    .ToListAsync();
+
+                bool hasImageOwnedByAnotherUser = studyIDs.Count > 0 &&
+                    await _context.StudyImageAttachments
+                        .Where(attachment => studyIDs.Contains(attachment.StudyID))
+                        .Join(
+                            _context.RadiologyImages,
+                            attachment => attachment.ImageID,
+                            image => image.ImageID,
+                            (attachment, image) => image)
+                        .AnyAsync(image => image.OwnerUserID != currentUserID);
+
+                if (hasImageOwnedByAnotherUser)
+                    return Conflict(new { success = false, message = "Patient code cannot be changed while another user owns an attached image." });
+            }
 
 
             // ----------------------------------------------------
@@ -799,6 +833,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> DeactivatePatient(
             int patientID)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
             var patient =
                 await _context.Patients
                     .FirstOrDefaultAsync(
@@ -814,6 +849,9 @@ namespace DentalRay.Api.Controllers
                         "Patient not found."
                 });
             }
+
+            if (patient.OwnerUserID != currentUserID)
+                return NotFound(new { success = false, message = "Patient not found." });
 
 
             // اگر قبلاً غیرفعال شده است،
@@ -886,6 +924,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> ActivatePatient(
             int patientID)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
             // ----------------------------------------------------
             // بررسی PatientID
             // ----------------------------------------------------
@@ -921,6 +960,9 @@ namespace DentalRay.Api.Controllers
                         "Patient not found."
                 });
             }
+
+            if (patient.OwnerUserID != currentUserID)
+                return NotFound(new { success = false, message = "Patient not found." });
 
 
             // ----------------------------------------------------
@@ -1026,6 +1068,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetPatientDetails(
             int patientID)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
             // ----------------------------------------------------
             // بررسی PatientID
             // ----------------------------------------------------
@@ -1046,7 +1089,7 @@ namespace DentalRay.Api.Controllers
             // ----------------------------------------------------
 
             var patient =
-                await _context.Patients
+                await _access.ReadablePatients(currentUserID)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(
                         p => p.PatientID ==
@@ -1069,7 +1112,7 @@ namespace DentalRay.Api.Controllers
             // ----------------------------------------------------
 
             var studies =
-                await _context.RadiologyStudies
+                await _access.ReadableStudies(currentUserID)
                     .AsNoTracking()
                     .Where(
                         s => s.PatientID ==
@@ -1106,24 +1149,17 @@ namespace DentalRay.Api.Controllers
             var imageCounts =
                 studyIDs.Count == 0
                     ? new Dictionary<int, int>()
-                    : await _context.RadiologyImages
-                        .AsNoTracking()
-                        .Where(
-                            i => studyIDs.Contains(
-                                i.StudyID))
-
-                        .GroupBy(
-                            i => i.StudyID)
-
-                        .Select(g => new
-                        {
-                            StudyID = g.Key,
-                            Count = g.Count()
-                        })
-
-                        .ToDictionaryAsync(
-                            x => x.StudyID,
-                            x => x.Count);
+                    : await (from attachment in _context.StudyImageAttachments.AsNoTracking()
+                             join image in _access.ReadableImages(currentUserID).AsNoTracking()
+                                 on attachment.ImageID equals image.ImageID
+                             where studyIDs.Contains(attachment.StudyID)
+                             group image by attachment.StudyID into imagesByStudy
+                             select new
+                             {
+                                 StudyID = imagesByStudy.Key,
+                                 Count = imagesByStudy.Select(image => image.ImageID).Distinct().Count()
+                             })
+                        .ToDictionaryAsync(x => x.StudyID, x => x.Count);
 
 
             // ----------------------------------------------------
@@ -1136,6 +1172,8 @@ namespace DentalRay.Api.Controllers
                     {
                         study.StudyID,
                         study.PatientID,
+                        study.OwnerUserID,
+                        study.Visibility,
                         study.StudyDate,
                         study.StudyType,
                         study.BodyPart,
@@ -1174,6 +1212,7 @@ namespace DentalRay.Api.Controllers
                 patient = new
                 {
                     patient.PatientID,
+                    patient.OwnerUserID,
                     patient.NationalCode,
                     patient.FirstName,
                     patient.LastName,
@@ -1222,6 +1261,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> MergePatients(
             MergePatientRequest request)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
             // ----------------------------------------------------
             // بررسی IDها
             // ----------------------------------------------------
@@ -1270,6 +1310,9 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
+            if (sourcePatient.OwnerUserID != currentUserID)
+                return NotFound(new { success = false, message = "Source patient not found." });
+
 
             // ----------------------------------------------------
             // دریافت Target
@@ -1291,6 +1334,9 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
+            if (targetPatient.OwnerUserID != currentUserID)
+                return NotFound(new { success = false, message = "Target patient not found." });
+
 
             // ----------------------------------------------------
             // دریافت Studyهای Source
@@ -1302,6 +1348,9 @@ namespace DentalRay.Api.Controllers
                         s => s.PatientID ==
                              request.SourcePatientID)
                     .ToListAsync();
+
+            if (sourceStudies.Any(study => study.OwnerUserID != currentUserID))
+                return Conflict(new { success = false, message = "Patient merge is blocked because another user owns one of the source studies." });
 
 
             var studyIDs =
@@ -1324,6 +1373,22 @@ namespace DentalRay.Api.Controllers
                             i => studyIDs.Contains(
                                 i.StudyID))
                         .ToListAsync();
+
+            bool hasLinkedImageOwnedByAnotherUser = studyIDs.Count > 0 &&
+                await _context.StudyImageAttachments
+                    .Where(attachment => studyIDs.Contains(attachment.StudyID))
+                    .Join(
+                        _context.RadiologyImages,
+                        attachment => attachment.ImageID,
+                        image => image.ImageID,
+                        (attachment, image) => image)
+                    .AnyAsync(image => image.OwnerUserID != currentUserID);
+
+            if (hasLinkedImageOwnedByAnotherUser ||
+                sourceImages.Any(image => image.OwnerUserID != currentUserID))
+            {
+                return Conflict(new { success = false, message = "Patient merge is blocked because another user owns an attached image." });
+            }
 
 
             var renamedFiles =

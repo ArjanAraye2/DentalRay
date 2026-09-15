@@ -15,18 +15,26 @@ namespace DentalRay.Api.Controllers
     {
         private readonly DentalRayDbContext _context;
         private readonly StudyFinancialAuditService _financialAudit;
+        private readonly ResourceAccessService _access;
 
         public StudyFinancialsController(
             DentalRayDbContext context,
-            StudyFinancialAuditService financialAudit)
+            StudyFinancialAuditService financialAudit,
+            ResourceAccessService access)
         {
             _context = context;
             _financialAudit = financialAudit;
+            _access = access;
         }
 
         [HttpGet("{studyID:int}")]
         public async Task<IActionResult> Get(int studyID)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanManageStudyAsync(studyID, currentUserID) &&
+                !User.IsInRole("Admin"))
+                return NotFound(new { success = false, message = "Study not found." });
+
             var study = await _context.RadiologyStudies
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.StudyID == studyID);
@@ -75,6 +83,10 @@ namespace DentalRay.Api.Controllers
             int studyID,
             StudyActionRequest request)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanManageStudyAsync(studyID, currentUserID))
+                return NotFound(new { success = false, message = "Study not found." });
+
             var validationError = ValidateAction(request);
             if (validationError != null)
                 return BadRequest(new { success = false, message = validationError });
@@ -129,6 +141,10 @@ namespace DentalRay.Api.Controllers
             int studyActionID,
             StudyActionRequest request)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanManageStudyAsync(studyID, currentUserID))
+                return NotFound(new { success = false, message = "Study action not found." });
+
             var validationError = ValidateAction(request);
             if (validationError != null)
                 return BadRequest(new { success = false, message = validationError });
@@ -183,6 +199,10 @@ namespace DentalRay.Api.Controllers
             int studyID,
             int studyActionID)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanManageStudyAsync(studyID, currentUserID))
+                return NotFound(new { success = false, message = "Study action not found." });
+
             await using var transaction = await _context.Database
                 .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -234,6 +254,10 @@ namespace DentalRay.Api.Controllers
             int studyID,
             StudyPaymentRequest request)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanManageStudyAsync(studyID, currentUserID))
+                return NotFound(new { success = false, message = "Study not found." });
+
             var validationError = ValidatePayment(request);
             if (validationError != null)
                 return BadRequest(new { success = false, message = validationError });
@@ -379,6 +403,10 @@ namespace DentalRay.Api.Controllers
             int studyID,
             StudyDiscountRequest request)
         {
+            int currentUserID = _access.GetCurrentUserID(User);
+            if (!await _access.CanManageStudyAsync(studyID, currentUserID))
+                return NotFound(new { success = false, message = "Study not found." });
+
             if (request.DiscountType > 2 ||
                 request.DiscountValue < 0 ||
                 (request.DiscountType == 2 && request.DiscountValue > 100))
