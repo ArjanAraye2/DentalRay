@@ -135,6 +135,13 @@ namespace DentalRay.Api.Controllers
 
 
                 // ------------------------------------------------
+                // توضیح تصویر
+                // ------------------------------------------------
+                description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+                if (description != null && description.Length > 1000)
+                    return BadRequest(new { success = false, message = "Image description cannot be longer than 1000 characters." });
+
+                // ------------------------------------------------
                 // محدودیت حجم
                 // ------------------------------------------------
 
@@ -409,7 +416,7 @@ namespace DentalRay.Api.Controllers
                             contentType,
 
                         Description =
-                            string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                            description,
 
                         CreatedDate =
                             DateTime.Now
