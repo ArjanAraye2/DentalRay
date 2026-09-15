@@ -395,6 +395,43 @@ const editStudyStatus =
 
 
 // ============================================================
+// Elements - Study Financials
+// ============================================================
+
+const studyFinancialsSection = byId("studyFinancialsSection");
+const backFromFinancialsButton = byId("backFromFinancialsButton");
+const financialStudySubtitle = byId("financialStudySubtitle");
+const financialStatus = byId("financialStatus");
+const financialGrossAmount = byId("financialGrossAmount");
+const financialDiscountAmount = byId("financialDiscountAmount");
+const financialNetAmount = byId("financialNetAmount");
+const financialPaidAmount = byId("financialPaidAmount");
+const financialBalanceAmount = byId("financialBalanceAmount");
+
+const studyActionForm = byId("studyActionForm");
+const studyActionID = byId("studyActionID");
+const studyActionTitle = byId("studyActionTitle");
+const studyActionAmount = byId("studyActionAmount");
+const studyActionDescription = byId("studyActionDescription");
+const saveStudyActionButton = byId("saveStudyActionButton");
+const cancelStudyActionEditButton = byId("cancelStudyActionEditButton");
+const studyActionsList = byId("studyActionsList");
+
+const studyDiscountForm = byId("studyDiscountForm");
+const studyDiscountType = byId("studyDiscountType");
+const studyDiscountValue = byId("studyDiscountValue");
+const studyDiscountValueLabel = byId("studyDiscountValueLabel");
+
+const studyPaymentForm = byId("studyPaymentForm");
+const studyPaymentAmount = byId("studyPaymentAmount");
+const studyPaymentMethod = byId("studyPaymentMethod");
+const studyPaymentDate = byId("studyPaymentDate");
+const studyPaymentReference = byId("studyPaymentReference");
+const studyPaymentDescription = byId("studyPaymentDescription");
+const studyPaymentsList = byId("studyPaymentsList");
+
+
+// ============================================================
 // Elements - Upload Image
 // ============================================================
 
@@ -508,6 +545,7 @@ function hideMainSections() {
         editPatientSection,
         newStudySection,
         editStudySection,
+        studyFinancialsSection,
         uploadImageSection,
         mergePatientSection,
         clinicsSection
@@ -808,6 +846,36 @@ function getApiError(
 
         "Study not found.":
             "رادیولوژی پیدا نشد.",
+
+        "Study action not found.":
+            "اقدام مالی پیدا نشد.",
+
+        "Action title is required.":
+            "عنوان اقدام را وارد کنید.",
+
+        "Action title cannot exceed 200 characters.":
+            "عنوان اقدام نمی‌تواند بیشتر از ۲۰۰ نویسه باشد.",
+
+        "Action amount cannot be negative.":
+            "مبلغ اقدام نمی‌تواند منفی باشد.",
+
+        "Action description cannot exceed 1000 characters.":
+            "توضیح اقدام نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.",
+
+        "Payment amount must be greater than zero.":
+            "مبلغ پرداخت باید بیشتر از صفر باشد.",
+
+        "Invalid payment method.":
+            "روش پرداخت معتبر نیست.",
+
+        "Payment reference number cannot exceed 100 characters.":
+            "شماره مرجع پرداخت نمی‌تواند بیشتر از ۱۰۰ نویسه باشد.",
+
+        "Payment description cannot exceed 1000 characters.":
+            "توضیح پرداخت نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.",
+
+        "Invalid discount.":
+            "مقدار یا نوع تخفیف معتبر نیست.",
 
         "Organization not found.":
             "مطب یا مرکز پیدا نشد.",
@@ -1468,6 +1536,11 @@ function renderStudies(
         uploadButton.textContent = "افزودن تصویر";
         uploadButton.addEventListener("click", () => openUploadImageForm(study));
 
+        const financialButton = document.createElement("button");
+        financialButton.textContent = "امور مالی";
+        financialButton.className = "financial-button";
+        financialButton.addEventListener("click", () => openStudyFinancials(study));
+
         const editButton = document.createElement("button");
         editButton.textContent = "ویرایش";
         editButton.className = "secondary-button";
@@ -1475,6 +1548,7 @@ function renderStudies(
 
         buttons.appendChild(imagesButton);
         buttons.appendChild(uploadButton);
+        buttons.appendChild(financialButton);
         buttons.appendChild(editButton);
         header.appendChild(title);
         header.appendChild(buttons);
@@ -1510,6 +1584,380 @@ function renderStudies(
 
         studiesContainer.appendChild(card);
     });
+}
+
+
+// ============================================================
+// Study Financials
+// ============================================================
+
+// مبلغ را با جداکننده هزارگان و رقم فارسی نمایش می‌دهد.
+function formatMoney(value) {
+    return Number(value || 0).toLocaleString("fa-IR", {
+        maximumFractionDigits: 0
+    });
+}
+
+
+// ورودی مبلغ ممکن است شامل رقم فارسی، ویرگول یا جداکننده فارسی باشد.
+// همه جداکننده‌ها حذف می‌شوند و مقدار عددی معتبر به Backend ارسال می‌شود.
+function parseMoney(value, allowZero = true) {
+    const normalized = normalizeDigits(value || "")
+        .replace(/[٬,\s]/g, "")
+        .trim();
+
+    if (!/^\d+$/.test(normalized)) {
+        throw new Error("مبلغ را فقط به‌صورت عدد وارد کنید.");
+    }
+
+    const amount = Number(normalized);
+
+    if (!Number.isSafeInteger(amount) || amount < 0 || (!allowZero && amount === 0)) {
+        throw new Error(allowZero
+            ? "مبلغ واردشده معتبر نیست."
+            : "مبلغ باید بیشتر از صفر باشد.");
+    }
+
+    return amount;
+}
+
+
+// هنگام خروج از فیلد مبلغ، عدد را برای خوانایی با جداکننده نمایش می‌دهیم.
+// اگر ورودی هنوز ناقص یا نامعتبر باشد، Validation هنگام ذخیره پیام مناسب می‌دهد.
+function formatMoneyInput(input, allowZero = true) {
+    input.addEventListener("blur", () => {
+        if (input.value.trim() === "") return;
+
+        try {
+            input.value = formatMoney(parseMoney(input.value, allowZero));
+        }
+        catch {
+            // مقدار نامعتبر را نگه می‌داریم تا کاربر بتواند آن را اصلاح کند.
+        }
+    });
+}
+
+
+function paymentMethodTitle(method) {
+    const titles = {
+        1: "کارت‌خوان / POS",
+        2: "کارت به کارت",
+        3: "نقدی"
+    };
+
+    return titles[method] || "نامشخص";
+}
+
+
+function resetStudyActionForm() {
+    studyActionForm.reset();
+    studyActionID.value = "";
+    saveStudyActionButton.textContent = "افزودن اقدام";
+    cancelStudyActionEditButton.classList.add("hidden");
+}
+
+
+function updateDiscountInputState() {
+    const type = Number(studyDiscountType.value);
+    studyDiscountValue.disabled = type === 0;
+    studyDiscountValueLabel.textContent = type === 2
+        ? "درصد تخفیف"
+        : "مبلغ تخفیف (ریال)";
+
+    if (type === 0) {
+        studyDiscountValue.value = "0";
+    }
+}
+
+
+function renderFinancialActions(actions) {
+    studyActionsList.innerHTML = "";
+
+    if (!actions || actions.length === 0) {
+        studyActionsList.innerHTML = '<div class="financial-empty">هنوز اقدامی ثبت نشده است.</div>';
+        return;
+    }
+
+    actions.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "financial-list-item";
+
+        const content = document.createElement("div");
+        content.className = "financial-item-content";
+
+        const title = document.createElement("strong");
+        title.textContent = item.title;
+
+        const amount = document.createElement("span");
+        amount.className = "financial-item-amount";
+        amount.textContent = `${formatMoney(item.amount)} ریال`;
+
+        content.appendChild(title);
+        content.appendChild(amount);
+
+        if (item.description) {
+            const description = document.createElement("small");
+            description.textContent = item.description;
+            content.appendChild(description);
+        }
+
+        const actionsContainer = document.createElement("div");
+        actionsContainer.className = "financial-item-actions";
+
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "secondary-button";
+        editButton.textContent = "ویرایش";
+        editButton.addEventListener("click", () => {
+            studyActionID.value = String(item.studyActionID);
+            studyActionTitle.value = item.title || "";
+            studyActionAmount.value = formatMoney(item.amount);
+            studyActionDescription.value = item.description || "";
+            saveStudyActionButton.textContent = "ذخیره تغییرات";
+            cancelStudyActionEditButton.classList.remove("hidden");
+            studyActionTitle.focus();
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "danger-button";
+        deleteButton.textContent = "حذف";
+        deleteButton.addEventListener("click", () => deleteStudyAction(item));
+
+        actionsContainer.appendChild(editButton);
+        actionsContainer.appendChild(deleteButton);
+        row.appendChild(content);
+        row.appendChild(actionsContainer);
+        studyActionsList.appendChild(row);
+    });
+}
+
+
+function renderFinancialPayments(payments) {
+    studyPaymentsList.innerHTML = "";
+
+    if (!payments || payments.length === 0) {
+        studyPaymentsList.innerHTML = '<div class="financial-empty">هنوز پرداختی ثبت نشده است.</div>';
+        return;
+    }
+
+    payments.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "financial-list-item payment-item";
+
+        const content = document.createElement("div");
+        content.className = "financial-item-content";
+
+        const title = document.createElement("strong");
+        title.textContent = `${formatMoney(item.amount)} ریال — ${paymentMethodTitle(item.paymentMethod)}`;
+
+        const meta = document.createElement("small");
+        meta.textContent = `تاریخ: ${formatPersianDateTime(item.paymentDate)}`;
+
+        content.appendChild(title);
+        content.appendChild(meta);
+
+        if (item.referenceNumber) {
+            const reference = document.createElement("small");
+            reference.textContent = `شماره مرجع: ${item.referenceNumber}`;
+            content.appendChild(reference);
+        }
+
+        if (item.description) {
+            const description = document.createElement("small");
+            description.textContent = item.description;
+            content.appendChild(description);
+        }
+
+        row.appendChild(content);
+        studyPaymentsList.appendChild(row);
+    });
+}
+
+
+async function loadStudyFinancials() {
+    if (!selectedStudyID) {
+        throw new Error("رادیولوژی انتخاب نشده است.");
+    }
+
+    setFormStatus(financialStatus, "در حال دریافت اطلاعات مالی...", false);
+
+    const response = await fetch(`/api/studyfinancials/${selectedStudyID}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(getApiError(result, "دریافت اطلاعات مالی انجام نشد."));
+    }
+
+    financialGrossAmount.textContent = formatMoney(result.grossAmount);
+    financialDiscountAmount.textContent = formatMoney(result.discountAmount);
+    financialNetAmount.textContent = formatMoney(result.netAmount);
+    financialPaidAmount.textContent = formatMoney(result.paidAmount);
+    financialBalanceAmount.textContent = formatMoney(result.balanceAmount);
+    financialBalanceAmount.classList.toggle("negative-amount", Number(result.balanceAmount) < 0);
+
+    studyDiscountType.value = String(result.discountType || 0);
+    studyDiscountValue.value = result.discountType === 1
+        ? formatMoney(result.discountValue)
+        : String(result.discountValue || 0);
+    updateDiscountInputState();
+
+    renderFinancialActions(result.actions);
+    renderFinancialPayments(result.payments);
+    setFormStatus(financialStatus, "", false);
+}
+
+
+async function openStudyFinancials(study) {
+    selectedStudyID = study.studyID;
+    selectedStudy = study;
+    resetStudyActionForm();
+    studyPaymentForm.reset();
+    studyPaymentDate.value = formatPersianDateTimeForInput(new Date());
+    financialStudySubtitle.textContent =
+        `رادیولوژی شماره ${study.studyID} — ${study.studyType || "بدون عنوان"}`;
+
+    hideMainSections();
+    studyFinancialsSection.classList.remove("hidden");
+    window.scrollTo(0, 0);
+
+    try {
+        await loadStudyFinancials();
+    }
+    catch (error) {
+        setFormStatus(financialStatus, error.message, true);
+    }
+}
+
+
+async function saveStudyAction() {
+    const id = Number(studyActionID.value || 0);
+    const title = studyActionTitle.value.trim();
+
+    if (!title) {
+        throw new Error("عنوان اقدام را وارد کنید.");
+    }
+
+    const payload = {
+        title,
+        amount: parseMoney(studyActionAmount.value),
+        description: emptyToNull(studyActionDescription.value)
+    };
+
+    const url = id
+        ? `/api/studyfinancials/${selectedStudyID}/actions/${id}`
+        : `/api/studyfinancials/${selectedStudyID}/actions`;
+
+    const response = await fetch(url, {
+        method: id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(getApiError(result, "ذخیره اقدام انجام نشد."));
+    }
+
+    resetStudyActionForm();
+    await loadStudyFinancials();
+    showToast(id ? "اقدام با موفقیت ویرایش شد." : "اقدام با موفقیت ثبت شد.", "success");
+}
+
+
+async function deleteStudyAction(item) {
+    const confirmed = await askConfirmation({
+        title: "حذف اقدام مالی",
+        message: `آیا اقدام «${item.title}» حذف شود؟`,
+        confirmText: "حذف اقدام",
+        danger: true
+    });
+
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(
+            `/api/studyfinancials/${selectedStudyID}/actions/${item.studyActionID}`,
+            { method: "DELETE" }
+        );
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(getApiError(result, "حذف اقدام انجام نشد."));
+        }
+
+        resetStudyActionForm();
+        await loadStudyFinancials();
+        showToast("اقدام مالی حذف شد.", "success");
+    }
+    catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+
+async function saveStudyDiscount() {
+    const type = Number(studyDiscountType.value);
+    let value = 0;
+
+    if (type === 1) {
+        value = parseMoney(studyDiscountValue.value);
+    }
+    else if (type === 2) {
+        const normalized = normalizeDigits(studyDiscountValue.value).replace("٫", ".").trim();
+        value = Number(normalized);
+
+        if (!Number.isFinite(value) || value < 0 || value > 100) {
+            throw new Error("درصد تخفیف باید عددی بین صفر تا صد باشد.");
+        }
+    }
+
+    const response = await fetch(`/api/studyfinancials/${selectedStudyID}/discount`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discountType: type, discountValue: value })
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(getApiError(result, "ثبت تخفیف انجام نشد."));
+    }
+
+    await loadStudyFinancials();
+    showToast("تخفیف با موفقیت ثبت شد.", "success");
+}
+
+
+async function saveStudyPayment() {
+    const paymentDate = parsePersianDateForBackend(studyPaymentDate.value, true);
+
+    if (!paymentDate) {
+        throw new Error("تاریخ پرداخت را وارد کنید.");
+    }
+
+    const payload = {
+        amount: parseMoney(studyPaymentAmount.value, false),
+        paymentMethod: Number(studyPaymentMethod.value),
+        paymentDate,
+        referenceNumber: emptyToNull(studyPaymentReference.value),
+        description: emptyToNull(studyPaymentDescription.value)
+    };
+
+    const response = await fetch(`/api/studyfinancials/${selectedStudyID}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(getApiError(result, "ثبت پرداخت انجام نشد."));
+    }
+
+    studyPaymentForm.reset();
+    studyPaymentDate.value = formatPersianDateTimeForInput(new Date());
+    await loadStudyFinancials();
+    showToast("پرداخت با موفقیت ثبت شد.", "success");
 }
 
 
@@ -5144,6 +5592,69 @@ cancelEditStudyButtonBottom.addEventListener(
     "click",
     cancelEditStudy
 );
+
+
+// ============================================================
+// Events - Study Financials
+// ============================================================
+
+backFromFinancialsButton.addEventListener("click", () => {
+    openPatient(selectedPatientID);
+});
+
+studyActionForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    try {
+        setFormStatus(financialStatus, "در حال ذخیره اقدام...", false);
+        await saveStudyAction();
+    }
+    catch (error) {
+        setFormStatus(financialStatus, error.message, true);
+    }
+});
+
+cancelStudyActionEditButton.addEventListener("click", resetStudyActionForm);
+
+studyDiscountType.addEventListener("change", updateDiscountInputState);
+
+formatMoneyInput(studyActionAmount);
+formatMoneyInput(studyPaymentAmount, false);
+
+studyDiscountValue.addEventListener("blur", () => {
+    if (Number(studyDiscountType.value) === 1) {
+        try {
+            studyDiscountValue.value = formatMoney(parseMoney(studyDiscountValue.value));
+        }
+        catch {
+            // Validation نهایی هنگام ثبت تخفیف انجام می‌شود.
+        }
+    }
+});
+
+studyDiscountForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    try {
+        setFormStatus(financialStatus, "در حال ثبت تخفیف...", false);
+        await saveStudyDiscount();
+    }
+    catch (error) {
+        setFormStatus(financialStatus, error.message, true);
+    }
+});
+
+studyPaymentForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    try {
+        setFormStatus(financialStatus, "در حال ثبت پرداخت...", false);
+        await saveStudyPayment();
+    }
+    catch (error) {
+        setFormStatus(financialStatus, error.message, true);
+    }
+});
 
 
 // ============================================================

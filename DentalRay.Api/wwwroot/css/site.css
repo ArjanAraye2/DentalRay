@@ -632,6 +632,98 @@ button {
 
 
 /* ==========================================================
+   Study Financials
+   ========================================================== */
+
+.financial-button { background: #0f766e; }
+.financial-button:hover:not(:disabled) { background: #115e59; }
+
+.financial-summary {
+    display: grid;
+    grid-template-columns: repeat( 5, minmax( 145px, 1fr ) );
+    gap: 12px;
+    margin: 18px 0 22px;
+}
+
+.financial-summary .summary-box { min-width: 0; }
+.discount-summary-box { background: #fff8e6; border-color: #f2d487; }
+.paid-summary-box { background: #ecfdf5; border-color: #a7f3d0; }
+.balance-summary-box { background: #eff6ff; border-color: #bfdbfe; }
+.negative-amount { color: #b42318 !important; }
+
+.financial-grid {
+    display: grid;
+    grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+    gap: 18px;
+    align-items: start;
+}
+
+.financial-panel {
+    padding: 16px;
+    border: 1px solid var( --border );
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.compact-actions { margin-top: 4px; }
+
+.payment-heading {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var( --border );
+}
+
+.financial-list {
+    display: grid;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.financial-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.financial-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.financial-item-content small {
+    color: var( --muted );
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.financial-item-amount { color: #0f766e; font-weight: 700; }
+
+.financial-item-actions {
+    display: flex;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+.financial-item-actions button { padding: 7px 10px; }
+
+.financial-empty {
+    padding: 13px;
+    color: var( --muted );
+    text-align: center;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+
+/* ==========================================================
    Image Grid
    ========================================================== */
 
@@ -885,6 +977,18 @@ button {
    ========================================================== */
 
 @media ( max-width: 700px ) {
+
+    .financial-summary,
+    .financial-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .financial-list-item {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .financial-item-actions button { flex: 1; }
 
     .main-header {
         position: static;

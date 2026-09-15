@@ -34,11 +34,124 @@ namespace DentalRay.Api.Controllers
             if (!await _context.RadiologyStudies.AnyAsync(x => x.StudyID == studyID)) return NotFound(new { success=false, message="Study not found." });
             item.StudyActionID=0; item.StudyID=studyID; item.Title=(item.Title??"").Trim();
             if(item.Title.Length==0) return BadRequest(new {success=false,message="Action title is required."});
+            if(item.Title.Length>200) return BadRequest(new {success=false,message="Action title cannot exceed 200 characters."});
             if(item.Amount<0) return BadRequest(new {success=false,message="Action amount cannot be negative."});
+            item.Description=string.IsNullOrWhiteSpace(item.Description)?null:item.Description.Trim();
+            if(item.Description?.Length>1000) return BadRequest(new {success=false,message="Action description cannot exceed 1000 characters."});
             item.CreatedDate=DateTime.Now; item.ModifiedDate=null;
             _context.StudyActions.Add(item); await _context.SaveChangesAsync();
             await RecalculateDiscount(studyID);
-            return Ok(item);
+            return Ok(new { success = true, action = item });
+        }
+
+        // ویرایش یک اقدام مالی موجود.
+        // StudyID از نشانی درخواست دریافت می‌شود و به داده ارسالی کاربر اعتماد نمی‌کنیم.
+        [HttpPut("{studyID:int}/actions/{studyActionID:int}")]
+        public async Task<IActionResult> UpdateAction(
+            int studyID,
+            int studyActionID,
+            StudyAction request)
+        {
+            var item = await _context.StudyActions
+                .FirstOrDefaultAsync(x =>
+                    x.StudyActionID == studyActionID &&
+                    x.StudyID == studyID);
+
+            if (item == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Study action not found."
+                });
+            }
+
+            var title = (request.Title ?? string.Empty).Trim();
+
+            if (title.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Action title is required."
+                });
+            }
+
+            if (title.Length > 200)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Action title cannot exceed 200 characters."
+                });
+            }
+
+            if (request.Amount < 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Action amount cannot be negative."
+                });
+            }
+
+            var description = request.Description?.Trim();
+
+            if (description?.Length > 1000)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Action description cannot exceed 1000 characters."
+                });
+            }
+
+            item.Title = title;
+            item.Amount = request.Amount;
+            item.Description = string.IsNullOrWhiteSpace(description)
+                ? null
+                : description;
+            item.ModifiedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            // با تغییر مبلغ اقدام، تخفیف درصدی نیز باید دوباره محاسبه شود.
+            await RecalculateDiscount(studyID);
+
+            return Ok(new { success = true, action = item });
+        }
+
+        // حذف اقدام پس از تأیید کاربر در Frontend انجام می‌شود.
+        [HttpDelete("{studyID:int}/actions/{studyActionID:int}")]
+        public async Task<IActionResult> DeleteAction(
+            int studyID,
+            int studyActionID)
+        {
+            var item = await _context.StudyActions
+                .FirstOrDefaultAsync(x =>
+                    x.StudyActionID == studyActionID &&
+                    x.StudyID == studyID);
+
+            if (item == null)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = "Study action not found."
+                });
+            }
+
+            _context.StudyActions.Remove(item);
+            await _context.SaveChangesAsync();
+
+            // حذف اقدام جمع ناخالص و در نتیجه مبلغ تخفیف را تغییر می‌دهد.
+            await RecalculateDiscount(studyID);
+
+            return Ok(new
+            {
+                success = true,
+                message = "Study action deleted successfully."
+            });
         }
 
         [HttpPost("{studyID:int}/payments")]
@@ -47,11 +160,21 @@ namespace DentalRay.Api.Controllers
             if (!await _context.RadiologyStudies.AnyAsync(x => x.StudyID == studyID)) return NotFound(new { success=false, message="Study not found." });
             if(item.Amount<=0) return BadRequest(new {success=false,message="Payment amount must be greater than zero."});
             if(item.PaymentMethod<1 || item.PaymentMethod>3) return BadRequest(new {success=false,message="Invalid payment method."});
+
+            item.ReferenceNumber=string.IsNullOrWhiteSpace(item.ReferenceNumber)?null:item.ReferenceNumber.Trim();
+            item.Description=string.IsNullOrWhiteSpace(item.Description)?null:item.Description.Trim();
+
+            if(item.ReferenceNumber?.Length>100)
+                return BadRequest(new {success=false,message="Payment reference number cannot exceed 100 characters."});
+
+            if(item.Description?.Length>1000)
+                return BadRequest(new {success=false,message="Payment description cannot exceed 1000 characters."});
+
             item.StudyPaymentID=0; item.StudyID=studyID;
             if(item.PaymentDate==default) item.PaymentDate=DateTime.Now;
             item.CreatedDate=DateTime.Now;
             _context.StudyPayments.Add(item); await _context.SaveChangesAsync();
-            return Ok(item);
+            return Ok(new { success = true, payment = item });
         }
 
         [HttpPut("{studyID:int}/discount")]

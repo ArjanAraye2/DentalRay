@@ -1309,6 +1309,161 @@
 
 
         <!-- ==================================================
+             امور مالی Study
+             ================================================== -->
+
+        <section id="studyFinancialsSection"
+                 class="card hidden">
+
+            <div class="details-toolbar">
+                <button id="backFromFinancialsButton"
+                        type="button"
+                        class="secondary-button">
+                    بازگشت به پرونده بیمار
+                </button>
+            </div>
+
+            <div class="section-header">
+                <div>
+                    <h2>امور مالی رادیولوژی</h2>
+                    <p id="financialStudySubtitle"></p>
+                </div>
+            </div>
+
+            <div id="financialStatus"
+                 class="status-message"></div>
+
+            <!-- اعداد خلاصه همیشه از سرور دریافت می‌شوند تا با دیتابیس یکسان باشند. -->
+            <div class="financial-summary">
+                <div class="summary-box">
+                    <span id="financialGrossAmount" class="summary-number">۰</span>
+                    <span class="summary-label">جمع اقدامات (ریال)</span>
+                </div>
+                <div class="summary-box discount-summary-box">
+                    <span id="financialDiscountAmount" class="summary-number">۰</span>
+                    <span class="summary-label">تخفیف (ریال)</span>
+                </div>
+                <div class="summary-box">
+                    <span id="financialNetAmount" class="summary-number">۰</span>
+                    <span class="summary-label">مبلغ قابل پرداخت (ریال)</span>
+                </div>
+                <div class="summary-box paid-summary-box">
+                    <span id="financialPaidAmount" class="summary-number">۰</span>
+                    <span class="summary-label">پرداخت‌شده (ریال)</span>
+                </div>
+                <div class="summary-box balance-summary-box">
+                    <span id="financialBalanceAmount" class="summary-number">۰</span>
+                    <span class="summary-label">مانده (ریال)</span>
+                </div>
+            </div>
+
+            <div class="financial-grid">
+                <div class="financial-panel">
+                    <div class="subsection-header">
+                        <h3>اقدامات و خدمات</h3>
+                    </div>
+
+                    <form id="studyActionForm">
+                        <input id="studyActionID" type="hidden" />
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="studyActionTitle">عنوان اقدام</label>
+                                <input id="studyActionTitle" maxlength="200" required />
+                            </div>
+                            <div class="form-field">
+                                <label for="studyActionAmount">مبلغ (ریال)</label>
+                                <input id="studyActionAmount"
+                                       type="text"
+                                       inputmode="numeric"
+                                       placeholder="مثال: ۲٬۵۰۰٬۰۰۰"
+                                       required />
+                            </div>
+                            <div class="form-field full-width">
+                                <label for="studyActionDescription">توضیح</label>
+                                <textarea id="studyActionDescription" maxlength="1000" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-actions compact-actions">
+                            <button id="saveStudyActionButton" type="submit">افزودن اقدام</button>
+                            <button id="cancelStudyActionEditButton"
+                                    type="button"
+                                    class="secondary-button hidden">
+                                انصراف از ویرایش
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="studyActionsList" class="financial-list"></div>
+                </div>
+
+                <div class="financial-panel">
+                    <div class="subsection-header">
+                        <h3>تخفیف</h3>
+                    </div>
+
+                    <form id="studyDiscountForm">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="studyDiscountType">نوع تخفیف</label>
+                                <select id="studyDiscountType">
+                                    <option value="0">بدون تخفیف</option>
+                                    <option value="1">مبلغ ثابت</option>
+                                    <option value="2">درصدی</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label id="studyDiscountValueLabel" for="studyDiscountValue">مقدار تخفیف</label>
+                                <input id="studyDiscountValue" type="text" inputmode="decimal" value="0" disabled />
+                            </div>
+                        </div>
+                        <div class="form-actions compact-actions">
+                            <button type="submit">ثبت تخفیف</button>
+                        </div>
+                    </form>
+
+                    <div class="subsection-header payment-heading">
+                        <h3>پرداخت‌های بیمار</h3>
+                    </div>
+
+                    <form id="studyPaymentForm">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="studyPaymentAmount">مبلغ پرداخت (ریال)</label>
+                                <input id="studyPaymentAmount" type="text" inputmode="numeric" required />
+                            </div>
+                            <div class="form-field">
+                                <label for="studyPaymentMethod">روش پرداخت</label>
+                                <select id="studyPaymentMethod">
+                                    <option value="1">کارت‌خوان / POS</option>
+                                    <option value="2">کارت به کارت</option>
+                                    <option value="3">نقدی</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="studyPaymentDate">تاریخ و زمان شمسی</label>
+                                <input id="studyPaymentDate" type="text" maxlength="16" />
+                            </div>
+                            <div class="form-field">
+                                <label for="studyPaymentReference">شماره مرجع</label>
+                                <input id="studyPaymentReference" maxlength="100" />
+                            </div>
+                            <div class="form-field full-width">
+                                <label for="studyPaymentDescription">توضیح</label>
+                                <textarea id="studyPaymentDescription" maxlength="1000" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-actions compact-actions">
+                            <button type="submit">ثبت پرداخت</button>
+                        </div>
+                    </form>
+
+                    <div id="studyPaymentsList" class="financial-list"></div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ==================================================
              Upload تصویر
              ================================================== -->
 
