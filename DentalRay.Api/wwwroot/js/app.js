@@ -52,6 +52,87 @@ let selectedStudyID = null;
 let selectedStudy = null;
 
 
+
+
+// ============================================================
+// Quick Clinic / Dentist Management
+// ============================================================
+const manageClinicsButton = byId("manageClinicsButton");
+const clinicsSection = byId("clinicsSection");
+const backFromClinicsButton = byId("backFromClinicsButton");
+const clinicName = byId("clinicName");
+const clinicType = byId("clinicType");
+const clinicPhone = byId("clinicPhone");
+const clinicAddress = byId("clinicAddress");
+const saveClinicButton = byId("saveClinicButton");
+const clinicStatus = byId("clinicStatus");
+const dentistClinic = byId("dentistClinic");
+const dentistFirstName = byId("dentistFirstName");
+const dentistLastName = byId("dentistLastName");
+const dentistCouncilCode = byId("dentistCouncilCode");
+const saveDentistButton = byId("saveDentistButton");
+const dentistStatus = byId("dentistStatus");
+
+async function refreshClinicManagementList() {
+    const response = await fetch("/api/organizations");
+    if (!response.ok) throw new Error("دریافت فهرست مطب‌ها انجام نشد.");
+    const items = await response.json();
+    dentistClinic.innerHTML = '<option value="">انتخاب مطب...</option>';
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.organizationID; option.textContent = item.name;
+        dentistClinic.appendChild(option);
+    });
+    if (items.length === 1) dentistClinic.value = String(items[0].organizationID);
+}
+
+manageClinicsButton.addEventListener("click", async () => {
+    hideMainSections();
+    clinicsSection.classList.remove("hidden");
+    try { await refreshClinicManagementList(); } catch (e) { setFormStatus(clinicStatus, e.message, true); }
+    window.scrollTo(0, 0);
+});
+
+backFromClinicsButton.addEventListener("click", () => {
+    hideMainSections(); patientsSection.classList.remove("hidden"); window.scrollTo(0, 0);
+});
+
+saveClinicButton.addEventListener("click", async () => {
+    try {
+        const name = clinicName.value.trim();
+        if (!name) throw new Error("نام مطب یا مرکز را وارد کنید.");
+        setFormStatus(clinicStatus, "در حال ثبت...", false);
+        const response = await fetch("/api/organizations", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, organizationType: Number(clinicType.value), phone: emptyToNull(clinicPhone.value), address: emptyToNull(clinicAddress.value) })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(getApiError(result, "ثبت مطب انجام نشد."));
+        clinicName.value = ""; clinicPhone.value = ""; clinicAddress.value = "";
+        await refreshClinicManagementList();
+        dentistClinic.value = String(result.organizationID);
+        setFormStatus(clinicStatus, "مطب / مرکز با موفقیت ثبت شد.", false);
+    } catch (e) { setFormStatus(clinicStatus, e.message, true); }
+});
+
+saveDentistButton.addEventListener("click", async () => {
+    try {
+        const organizationID = Number(dentistClinic.value);
+        const firstName = dentistFirstName.value.trim(), lastName = dentistLastName.value.trim();
+        if (!organizationID) throw new Error("مطب را انتخاب کنید.");
+        if (!firstName || !lastName) throw new Error("نام و نام خانوادگی دندانپزشک را وارد کنید.");
+        setFormStatus(dentistStatus, "در حال ثبت...", false);
+        const response = await fetch(`/api/organizations/${organizationID}/dentists`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ firstName, lastName, positionName: "دندانپزشک", medicalCouncilCode: emptyToNull(dentistCouncilCode.value) })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(getApiError(result, "ثبت دندانپزشک انجام نشد."));
+        dentistFirstName.value = ""; dentistLastName.value = ""; dentistCouncilCode.value = "";
+        setFormStatus(dentistStatus, "دندانپزشک با موفقیت ایجاد و به مطب متصل شد.", false);
+    } catch (e) { setFormStatus(dentistStatus, e.message, true); }
+});
+
 // ============================================================
 // Elements - Patient List
 // ============================================================
