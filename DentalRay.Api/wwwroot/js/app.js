@@ -1368,6 +1368,8 @@ function renderStudies(
         const meta = document.createElement("div");
         meta.className = "study-meta";
         meta.appendChild(createInfoLine("تاریخ", formatPersianDateTime(study.studyDate)));
+        meta.appendChild(createInfoLine("مطب / مرکز", study.organizationName || "-"));
+        meta.appendChild(createInfoLine("دندانپزشک", study.dentistName || "-"));
         meta.appendChild(createInfoLine("ناحیه", study.bodyPart || "-"));
         meta.appendChild(createInfoLine("توضیحات", study.description || "-"));
         meta.appendChild(createInfoLine("گزارش", study.report || "-"));
