@@ -47,6 +47,12 @@ namespace DentalRay.Api.Models
         // از SourcePatientID به TargetPatientID تغییر خواهد کرد.
         public int PatientID { get; set; }
 
+        // مطب/مرکزی که Study در آن ثبت شده است.
+        public int? OrganizationID { get; set; }
+
+        // دندانپزشک مسئول Study. برای سازگاری با اطلاعات قدیمی Nullable است.
+        public int? DentistPersonID { get; set; }
+
 
         // --------------------------------------------------------
         // StudyDate
