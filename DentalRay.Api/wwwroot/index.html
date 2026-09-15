@@ -90,13 +90,10 @@
                 </div>
 
 
-                <button id="newPatientButton"
-                        type="button"
-                        class="primary-button">
-
-                    + بیمار جدید
-
-                </button>
+                <div class="header-actions">
+                    <button id="manageClinicsButton" type="button" class="secondary-button">مطب‌ها و دندانپزشکان</button>
+                    <button id="newPatientButton" type="button" class="primary-button">+ بیمار جدید</button>
+                </div>
 
             </div>
 
@@ -211,6 +208,63 @@
 
         </section>
 
+
+
+        <!-- ==================================================
+             مدیریت سریع مطب و دندانپزشک
+             ================================================== -->
+        <section id="clinicsSection" class="card hidden">
+            <div class="details-toolbar">
+                <button id="backFromClinicsButton" type="button" class="secondary-button">← بازگشت</button>
+            </div>
+            <div class="section-header">
+                <div>
+                    <h2>مطب‌ها و دندانپزشکان</h2>
+                    <p>تعریف سریع اطلاعات موردنیاز برای ثبت رادیولوژی</p>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="clinicName">نام مطب / مرکز</label>
+                    <input id="clinicName" type="text" maxlength="150" />
+                </div>
+                <div class="form-field">
+                    <label for="clinicType">نوع مجموعه</label>
+                    <select id="clinicType"><option value="1">مطب دندانپزشکی</option><option value="2">مرکز رادیولوژی</option></select>
+                </div>
+                <div class="form-field">
+                    <label for="clinicPhone">تلفن</label>
+                    <input id="clinicPhone" type="text" maxlength="30" />
+                </div>
+                <div class="form-field full-width">
+                    <label for="clinicAddress">آدرس</label>
+                    <input id="clinicAddress" type="text" maxlength="500" />
+                </div>
+            </div>
+            <div class="form-actions"><button id="saveClinicButton" type="button" class="primary-button">ثبت مطب / مرکز</button></div>
+            <div id="clinicStatus" class="status-message"></div>
+            <hr />
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="dentistClinic">مطب</label>
+                    <select id="dentistClinic"><option value="">انتخاب مطب...</option></select>
+                </div>
+                <div class="form-field">
+                    <label for="dentistFirstName">نام دندانپزشک</label>
+                    <input id="dentistFirstName" type="text" maxlength="100" />
+                </div>
+                <div class="form-field">
+                    <label for="dentistLastName">نام خانوادگی</label>
+                    <input id="dentistLastName" type="text" maxlength="100" />
+                </div>
+                <div class="form-field">
+                    <label for="dentistCouncilCode">شماره نظام پزشکی</label>
+                    <input id="dentistCouncilCode" type="text" maxlength="30" />
+                </div>
+            </div>
+            <div class="form-actions"><button id="saveDentistButton" type="button" class="primary-button">ایجاد سریع دندانپزشک</button></div>
+            <div id="dentistStatus" class="status-message"></div>
+        </section>
 
         <!-- ==================================================
              پرونده بیمار
