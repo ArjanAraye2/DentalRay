@@ -32,6 +32,18 @@ namespace DentalRay.Api.Data
                 .HasForeignKey(study => study.PatientID)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<RadiologyStudy>()
+                .HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(study => study.OrganizationID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<RadiologyStudy>()
+                .HasOne<Person>()
+                .WithMany()
+                .HasForeignKey(study => study.DentistPersonID)
+                .OnDelete(DeleteBehavior.NoAction);
+
             modelBuilder.Entity<RadiologyImage>()
                 .HasOne<RadiologyStudy>()
                 .WithMany()
