@@ -104,6 +104,41 @@ namespace DentalRay.Api.Controllers
 
 
                 // ------------------------------------------------
+                // بررسی مطب و دندانپزشک (نسخه MVP)
+                // ------------------------------------------------
+                // اطلاعات قدیمی ممکن است این دو مقدار را نداشته باشند،
+                // بنابراین ستون‌ها Nullable هستند؛ ولی اگر مقدار ارسال شود
+                // حتماً اعتبار رابطه مطب/دندانپزشک کنترل می‌شود.
+                if (study.OrganizationID.HasValue)
+                {
+                    bool organizationExists = await _context.Organizations
+                        .AnyAsync(x => x.OrganizationID == study.OrganizationID.Value && x.IsActive);
+
+                    if (!organizationExists)
+                        return BadRequest(new { success = false, message = "Organization not found or inactive." });
+                }
+
+                if (study.DentistPersonID.HasValue)
+                {
+                    if (!study.OrganizationID.HasValue)
+                        return BadRequest(new { success = false, message = "Organization is required when a dentist is selected." });
+
+                    bool dentistBelongsToOrganization =
+                        await _context.OrganizationMembers.AnyAsync(m =>
+                            m.OrganizationID == study.OrganizationID.Value &&
+                            m.PersonID == study.DentistPersonID.Value &&
+                            m.IsActive)
+                        &&
+                        await _context.Persons.AnyAsync(p =>
+                            p.PersonID == study.DentistPersonID.Value &&
+                            p.IsActive);
+
+                    if (!dentistBelongsToOrganization)
+                        return BadRequest(new { success = false, message = "Selected dentist does not belong to this organization." });
+                }
+
+
+                // ------------------------------------------------
                 // بررسی StudyType
                 // ------------------------------------------------
 
