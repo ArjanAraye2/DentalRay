@@ -806,6 +806,24 @@ function getApiError(
         "Study not found.":
             "رادیولوژی پیدا نشد.",
 
+        "Organization not found.":
+            "مطب یا مرکز پیدا نشد.",
+
+        "Organization not found or inactive.":
+            "مطب یا مرکز پیدا نشد یا غیرفعال است.",
+
+        "Organization name is required.":
+            "نام مطب یا مرکز الزامی است.",
+
+        "Organization is required when a dentist is selected.":
+            "برای انتخاب دندانپزشک ابتدا مطب را مشخص کنید.",
+
+        "Selected dentist does not belong to this organization.":
+            "دندانپزشک انتخاب‌شده عضو این مطب نیست.",
+
+        "Dentist first name and last name are required.":
+            "نام و نام خانوادگی دندانپزشک الزامی است.",
+
         "Image not found.":
             "تصویر پیدا نشد.",
 
