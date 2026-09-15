@@ -68,6 +68,11 @@ namespace DentalRay.Api.Data
                 .HasIndex(x => x.PersonGuid)
                 .IsUnique();
 
+            modelBuilder.Entity<Person>()
+                .HasIndex(x => x.MedicalCouncilCode)
+                .IsUnique()
+                .HasFilter("[MedicalCouncilCode] IS NOT NULL");
+
             modelBuilder.Entity<OrganizationMember>()
                 .HasIndex(x => new { x.OrganizationID, x.PersonID })
                 .IsUnique();
