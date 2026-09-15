@@ -250,6 +250,9 @@ const cancelNewStudyButton =
 const cancelNewStudyButtonBottom =
     byId("cancelNewStudyButtonBottom");
 
+const newStudyOrganization = byId("newStudyOrganization");
+const newStudyDentist = byId("newStudyDentist");
+
 const newStudyType =
     byId("newStudyType");
 
@@ -2157,11 +2160,62 @@ async function togglePatientActiveStatus() {
 }
 
 
+
+
+// ============================================================
+// Clinic / Dentist helpers for Study
+// ============================================================
+async function loadStudyOrganizations() {
+    const response = await fetch("/api/organizations");
+    if (!response.ok) throw new Error("دریافت فهرست مطب‌ها انجام نشد.");
+    const items = await response.json();
+    newStudyOrganization.innerHTML = '<option value="">انتخاب مطب...</option>';
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.organizationID;
+        option.textContent = item.name;
+        newStudyOrganization.appendChild(option);
+    });
+    if (items.length === 1) {
+        newStudyOrganization.value = String(items[0].organizationID);
+        await loadStudyDentists(items[0].organizationID);
+    } else {
+        newStudyDentist.disabled = true;
+        newStudyDentist.innerHTML = '<option value="">ابتدا مطب را انتخاب کنید</option>';
+    }
+}
+
+async function loadStudyDentists(organizationID) {
+    newStudyDentist.innerHTML = '<option value="">در حال دریافت...</option>';
+    newStudyDentist.disabled = true;
+    if (!organizationID) {
+        newStudyDentist.innerHTML = '<option value="">ابتدا مطب را انتخاب کنید</option>';
+        return;
+    }
+    const response = await fetch(`/api/organizations/${organizationID}/dentists`);
+    if (!response.ok) throw new Error("دریافت فهرست دندانپزشکان انجام نشد.");
+    const items = await response.json();
+    newStudyDentist.innerHTML = '<option value="">انتخاب دندانپزشک...</option>';
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.personID;
+        option.textContent = `${item.firstName} ${item.lastName}`;
+        newStudyDentist.appendChild(option);
+    });
+    newStudyDentist.disabled = items.length === 0;
+    if (items.length === 1) newStudyDentist.value = String(items[0].personID);
+}
+
+newStudyOrganization.addEventListener("change", async () => {
+    try { await loadStudyDentists(newStudyOrganization.value); }
+    catch (error) { setFormStatus(newStudyStatus, error.message, true); }
+});
+
 // ============================================================
 // New Study - Open Form
 // ============================================================
 
-function openNewStudyForm() {
+async function openNewStudyForm() {
 
     if (
         !selectedPatientID
@@ -2172,6 +2226,13 @@ function openNewStudyForm() {
 
 
     newStudyForm.reset();
+
+    try {
+        await loadStudyOrganizations();
+    }
+    catch (error) {
+        setFormStatus(newStudyStatus, error.message, true);
+    }
 
 
     // تاریخ و زمان فعلی را به صورت شمسی در فرم قرار می‌دهیم.
@@ -2275,6 +2336,12 @@ async function createStudy() {
 
             patientID:
                 selectedPatientID,
+
+            organizationID:
+                newStudyOrganization.value ? Number(newStudyOrganization.value) : null,
+
+            dentistPersonID:
+                newStudyDentist.value ? Number(newStudyDentist.value) : null,
 
             studyDate:
                 studyDate,
