@@ -28,6 +28,31 @@ namespace DentalRay.Api.Controllers
             return Ok(item);
         }
 
+        [HttpGet("dentists/search")]
+        public async Task<IActionResult> SearchDentists([FromQuery] string? q = null, [FromQuery] int? organizationID = null)
+        {
+            var query = from p in _context.Persons.AsNoTracking()
+                        where p.IsActive
+                        select p;
+
+            if (organizationID.HasValue)
+            {
+                query = from p in query
+                        join m in _context.OrganizationMembers.AsNoTracking() on p.PersonID equals m.PersonID
+                        where m.OrganizationID == organizationID.Value && m.IsActive
+                        select p;
+            }
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                string term = q.Trim();
+                query = query.Where(p => p.FirstName.Contains(term) || p.LastName.Contains(term) ||
+                                         (p.MedicalCouncilCode != null && p.MedicalCouncilCode.Contains(term)));
+            }
+
+            return Ok(await query.OrderBy(p => p.LastName).ThenBy(p => p.FirstName).Take(20).ToListAsync());
+        }
+
         [HttpGet("{organizationID:int}/dentists")]
         public async Task<IActionResult> GetDentists(int organizationID)
         {
