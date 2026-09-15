@@ -20,6 +20,8 @@ namespace DentalRay.Api.Data
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<Person> Persons { get; set; }
         public DbSet<OrganizationMember> OrganizationMembers { get; set; }
+        public DbSet<StudyAction> StudyActions { get; set; }
+        public DbSet<StudyPayment> StudyPayments { get; set; }
 
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
@@ -88,6 +90,18 @@ namespace DentalRay.Api.Data
                 .WithMany()
                 .HasForeignKey(x => x.PersonID)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<StudyAction>()
+                .HasOne<RadiologyStudy>()
+                .WithMany()
+                .HasForeignKey(x => x.StudyID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StudyPayment>()
+                .HasOne<RadiologyStudy>()
+                .WithMany()
+                .HasForeignKey(x => x.StudyID)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
