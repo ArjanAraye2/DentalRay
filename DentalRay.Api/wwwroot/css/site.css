@@ -37,7 +37,7 @@ html {
 
 body {
     margin: 0;
-    font-family: Tahoma, Arial, sans-serif;
+    font-family: Vazirmatn, Tahoma, Arial, sans-serif;
     direction: rtl;
     background: var( --page-background );
     color: var( --text );
@@ -1152,4 +1152,23 @@ body.security-pending .page-container {
         max-height: 96vh;
         padding: 14px;
     }
+}
+
+
+/* ==========================================================
+   Persian typography
+   ==========================================================
+   Vazirmatn is the preferred modern Persian UI font.
+   We intentionally keep Tahoma/Arial fallbacks so DentalRay
+   remains readable even if the optional font is unavailable.
+   The installer does not modify Windows fonts in this MVP.
+   ========================================================== */
+:root {
+    --font-ui: Vazirmatn, Tahoma, Arial, sans-serif;
+}
+body, button, input, select, textarea {
+    font-family: var(--font-ui);
+}
+.main-header h1, .section-header h2, .subsection-header h3 {
+    font-weight: 700;
 }
