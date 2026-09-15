@@ -118,6 +118,24 @@ namespace DentalRay.Api.Controllers
                         return BadRequest(new { success = false, message = "Organization not found or inactive." });
                 }
 
+                if (study.OrganizationID.HasValue && !study.DentistPersonID.HasValue)
+                {
+                    int activeDentistCount = await _context.OrganizationMembers.CountAsync(m =>
+                        m.OrganizationID == study.OrganizationID.Value && m.IsActive);
+
+                    if (activeDentistCount == 1)
+                    {
+                        study.DentistPersonID = await _context.OrganizationMembers
+                            .Where(m => m.OrganizationID == study.OrganizationID.Value && m.IsActive)
+                            .Select(m => (int?)m.PersonID)
+                            .FirstAsync();
+                    }
+                    else if (activeDentistCount > 1)
+                    {
+                        return BadRequest(new { success = false, message = "Dentist selection is required for organizations with multiple dentists." });
+                    }
+                }
+
                 if (study.DentistPersonID.HasValue)
                 {
                     if (!study.OrganizationID.HasValue)
