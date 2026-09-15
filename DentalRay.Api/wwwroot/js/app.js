@@ -506,7 +506,8 @@ function hideMainSections() {
         newStudySection,
         editStudySection,
         uploadImageSection,
-        mergePatientSection
+        mergePatientSection,
+        clinicsSection
     ];
 
 
