@@ -291,6 +291,9 @@ const cancelEditStudyButtonBottom =
 const editStudySubtitle =
     byId("editStudySubtitle");
 
+const editStudyOrganization = byId("editStudyOrganization");
+const editStudyDentist = byId("editStudyDentist");
+
 const editStudyType =
     byId("editStudyType");
 
@@ -2431,11 +2434,56 @@ async function createStudy() {
 }
 
 
+
+
+async function loadEditStudyOrganizations(selectedOrganizationID, selectedDentistID) {
+    const response = await fetch("/api/organizations");
+    if (!response.ok) throw new Error("دریافت فهرست مطب‌ها انجام نشد.");
+    const items = await response.json();
+    editStudyOrganization.innerHTML = '<option value="">انتخاب مطب...</option>';
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.organizationID; option.textContent = item.name;
+        editStudyOrganization.appendChild(option);
+    });
+    if (selectedOrganizationID) {
+        editStudyOrganization.value = String(selectedOrganizationID);
+        await loadEditStudyDentists(selectedOrganizationID, selectedDentistID);
+    } else {
+        editStudyDentist.disabled = true;
+        editStudyDentist.innerHTML = '<option value="">ابتدا مطب را انتخاب کنید</option>';
+    }
+}
+
+async function loadEditStudyDentists(organizationID, selectedDentistID = null) {
+    editStudyDentist.disabled = true;
+    if (!organizationID) {
+        editStudyDentist.innerHTML = '<option value="">ابتدا مطب را انتخاب کنید</option>'; return;
+    }
+    const response = await fetch(`/api/organizations/${organizationID}/dentists`);
+    if (!response.ok) throw new Error("دریافت فهرست دندانپزشکان انجام نشد.");
+    const items = await response.json();
+    editStudyDentist.innerHTML = '<option value="">انتخاب دندانپزشک...</option>';
+    items.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.personID; option.textContent = `${item.firstName} ${item.lastName}`;
+        editStudyDentist.appendChild(option);
+    });
+    editStudyDentist.disabled = items.length === 0;
+    if (selectedDentistID) editStudyDentist.value = String(selectedDentistID);
+    else if (items.length === 1) editStudyDentist.value = String(items[0].personID);
+}
+
+editStudyOrganization.addEventListener("change", async () => {
+    try { await loadEditStudyDentists(editStudyOrganization.value); }
+    catch (error) { setFormStatus(editStudyStatus, error.message, true); }
+});
+
 // ============================================================
 // Edit Study - Open Form
 // ============================================================
 
-function openEditStudyForm(
+async function openEditStudyForm(
     study
 ) {
 
@@ -2445,6 +2493,13 @@ function openEditStudyForm(
 
     selectedStudy =
         study;
+
+    try {
+        await loadEditStudyOrganizations(study.organizationID, study.dentistPersonID);
+    }
+    catch (error) {
+        setFormStatus(editStudyStatus, error.message, true);
+    }
 
 
     editStudyType.value =
@@ -2578,6 +2633,12 @@ async function updateStudy() {
         // --------------------------------------------------------
 
         const request = {
+
+            organizationID:
+                editStudyOrganization.value ? Number(editStudyOrganization.value) : null,
+
+            dentistPersonID:
+                editStudyDentist.value ? Number(editStudyDentist.value) : null,
 
             studyDate:
                 studyDate,
