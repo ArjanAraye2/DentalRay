@@ -16,6 +16,14 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetOrganizations() =>
             Ok(await _context.Organizations.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name).ToListAsync());
 
+        [HttpGet("{organizationID:int}")]
+        public async Task<IActionResult> GetOrganization(int organizationID)
+        {
+            var item = await _context.Organizations.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.OrganizationID == organizationID);
+            return item == null ? NotFound(new { success = false, message = "Organization not found." }) : Ok(item);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateOrganization(Organization item)
         {
@@ -23,6 +31,10 @@ namespace DentalRay.Api.Controllers
             item.OrganizationGuid = Guid.NewGuid();
             item.Name = (item.Name ?? "").Trim();
             if (item.Name.Length == 0) return BadRequest(new { success = false, message = "Organization name is required." });
+            bool duplicateName = await _context.Organizations.AnyAsync(x => x.IsActive && x.Name == item.Name);
+            if (duplicateName)
+                return Conflict(new { success = false, message = "An active organization with this name already exists." });
+
             item.CreatedDate = DateTime.Now; item.ModifiedDate = null; item.IsActive = true;
             _context.Organizations.Add(item); await _context.SaveChangesAsync();
             return Ok(item);
