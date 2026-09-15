@@ -416,23 +416,31 @@ namespace DentalRay.Api.Controllers
             // ----------------------------------------------------
 
             var studies =
-                await _context.RadiologyStudies
-                    .AsNoTracking()
-
-                    .Where(
-                        s => s.PatientID ==
-                             patientID)
-
-                    // جدیدترین Study در ابتدا
-                    .OrderByDescending(
-                        s => s.StudyDate)
-
-                    // در تاریخ یکسان،
-                    // StudyID بزرگ‌تر ابتدا
-                    .ThenByDescending(
-                        s => s.StudyID)
-
-                    .ToListAsync();
+                await (from s in _context.RadiologyStudies.AsNoTracking()
+                       join o in _context.Organizations.AsNoTracking()
+                           on s.OrganizationID equals o.OrganizationID into organizations
+                       from o in organizations.DefaultIfEmpty()
+                       join p in _context.Persons.AsNoTracking()
+                           on s.DentistPersonID equals p.PersonID into dentists
+                       from p in dentists.DefaultIfEmpty()
+                       where s.PatientID == patientID
+                       orderby s.StudyDate descending, s.StudyID descending
+                       select new
+                       {
+                           s.StudyID,
+                           s.PatientID,
+                           s.OrganizationID,
+                           s.DentistPersonID,
+                           OrganizationName = o == null ? null : o.Name,
+                           DentistName = p == null ? null : (p.FirstName + " " + p.LastName),
+                           s.StudyDate,
+                           s.StudyType,
+                           s.BodyPart,
+                           s.Description,
+                           s.Report,
+                           s.CreatedDate,
+                           s.ModifiedDate
+                       }).ToListAsync();
 
 
             // ----------------------------------------------------
