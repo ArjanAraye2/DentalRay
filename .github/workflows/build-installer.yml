@@ -9,6 +9,10 @@ on:
 
 jobs:
   build:
+    # Explicit permissions keep the installer build compatible with repositories
+    # whose default GITHUB_TOKEN permissions are restricted.
+    permissions:
+      contents: read
     runs-on: windows-latest
 
     steps:
