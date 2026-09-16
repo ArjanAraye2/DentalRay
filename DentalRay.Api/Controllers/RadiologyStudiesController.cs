@@ -119,54 +119,15 @@ namespace DentalRay.Api.Controllers
                 // ------------------------------------------------
                 // بررسی مطب و دندانپزشک (نسخه MVP)
                 // ------------------------------------------------
-                // اطلاعات قدیمی ممکن است این دو مقدار را نداشته باشند،
-                // بنابراین ستون‌ها Nullable هستند؛ ولی اگر مقدار ارسال شود
-                // حتماً اعتبار رابطه مطب/دندانپزشک کنترل می‌شود.
-                if (study.OrganizationID.HasValue)
-                {
-                    bool organizationExists = await _context.Organizations
-                        .AnyAsync(x => x.OrganizationID == study.OrganizationID.Value && x.IsActive);
+                // ستون‌ها برای سازگاری با داده‌های قدیمی Nullable مانده‌اند،
+                // اما هر Study جدید باید مطب و دندانپزشک فعال داشته باشد.
+                var assignmentError = await ValidateStudyAssignmentAsync(
+                    study.OrganizationID,
+                    study.DentistPersonID,
+                    dentistPersonID => study.DentistPersonID = dentistPersonID);
 
-                    if (!organizationExists)
-                        return BadRequest(new { success = false, message = "Organization not found or inactive." });
-                }
-
-                if (study.OrganizationID.HasValue && !study.DentistPersonID.HasValue)
-                {
-                    int activeDentistCount = await _context.OrganizationMembers.CountAsync(m =>
-                        m.OrganizationID == study.OrganizationID.Value && m.IsActive);
-
-                    if (activeDentistCount == 1)
-                    {
-                        study.DentistPersonID = await _context.OrganizationMembers
-                            .Where(m => m.OrganizationID == study.OrganizationID.Value && m.IsActive)
-                            .Select(m => (int?)m.PersonID)
-                            .FirstAsync();
-                    }
-                    else if (activeDentistCount > 1)
-                    {
-                        return BadRequest(new { success = false, message = "Dentist selection is required for organizations with multiple dentists." });
-                    }
-                }
-
-                if (study.DentistPersonID.HasValue)
-                {
-                    if (!study.OrganizationID.HasValue)
-                        return BadRequest(new { success = false, message = "Organization is required when a dentist is selected." });
-
-                    bool dentistBelongsToOrganization =
-                        await _context.OrganizationMembers.AnyAsync(m =>
-                            m.OrganizationID == study.OrganizationID.Value &&
-                            m.PersonID == study.DentistPersonID.Value &&
-                            m.IsActive)
-                        &&
-                        await _context.Persons.AnyAsync(p =>
-                            p.PersonID == study.DentistPersonID.Value &&
-                            p.IsActive);
-
-                    if (!dentistBelongsToOrganization)
-                        return BadRequest(new { success = false, message = "Selected dentist does not belong to this organization." });
-                }
+                if (assignmentError != null)
+                    return BadRequest(new { success = false, message = assignmentError });
 
 
                 // ------------------------------------------------
@@ -693,43 +654,13 @@ namespace DentalRay.Api.Controllers
                 // ------------------------------------------------
                 // اعتبارسنجی مطب و دندانپزشک
                 // ------------------------------------------------
-                if (request.OrganizationID.HasValue)
-                {
-                    if (!await _context.Organizations.AnyAsync(x => x.OrganizationID == request.OrganizationID.Value && x.IsActive))
-                        return BadRequest(new { success = false, message = "Organization not found or inactive." });
-                }
+                var assignmentError = await ValidateStudyAssignmentAsync(
+                    request.OrganizationID,
+                    request.DentistPersonID,
+                    dentistPersonID => request.DentistPersonID = dentistPersonID);
 
-                if (request.OrganizationID.HasValue && !request.DentistPersonID.HasValue)
-                {
-                    int activeDentistCount = await _context.OrganizationMembers.CountAsync(m =>
-                        m.OrganizationID == request.OrganizationID.Value && m.IsActive);
-
-                    if (activeDentistCount == 1)
-                    {
-                        request.DentistPersonID = await _context.OrganizationMembers
-                            .Where(m => m.OrganizationID == request.OrganizationID.Value && m.IsActive)
-                            .Select(m => (int?)m.PersonID)
-                            .FirstAsync();
-                    }
-                    else if (activeDentistCount > 1)
-                    {
-                        return BadRequest(new { success = false, message = "Dentist selection is required for organizations with multiple dentists." });
-                    }
-                }
-
-                if (request.DentistPersonID.HasValue)
-                {
-                    if (!request.OrganizationID.HasValue)
-                        return BadRequest(new { success = false, message = "Organization is required when a dentist is selected." });
-
-                    bool validDentist = await _context.OrganizationMembers.AnyAsync(m =>
-                        m.OrganizationID == request.OrganizationID.Value &&
-                        m.PersonID == request.DentistPersonID.Value && m.IsActive)
-                        && await _context.Persons.AnyAsync(p => p.PersonID == request.DentistPersonID.Value && p.IsActive);
-
-                    if (!validDentist)
-                        return BadRequest(new { success = false, message = "Selected dentist does not belong to this organization." });
-                }
+                if (assignmentError != null)
+                    return BadRequest(new { success = false, message = assignmentError });
 
 
                 // ------------------------------------------------
@@ -833,6 +764,60 @@ namespace DentalRay.Api.Controllers
 
 
             return value.Trim();
+        }
+
+
+        // ========================================================
+        // Helper
+        // اعتبارسنجی ارتباط Study با مطب و دندانپزشک
+        // ========================================================
+        //
+        // این منطق بین ثبت و ویرایش مشترک است تا قواعد دو مسیر
+        // با گذشت زمان از هم جدا نشوند. اگر مطب دقیقاً یک
+        // دندانپزشک فعال داشته باشد، همان شخص خودکار انتخاب می‌شود.
+        // ========================================================
+
+        private async Task<string?> ValidateStudyAssignmentAsync(
+            int? organizationID,
+            int? dentistPersonID,
+            Action<int?> setDentistPersonID)
+        {
+            if (!organizationID.HasValue)
+                return "Organization is required.";
+
+            bool organizationExists = await _context.Organizations.AnyAsync(x =>
+                x.OrganizationID == organizationID.Value && x.IsActive);
+
+            if (!organizationExists)
+                return "Organization not found or inactive.";
+
+            var activeDentistIDs = await (
+                from member in _context.OrganizationMembers
+                join person in _context.Persons
+                    on member.PersonID equals person.PersonID
+                where member.OrganizationID == organizationID.Value &&
+                      member.IsActive &&
+                      person.IsActive
+                select member.PersonID)
+                .Distinct()
+                .ToListAsync();
+
+            if (activeDentistIDs.Count == 0)
+                return "The organization has no active dentist.";
+
+            if (!dentistPersonID.HasValue)
+            {
+                if (activeDentistIDs.Count > 1)
+                    return "Dentist selection is required for organizations with multiple dentists.";
+
+                dentistPersonID = activeDentistIDs[0];
+                setDentistPersonID(dentistPersonID);
+            }
+
+            if (!activeDentistIDs.Contains(dentistPersonID.Value))
+                return "Selected dentist does not belong to this organization.";
+
+            return null;
         }
     }
 }

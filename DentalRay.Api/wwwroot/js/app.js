@@ -3387,6 +3387,22 @@ async function createStudy() {
         }
 
 
+        if (!newStudyOrganization.value) {
+
+            throw new Error(
+                "مطب یا مرکز را انتخاب کنید."
+            );
+        }
+
+
+        if (!newStudyDentist.value) {
+
+            throw new Error(
+                "دندانپزشک را انتخاب کنید."
+            );
+        }
+
+
         // --------------------------------------------------------
         // StudyDate
         // --------------------------------------------------------
@@ -3685,6 +3701,22 @@ async function updateStudy() {
 
             throw new Error(
                 "نوع رادیولوژی نمی‌تواند بیشتر از ۵۰ کاراکتر باشد."
+            );
+        }
+
+
+        if (!editStudyOrganization.value) {
+
+            throw new Error(
+                "مطب یا مرکز را انتخاب کنید."
+            );
+        }
+
+
+        if (!editStudyDentist.value) {
+
+            throw new Error(
+                "دندانپزشک را انتخاب کنید."
             );
         }
 

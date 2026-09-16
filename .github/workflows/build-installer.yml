@@ -21,7 +21,9 @@ jobs:
 
       - name: Verify Version 1 frontend profile
         shell: powershell
-        run: node ".\tests\version-one-product-profile.test.cjs"
+        run: |
+          node ".\tests\version-one-product-profile.test.cjs"
+          node ".\tests\study-clinic-assignment.test.cjs"
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
