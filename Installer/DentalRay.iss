@@ -478,6 +478,55 @@ end;
 
 
 // ============================================================
+// TryNormalizeRadiologyStoragePath
+// ============================================================
+//
+// مجوزهای پوشه تصاویر در مرحله نصب به صورت بازگشتی تنظیم می‌شوند.
+// بنابراین انتخاب ریشه یک درایو (برای مثال D:\) خطرناک است و می‌تواند
+// مجوز تمام فایل‌های آن درایو را تغییر دهد. فقط یک زیرپوشه محلی و کامل
+// پذیرفته می‌شود و مسیر Canonical برای مراحل بعدی برگردانده می‌شود.
+//
+// ============================================================
+
+function TryNormalizeRadiologyStoragePath(
+    PathValue: String;
+    var NormalizedPath: String
+): Boolean;
+
+var
+    DriveName:
+        String;
+
+begin
+
+    NormalizedPath :=
+        RemoveBackslashUnlessRoot(
+            ExpandFileName(
+                Trim(
+                    PathValue
+                )
+            )
+        );
+
+
+    DriveName :=
+        ExtractFileDrive(
+            NormalizedPath
+        );
+
+
+    // مسیر باید روی یک درایو محلی باشد و بعد از نام درایو، حداقل
+    // یک پوشه داشته باشد. در نتیجه D:\ و مسیرهای UNC رد می‌شوند.
+    Result :=
+        (Length(DriveName) = 2) and
+        (DriveName[2] = ':') and
+        (Length(NormalizedPath) > 3);
+
+end;
+
+
+
+// ============================================================
 // InitializeWizard
 // ============================================================
 //
@@ -634,6 +683,9 @@ var
     SqlServer:
         String;
 
+    NormalizedStoragePath:
+        String;
+
 begin
 
     Result :=
@@ -720,7 +772,37 @@ begin
             Result :=
                 False;
 
+            Exit;
+
         end;
+
+
+        if not TryNormalizeRadiologyStoragePath(
+            StoragePage.Values[0],
+            NormalizedStoragePath
+        ) then
+        begin
+
+            MsgBox(
+                'مسیر تصاویر باید یک زیرپوشه روی درایو محلی باشد.' +
+                CRLF +
+                'برای مثال: D:\RadiologyData' +
+                CRLF +
+                'انتخاب ریشه درایو یا مسیر شبکه مجاز نیست.',
+                mbError,
+                MB_OK
+            );
+
+            Result :=
+                False;
+
+            Exit;
+
+        end;
+
+
+        StoragePage.Values[0] :=
+            NormalizedStoragePath;
 
     end;
 
@@ -1070,7 +1152,8 @@ begin
         ' /inheritance:r' +
         ' /grant:r' +
         ' "*S-1-5-18:(OI)(CI)F"' +
-        ' "*S-1-5-32-544:(OI)(CI)F"',
+        ' "*S-1-5-32-544:(OI)(CI)F"' +
+        ' /T',
         '',
         ResultCode
     ) then

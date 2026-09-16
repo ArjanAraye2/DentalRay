@@ -37,6 +37,33 @@ function byId(id) {
 
 
 // ============================================================
+// Product Profile / Release Features
+// ============================================================
+//
+// Version 1 only exposes data-entry workflows. Advanced modules are kept in
+// the same codebase and can be enabled by a later product profile after their
+// complete clinic workflows have been tested.
+//
+// ============================================================
+
+const productFeatures =
+    window.DentalRayProductProfile?.features ?? {};
+
+function isProductFeatureEnabled(featureName) {
+    return productFeatures[featureName] === true;
+}
+
+function applyProductProfile() {
+    if (!isProductFeatureEnabled("resourceSharing")) {
+        ["newStudyVisibility", "imageVisibility"].forEach(id => {
+            const field = byId(id)?.closest(".form-field");
+            field?.classList.add("hidden");
+        });
+    }
+}
+
+
+// ============================================================
 // State
 // ============================================================
 //
@@ -1592,7 +1619,10 @@ function renderStudies(
             buttons.appendChild(editButton);
         }
 
-        if (canManage || isAdmin) {
+        if (
+            isProductFeatureEnabled("financials") &&
+            (canManage || isAdmin)
+        ) {
             const financialButton = document.createElement("button");
             financialButton.textContent = "امور مالی";
             financialButton.className = "financial-button";
@@ -1600,18 +1630,20 @@ function renderStudies(
             buttons.appendChild(financialButton);
         }
 
-        const accessButton = document.createElement("button");
-        accessButton.type = "button";
-        accessButton.className = "secondary-button";
-        accessButton.textContent = "دسترسی";
-        accessButton.addEventListener("click", () => openResourceAccess({
-            resourceType: 1,
-            resourceID: study.studyID,
-            ownerUserID: study.ownerUserID,
-            visibility: study.visibility,
-            title: study.studyType || `رادیولوژی ${study.studyID}`
-        }));
-        buttons.appendChild(accessButton);
+        if (isProductFeatureEnabled("resourceSharing")) {
+            const accessButton = document.createElement("button");
+            accessButton.type = "button";
+            accessButton.className = "secondary-button";
+            accessButton.textContent = "دسترسی";
+            accessButton.addEventListener("click", () => openResourceAccess({
+                resourceType: 1,
+                resourceID: study.studyID,
+                ownerUserID: study.ownerUserID,
+                visibility: study.visibility,
+                title: study.studyType || `رادیولوژی ${study.studyID}`
+            }));
+            buttons.appendChild(accessButton);
+        }
         header.appendChild(title);
         header.appendChild(buttons);
         card.appendChild(header);
@@ -2282,23 +2314,29 @@ function renderImagesInGrid(images, imageGrid, study, imageStatus, imagesButton)
             actions.appendChild(deleteButton);
         }
 
-        const accessButton = document.createElement("button");
-        accessButton.type = "button";
-        accessButton.className = "secondary-button";
-        accessButton.textContent = "دسترسی";
-        accessButton.addEventListener("click", () => openResourceAccess({
-            resourceType: 2,
-            resourceID: image.imageID,
-            ownerUserID: image.ownerUserID,
-            visibility: image.visibility,
-            title: image.fileName
-        }));
-        actions.appendChild(accessButton);
+        if (isProductFeatureEnabled("resourceSharing")) {
+            const accessButton = document.createElement("button");
+            accessButton.type = "button";
+            accessButton.className = "secondary-button";
+            accessButton.textContent = "دسترسی";
+            accessButton.addEventListener("click", () => openResourceAccess({
+                resourceType: 2,
+                resourceID: image.imageID,
+                ownerUserID: image.ownerUserID,
+                visibility: image.visibility,
+                title: image.fileName
+            }));
+            actions.appendChild(accessButton);
+        }
 
         const targetStudies = displayedStudies.filter(item =>
             Number(item.ownerUserID) === getCurrentUserID() &&
             Number(item.studyID) !== Number(study.studyID));
-        if (!isOwner && targetStudies.length > 0) {
+        if (
+            isProductFeatureEnabled("imageAttachments") &&
+            !isOwner &&
+            targetStudies.length > 0
+        ) {
             const attachSelect = document.createElement("select");
             attachSelect.className = "image-attach-select";
             attachSelect.setAttribute("aria-label", "پرونده مقصد");
@@ -6278,6 +6316,8 @@ document.addEventListener(
 // در اولین اجرا، اگر هیچ کاربری وجود نداشته باشد، فرم ساخت
 // مدیر اولیه نمایش داده خواهد شد.
 // ============================================================
+
+applyProductProfile();
 
 if (window.DentalRaySecurity) {
 
