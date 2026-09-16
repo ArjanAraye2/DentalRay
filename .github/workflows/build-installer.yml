@@ -19,6 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify Version 1 frontend profile
+        shell: powershell
+        run: node ".\tests\version-one-product-profile.test.cjs"
+
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
