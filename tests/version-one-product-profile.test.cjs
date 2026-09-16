@@ -56,7 +56,7 @@ assert.match(
     /function\s+bindInputValidationFeedback\s*\(/,
     "Input forms must expose accessible native validation feedback."
 );
-for (const formName of ["newPatientForm", "editPatientForm", "newStudyForm", "editStudyForm", "uploadImageForm"]) {
+for (const formName of ["newPatientForm", "editPatientForm", "newStudyForm", "editStudyForm", "uploadImageForm", "mergePatientForm"]) {
     assert.match(
         applicationSource,
         new RegExp(`\\b${formName}\\b`),
@@ -78,6 +78,11 @@ for (const fieldId of ["newNationalCode", "editNationalCode"]) {
         `${fieldId} must validate numeric Persian/Latin digits in the browser.`
     );
 }
+assert.match(
+    indexSource,
+    /id=["']mergeTargetNationalCode["'][\s\S]*?pattern=["']\[0-9۰-۹\]\+["']/,
+    "Merge target NationalCode must validate numeric Persian/Latin digits."
+);
 assert.match(
     patientsControllerSource,
     /static\s+string\s+NormalizeNationalCode\s*\(/,

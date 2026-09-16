@@ -541,7 +541,8 @@ const mergePatientStatus =
     editPatientForm,
     newStudyForm,
     editStudyForm,
-    uploadImageForm
+    uploadImageForm,
+    mergePatientForm
 ].forEach(bindInputValidationFeedback);
 
 
