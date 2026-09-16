@@ -145,8 +145,9 @@ namespace DentalRay.Api.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 // Space ابتدا و انتهای عبارت حذف می‌شود.
+                // رقم‌های فارسی/عربی در جستجو نیز به شکل ذخیره‌شده تبدیل می‌شوند.
                 string searchText =
-                    search.Trim();
+                    NormalizeNationalCode(search);
 
 
                 query =
@@ -246,10 +247,22 @@ namespace DentalRay.Api.Controllers
             string nationalCode)
         {
             int currentUserID = _access.GetCurrentUserID(User);
+            string normalizedNationalCode =
+                NormalizeNationalCode(nationalCode);
+
+            if (normalizedNationalCode.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "NationalCode is required."
+                });
+            }
+
             var patient = await _access.ReadablePatients(currentUserID)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
-                    p => p.NationalCode == nationalCode);
+                    p => p.NationalCode == normalizedNationalCode);
 
             if (patient == null)
             {

@@ -93,6 +93,16 @@ assert.match(
     /string\s+newNationalCode\s*=\s*\n?\s*NormalizeNationalCode\(/,
     "Patient updates must compare a normalized NationalCode."
 );
+assert.match(
+    patientsControllerSource,
+    /string\s+normalizedNationalCode\s*=\s*\n?\s*NormalizeNationalCode\(/,
+    "Patient lookup must normalize NationalCode input."
+);
+assert.match(
+    patientsControllerSource,
+    /string\s+searchText\s*=\s*\n?\s*NormalizeNationalCode\(search\)/,
+    "Patient search must normalize numeric keyboard input."
+);
 
 // The profile has to load before app.js reads its feature flags.
 const profileScriptPosition = indexSource.indexOf("js/product-profile.js");
