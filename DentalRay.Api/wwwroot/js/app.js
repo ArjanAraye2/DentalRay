@@ -535,6 +535,16 @@ const mergePatientStatus =
     byId("mergePatientStatus");
 
 
+// بازخورد دیداری Validation فقط برای فرم‌های اصلی ورود اطلاعات نسخهٔ اول.
+[
+    newPatientForm,
+    editPatientForm,
+    newStudyForm,
+    editStudyForm,
+    uploadImageForm
+].forEach(bindInputValidationFeedback);
+
+
 // ============================================================
 // Elements - Image Modal
 // ============================================================
@@ -4326,6 +4336,35 @@ function setFormStatus(
         "error",
         isError
     );
+}
+
+
+// ============================================================
+// Accessible Native Form Validation
+// ============================================================
+//
+// مرورگر قبل از اجرای submit، فیلدهای required و سایر محدودیت‌های
+// HTML را بررسی می‌کند. با این دو Listener، فیلدی که معتبر نیست
+// علاوه بر پیام بومی مرورگر، با وضعیت دیداری و aria-invalid نیز
+// مشخص می‌شود و پس از اصلاح، علامت خطا حذف خواهد شد.
+//
+// این رفتار فقط به فرم‌های ورود اطلاعات نسخهٔ اول متصل می‌شود.
+// ============================================================
+
+function bindInputValidationFeedback(form) {
+    if (!form) return;
+
+    form.addEventListener("invalid", event => {
+        const field = event.target;
+        field?.setAttribute?.("aria-invalid", "true");
+    }, true);
+
+    form.addEventListener("input", event => {
+        const field = event.target;
+        if (field?.validity?.valid) {
+            field.removeAttribute("aria-invalid");
+        }
+    });
 }
 
 

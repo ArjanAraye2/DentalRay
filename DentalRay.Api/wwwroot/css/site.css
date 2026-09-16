@@ -359,6 +359,15 @@ button {
         }
 
 
+        .form-field input[aria-invalid="true"],
+        .form-field select[aria-invalid="true"],
+        .form-field textarea[aria-invalid="true"] {
+            border-color: #dc2626;
+            background: #fff7f7;
+            box-shadow: 0 0 0 3px rgba( 220, 38, 38, 0.10 );
+        }
+
+
     .form-field textarea {
         resize: vertical;
         min-height: 90px;
