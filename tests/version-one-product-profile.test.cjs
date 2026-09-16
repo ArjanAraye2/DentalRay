@@ -103,6 +103,16 @@ assert.match(
     /string\s+searchText\s*=\s*\n?\s*NormalizeNationalCode\(search\)/,
     "Patient search must normalize numeric keyboard input."
 );
+assert.match(
+    applicationSource,
+    /const\s+normalizedSearchText\s*=\s*[\s\S]*?normalizeDigits\(\s*searchText\s*\)\.trim\(\)/,
+    "Frontend patient search must normalize Persian and Arabic digits."
+);
+assert.match(
+    applicationSource,
+    /parameters\.set\(\s*["']search["']\s*,\s*normalizedSearchText\s*\)/,
+    "Frontend patient search must send the normalized value to the API."
+);
 
 // The profile has to load before app.js reads its feature flags.
 const profileScriptPosition = indexSource.indexOf("js/product-profile.js");

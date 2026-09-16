@@ -1029,6 +1029,14 @@ async function loadPatients(
 
     try {
 
+        // جستجو با صفحه‌کلید فارسی یا عربی باید همان نتیجهٔ
+        // رقم‌های لاتین را بدهد. Backend نیز همین نرمال‌سازی را
+        // تکرار می‌کند تا API برای سایر Clientها هم ایمن بماند.
+        const normalizedSearchText =
+            normalizeDigits(
+                searchText
+            ).trim();
+
         showStatus(
             "در حال دریافت اطلاعات...",
             false
@@ -1044,12 +1052,12 @@ async function loadPatients(
 
 
         if (
-            searchText.trim() !== ""
+            normalizedSearchText !== ""
         ) {
 
             parameters.set(
                 "search",
-                searchText.trim()
+                normalizedSearchText
             );
         }
 
