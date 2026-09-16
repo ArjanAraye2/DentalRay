@@ -227,13 +227,19 @@ namespace DentalRay.Api.Controllers
                 // StudyDate
                 // ------------------------------------------------
                 //
-                // اگر به هر دلیلی Frontend تاریخ نفرستاده باشد،
-                // زمان فعلی را استفاده می‌کنیم.
+                // تاریخ و زمان باید صریحاً توسط کاربر/Client ارسال شود.
+                // جایگزین‌کردن مقدار خالی با زمان جاری می‌تواند باعث ثبت
+                // اطلاعات نادرست و پنهان‌ماندن خطای فرم شود.
                 //
                 if (study.StudyDate == default)
                 {
-                    study.StudyDate =
-                        DateTime.Now;
+                    return BadRequest(new
+                    {
+                        success = false,
+
+                        message =
+                            "StudyDate is required."
+                    });
                 }
 
 

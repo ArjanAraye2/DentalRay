@@ -1076,8 +1076,12 @@
 
                         <input id="newStudyDate"
                                type="text"
+                               inputmode="numeric"
                                maxlength="16"
-                               placeholder="مثال: 1405/06/22 14:30" />
+                               pattern="[0-9۰-۹٠-٩]{4}/[0-9۰-۹٠-٩]{1,2}/[0-9۰-۹٠-٩]{1,2} [0-9۰-۹٠-٩]{1,2}:[0-9۰-۹٠-٩]{2}"
+                               title="تاریخ و ساعت را مانند 1405/06/22 14:30 وارد کنید."
+                               placeholder="مثال: 1405/06/22 14:30"
+                               required />
 
 
                         <small class="field-hint">
@@ -1253,7 +1257,11 @@
 
                         <input id="editStudyDate"
                                type="text"
-                               maxlength="16" />
+                               inputmode="numeric"
+                               maxlength="16"
+                               pattern="[0-9۰-۹٠-٩]{4}/[0-9۰-۹٠-٩]{1,2}/[0-9۰-۹٠-٩]{1,2} [0-9۰-۹٠-٩]{1,2}:[0-9۰-۹٠-٩]{2}"
+                               title="تاریخ و ساعت را مانند 1405/06/22 14:30 وارد کنید."
+                               required />
 
 
                         <small class="field-hint">

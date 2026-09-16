@@ -958,6 +958,12 @@ function getApiError(
         "Organization not found or inactive.":
             "مطب یا مرکز پیدا نشد یا غیرفعال است.",
 
+        "Organization is required.":
+            "مطب یا مرکز را انتخاب کنید.",
+
+        "The organization has no active dentist.":
+            "این مطب دندانپزشک فعال ندارد.",
+
         "Organization name is required.":
             "نام مطب یا مرکز الزامی است.",
 
@@ -1002,6 +1008,15 @@ function getApiError(
 
         "StudyType is required.":
             "نوع رادیولوژی را وارد کنید.",
+
+        "StudyType cannot be longer than 50 characters.":
+            "نوع رادیولوژی نمی‌تواند بیشتر از ۵۰ نویسه باشد.",
+
+        "BodyPart cannot be longer than 100 characters.":
+            "ناحیه نمی‌تواند بیشتر از ۱۰۰ نویسه باشد.",
+
+        "Description cannot be longer than 1000 characters.":
+            "توضیحات نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.",
 
         "StudyDate is required.":
             "تاریخ رادیولوژی را وارد کنید.",
@@ -5520,7 +5535,7 @@ function parsePersianDateForBackend(
 
     const pattern =
         includeTime
-            ? /^(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?$/
+            ? /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/
             : /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/;
 
 

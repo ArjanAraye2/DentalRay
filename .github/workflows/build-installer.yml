@@ -24,6 +24,7 @@ jobs:
         run: |
           node ".\tests\version-one-product-profile.test.cjs"
           node ".\tests\study-clinic-assignment.test.cjs"
+          node ".\tests\study-input-contract.test.cjs"
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
