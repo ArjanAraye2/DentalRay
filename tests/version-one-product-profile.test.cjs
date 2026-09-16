@@ -9,6 +9,12 @@ const profilePath = path.join(webRoot, "js", "product-profile.js");
 const applicationPath = path.join(webRoot, "js", "app.js");
 const stylesheetPath = path.join(webRoot, "css", "site.css");
 const indexPath = path.join(webRoot, "index.html");
+const patientsControllerPath = path.join(
+    repositoryRoot,
+    "DentalRay.Api",
+    "Controllers",
+    "PatientsController.cs"
+);
 
 // Evaluate the product profile in a minimal browser-like context. This keeps
 // the test independent from the rest of the DOM-heavy application script.
@@ -29,6 +35,8 @@ assert.equal(Object.isFrozen(profile.features), true, "Feature flags must be imm
 // Guard against accidentally deleting the application-side feature checks.
 const applicationSource = fs.readFileSync(applicationPath, "utf8");
 const stylesheetSource = fs.readFileSync(stylesheetPath, "utf8");
+const indexSource = fs.readFileSync(indexPath, "utf8");
+const patientsControllerSource = fs.readFileSync(patientsControllerPath, "utf8");
 for (const featureName of ["financials", "resourceSharing", "imageAttachments"]) {
     assert.match(
         applicationSource,
@@ -61,8 +69,32 @@ assert.match(
     "Invalid input fields must have a visible error style."
 );
 
+// NationalCode accepts Persian and Arabic keyboard digits in the browser,
+// while the API normalizes them before validation and persistence.
+for (const fieldId of ["newNationalCode", "editNationalCode"]) {
+    assert.match(
+        indexSource,
+        new RegExp(`id=["']${fieldId}["'][\\s\\S]*?pattern=["']\\[0-9۰-۹\\]\\+["']`),
+        `${fieldId} must validate numeric Persian/Latin digits in the browser.`
+    );
+}
+assert.match(
+    patientsControllerSource,
+    /static\s+string\s+NormalizeNationalCode\s*\(/,
+    "PatientsController must normalize NationalCode digits."
+);
+assert.match(
+    patientsControllerSource,
+    /patient\.NationalCode\s*=\s*NormalizeNationalCode\(/,
+    "Patient creation must persist a normalized NationalCode."
+);
+assert.match(
+    patientsControllerSource,
+    /string\s+newNationalCode\s*=\s*\n?\s*NormalizeNationalCode\(/,
+    "Patient updates must compare a normalized NationalCode."
+);
+
 // The profile has to load before app.js reads its feature flags.
-const indexSource = fs.readFileSync(indexPath, "utf8");
 const profileScriptPosition = indexSource.indexOf("js/product-profile.js");
 const applicationScriptPosition = indexSource.indexOf("js/app.js");
 

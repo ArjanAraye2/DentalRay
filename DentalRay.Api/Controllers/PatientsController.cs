@@ -276,9 +276,10 @@ namespace DentalRay.Api.Controllers
             try
             {
                 int currentUserID = _access.GetCurrentUserID(User);
-                // حذف Spaceهای ابتدا و انتهای NationalCode
+                // فاصله‌ها حذف و رقم‌های فارسی/عربی به رقم لاتین تبدیل می‌شوند.
+                // به این ترتیب مقدار ذخیره‌شده مستقل از صفحه‌کلید کاربر است.
                 patient.NationalCode =
-                    patient.NationalCode.Trim();
+                    NormalizeNationalCode(patient.NationalCode);
 
 
                 // ------------------------------------------------
@@ -423,8 +424,9 @@ namespace DentalRay.Api.Controllers
             // پاک کردن Space ابتدا و انتهای NationalCode
             // ----------------------------------------------------
 
+            // کد ملی ورودی قبل از اعتبارسنجی به شکل استاندارد تبدیل می‌شود.
             string newNationalCode =
-                request.NationalCode.Trim();
+                NormalizeNationalCode(request.NationalCode);
 
 
             // ----------------------------------------------------
@@ -1601,6 +1603,39 @@ namespace DentalRay.Api.Controllers
                         ex.Message
                 });
             }
+        }
+
+        // ========================================================
+        // Normalize NationalCode
+        // ========================================================
+        //
+        // کاربران ممکن است کد ملی را با صفحه‌کلید فارسی یا عربی وارد کنند.
+        // تبدیل به رقم لاتین، از ثبت دو مقدار متفاوت برای یک کد جلوگیری می‌کند.
+        // ========================================================
+        private static string NormalizeNationalCode(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            var builder = new System.Text.StringBuilder(value.Trim().Length);
+
+            foreach (char character in value.Trim())
+            {
+                if (character >= '۰' && character <= '۹')
+                {
+                    builder.Append((char)('0' + (character - '۰')));
+                }
+                else if (character >= '٠' && character <= '٩')
+                {
+                    builder.Append((char)('0' + (character - '٠')));
+                }
+                else
+                {
+                    builder.Append(character);
+                }
+            }
+
+            return builder.ToString();
         }
     }
 }
