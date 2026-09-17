@@ -15,20 +15,22 @@ public class AiStudyAnalysisController : ControllerBase
 {
     private readonly DentalRayDbContext _db;
     private readonly RadiologyStorageService _storage;
+    private readonly StudyAccessService _studyAccess;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClients;
 
     public AiStudyAnalysisController(DentalRayDbContext db, RadiologyStorageService storage,
-        IConfiguration configuration, IHttpClientFactory httpClients)
+        StudyAccessService studyAccess, IConfiguration configuration, IHttpClientFactory httpClients)
     {
-        _db = db; _storage = storage; _configuration = configuration; _httpClients = httpClients;
+        _db = db; _storage = storage; _studyAccess = studyAccess; _configuration = configuration; _httpClients = httpClients;
     }
 
     [HttpPost("{studyID:int}/analyze")]
     public async Task<IActionResult> Analyze(int studyID, CancellationToken cancellationToken)
     {
-        var study = await _db.RadiologyStudies.AsNoTracking().FirstOrDefaultAsync(x => x.StudyID == studyID, cancellationToken);
-        if (study == null) return NotFound(new { success = false, message = "Study پیدا نشد." });
+        // Authorization is checked before reading image metadata or physical files.
+        if (!await _studyAccess.CanAccessStudyAsync(studyID, User))
+            return NotFound(new { success = false, message = "Study پیدا نشد." });
 
         var images = await (from link in _db.RadiologyStudyImages.AsNoTracking()
                             join image in _db.RadiologyImages.AsNoTracking() on link.ImageID equals image.ImageID
