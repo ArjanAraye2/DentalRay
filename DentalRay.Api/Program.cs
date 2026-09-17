@@ -185,6 +185,57 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// ============================================================
+// Frontend Entry Page
+// ============================================================
+//
+// فعلاً Study Delete در یک فایل JavaScript جدا نگهداری می‌شود
+// تا قابلیت جدید بدون بازنویسی فایل بزرگ app.js قابل نگهداری باشد.
+//
+// برای صفحه اصلی، index.html را می‌خوانیم و قبل از </body>
+// فایل study-delete.js را اضافه می‌کنیم. به این ترتیب app.js
+// ابتدا بارگذاری می‌شود و سپس قابلیت Study Delete به همان UI
+// موجود متصل می‌شود.
+//
+// مسیر /index.html نیز پوشش داده شده است تا رفتار هر دو آدرس
+// یکسان باشد.
+// ============================================================
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/" ||
+        context.Request.Path == "/index.html")
+    {
+        string indexPath =
+            Path.Combine(
+                app.Environment.WebRootPath,
+                "index.html"
+            );
+
+        if (File.Exists(indexPath))
+        {
+            string html =
+                await File.ReadAllTextAsync(indexPath);
+
+            const string studyDeleteScript =
+                "<script src=\"/js/study-delete.js\"></script>";
+
+            html = html.Replace(
+                "</body>",
+                $"{studyDeleteScript}{Environment.NewLine}</body>",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            context.Response.ContentType =
+                "text/html; charset=utf-8";
+
+            await context.Response.WriteAsync(html);
+            return;
+        }
+    }
+
+    await next();
+});
+
 // ------------------------------------------------------------
 // Frontend Static Files
 // ------------------------------------------------------------
