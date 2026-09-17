@@ -1,5 +1,3 @@
-﻿using System.ComponentModel.DataAnnotations;
-
 namespace DentalRay.Api.Models
 {
     // Data sent by the Frontend when an existing Study is edited.
@@ -9,16 +7,12 @@ namespace DentalRay.Api.Models
     {
         public DateTime StudyDate { get; set; }
 
-        [Required]
-        [MaxLength(50)]
-        public string StudyType { get; set; } = string.Empty;
+        // Foreign key to tblStudyTypes. The Backend verifies that the selected
+        // type exists and is active before updating the Study.
+        public int StudyTypeID { get; set; }
 
-        [MaxLength(100)]
         public string? BodyPart { get; set; }
-
-        [MaxLength(1000)]
         public string? Description { get; set; }
-
         public string? Report { get; set; }
 
         // FDI numbers selected in the odontogram. Empty means no teeth selected.
