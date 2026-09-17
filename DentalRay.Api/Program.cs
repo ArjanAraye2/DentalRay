@@ -1,15 +1,13 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddWindowsService(options =>
-{
-    options.ServiceName = "DentalRay";
-});
+builder.Services.AddWindowsService(options => { options.ServiceName = "DentalRay"; });
 
 string programDataPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
 string dentalRayConfigDirectory = Path.Combine(programDataPath, "DentalRay");
@@ -19,14 +17,36 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
 builder.Services.AddHttpClient();
-
-// ASP.NET Core PasswordHasher creates a salted one-way hash. DentalRay never
-// needs to store a user's original password in SQL Server.
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+// DentalRay is a browser application served by the same ASP.NET Core backend,
+// therefore an HttpOnly authentication cookie is simpler and safer than storing
+// a bearer token in browser storage. SameAsRequest keeps LAN development over
+// HTTP working; deployed HTTPS automatically receives a Secure cookie.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "DentalRay.Auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
+builder.Services.AddAuthorization();
+
 builder.Services.Configure<RadiologyStorageOptions>(builder.Configuration.GetSection("RadiologyStorage"));
-builder.Services.AddDbContext<DentalRayDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DentalRay")));
+builder.Services.AddDbContext<DentalRayDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DentalRay")));
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -42,14 +62,12 @@ app.Use(async (context, next) =>
             string html = await File.ReadAllTextAsync(indexPath);
             const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
-
             const string featureScripts =
                 "<script src=\"/js/study-delete.js\"></script>\n" +
                 "<script src=\"/js/mobile-camera-loader.js\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
                 "<script src=\"/js/login-ui.js\"></script>";
-
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             await context.Response.WriteAsync(html);
@@ -62,6 +80,7 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
