@@ -84,9 +84,27 @@
     }
 
     async function loadSpecialties(selected) {
-        // Until a dedicated lookup endpoint is added, keep the selector disabled rather than inventing values.
         const select = $("staffSpecialtyID");
-        select.innerHTML = selected ? `<option value="${selected}">تخصص فعلی (شناسه ${selected})</option>` : '<option value="">انتخاب تخصص</option>';
+        select.innerHTML = '<option value="">در حال دریافت تخصص‌ها...</option>';
+
+        try {
+            const x = await apiJson("/api/staff/specialties");
+            select.innerHTML = '<option value="">انتخاب تخصص</option>';
+
+            (x.specialties || []).forEach(s => {
+                const option = document.createElement("option");
+                option.value = String(s.specialtyID);
+                option.textContent = s.specialtyName;
+                select.appendChild(option);
+            });
+
+            if (selected != null)
+                select.value = String(selected);
+        } catch (e) {
+            select.innerHTML = '<option value="">دریافت تخصص‌ها ناموفق بود</option>';
+            $("staffFormStatus").textContent = e.message;
+            $("staffFormStatus").classList.add("error");
+        }
     }
 
     function updateSpecialtyVisibility() {
@@ -105,8 +123,8 @@
         $("staffType").value = String(s?.staffType || 1);
         $("staffStartDate").value = s?.startDate ? String(s.startDate).slice(0,10) : new Date().toISOString().slice(0,10);
         $("staffEndDate").value = s?.endDate ? String(s.endDate).slice(0,10) : "";
-        loadSpecialties(s?.specialtyID);
         updateSpecialtyVisibility();
+        loadSpecialties(s?.specialtyID);
         $("staffFormStatus").textContent = "";
         $("staffForm").classList.remove("hidden");
         $("staffFirstName").focus();
