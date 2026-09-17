@@ -2,69 +2,26 @@
 
 namespace DentalRay.Api.Models
 {
-    // ============================================================
-    // UpdateRadiologyStudyRequest
-    // ============================================================
-    //
-    // این DTO فقط برای ویرایش Study استفاده می‌شود.
-    //
-    // نکته مهم:
-    //
-    // PatientID عمداً در این کلاس وجود ندارد.
-    //
-    // یعنی از طریق Edit Study نمی‌توان Study را از یک بیمار
-    // به بیمار دیگر منتقل کرد.
-    //
-    // انتقال Study بین بیماران فقط باید توسط عملیات Merge
-    // انجام شود.
-    //
-    // ============================================================
-
+    // Data sent by the Frontend when an existing Study is edited.
+    // PatientID is intentionally absent: a Study cannot be moved to another
+    // patient through ordinary editing; patient transfer is handled by Merge.
     public class UpdateRadiologyStudyRequest
     {
-        // --------------------------------------------------------
-        // تاریخ و زمان انجام رادیولوژی
-        // --------------------------------------------------------
-        //
-        // Frontend تاریخ را به صورت شمسی از کاربر دریافت می‌کند،
-        // سپس آن را به DateTime استاندارد تبدیل کرده و برای Backend
-        // ارسال می‌کند.
-        //
         public DateTime StudyDate { get; set; }
-
-
-        // --------------------------------------------------------
-        // نوع رادیولوژی
-        // --------------------------------------------------------
 
         [Required]
         [MaxLength(50)]
-        public string StudyType { get; set; } =
-            string.Empty;
-
-
-        // --------------------------------------------------------
-        // ناحیه مورد بررسی
-        // --------------------------------------------------------
+        public string StudyType { get; set; } = string.Empty;
 
         [MaxLength(100)]
         public string? BodyPart { get; set; }
 
-
-        // --------------------------------------------------------
-        // توضیحات
-        // --------------------------------------------------------
-
         [MaxLength(1000)]
         public string? Description { get; set; }
 
-
-        // --------------------------------------------------------
-        // گزارش
-        // --------------------------------------------------------
-        //
-        // طبق طراحی Database این فیلد می‌تواند متن طولانی داشته باشد.
-        //
         public string? Report { get; set; }
+
+        // FDI numbers selected in the odontogram. Empty means no teeth selected.
+        public List<int> ToothNumbers { get; set; } = new();
     }
 }
