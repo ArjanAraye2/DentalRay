@@ -15,6 +15,9 @@ namespace DentalRay.Api.Data
         public DbSet<RadiologyStudyTooth> RadiologyStudyTeeth { get; set; }
         public DbSet<StudyType> StudyTypes { get; set; }
         public DbSet<Staff> Staff { get; set; }
+        public DbSet<Clinic> Clinics { get; set; }
+        public DbSet<ClinicStaff> ClinicStaff { get; set; }
+        public DbSet<DentalSpecialty> DentalSpecialties { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<UserDentist> UserDentists { get; set; }
 
@@ -33,6 +36,14 @@ namespace DentalRay.Api.Data
 
             modelBuilder.Entity<RadiologyStudyTooth>().HasKey(x => new { x.StudyID, x.ToothNumber });
             modelBuilder.Entity<RadiologyStudyTooth>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
+
+            // Clinic membership is a many-to-many relationship represented by tblClinicStaff.
+            modelBuilder.Entity<ClinicStaff>().HasKey(x => new { x.ClinicID, x.StaffID });
+            modelBuilder.Entity<ClinicStaff>().HasOne<Clinic>().WithMany().HasForeignKey(x => x.ClinicID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<ClinicStaff>().HasOne<Staff>().WithMany().HasForeignKey(x => x.StaffID).OnDelete(DeleteBehavior.NoAction);
+
+            // Specialty is optional for employees and is used for dentists.
+            modelBuilder.Entity<Staff>().HasOne<DentalSpecialty>().WithMany().HasForeignKey(x => x.SpecialtyID).OnDelete(DeleteBehavior.NoAction);
 
             // Every DentalRay User belongs to exactly one Staff record.
             modelBuilder.Entity<User>().HasOne<Staff>().WithMany().HasForeignKey(x => x.StaffID).OnDelete(DeleteBehavior.NoAction);
