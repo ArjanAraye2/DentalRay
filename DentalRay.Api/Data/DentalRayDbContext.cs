@@ -16,6 +16,7 @@ namespace DentalRay.Api.Data
         public DbSet<StudyType> StudyTypes { get; set; }
         public DbSet<Staff> Staff { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<UserDentist> UserDentists { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -34,8 +35,13 @@ namespace DentalRay.Api.Data
             modelBuilder.Entity<RadiologyStudyTooth>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
 
             // Every DentalRay User belongs to exactly one Staff record.
-            // StaffID and UserName are unique in the SQL schema as well.
             modelBuilder.Entity<User>().HasOne<Staff>().WithMany().HasForeignKey(x => x.StaffID).OnDelete(DeleteBehavior.NoAction);
+
+            // Employee access to dentists is clinic-specific. Keeping the same
+            // composite key as SQL prevents duplicate assignments.
+            modelBuilder.Entity<UserDentist>().HasKey(x => new { x.UserID, x.ClinicID, x.DentistStaffID });
+            modelBuilder.Entity<UserDentist>().HasOne<User>().WithMany().HasForeignKey(x => x.UserID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<UserDentist>().HasOne<Staff>().WithMany().HasForeignKey(x => x.DentistStaffID).OnDelete(DeleteBehavior.NoAction);
         }
     }
 }
