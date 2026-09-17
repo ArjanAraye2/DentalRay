@@ -22,6 +22,9 @@ namespace DentalRay.Api.Models
 
         public bool IsActive { get; set; }
 
+        // Optional account activation date. Before this date the account cannot sign in.
+        public DateTime? StartDate { get; set; }
+
         // Optional account expiration date. After this date the account cannot sign in.
         public DateTime? EndDate { get; set; }
     }
