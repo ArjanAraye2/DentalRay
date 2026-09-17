@@ -41,6 +41,24 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success = true, count = staff.Count, staff });
         }
 
+        // Lookup used by the Staff form. Only active specialties can be assigned to a dentist.
+        [HttpGet("specialties")]
+        public async Task<IActionResult> GetActiveSpecialties()
+        {
+            var specialties = await _context.DentalSpecialties
+                .AsNoTracking()
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.SpecialtyName)
+                .Select(s => new
+                {
+                    s.SpecialtyID,
+                    s.SpecialtyName
+                })
+                .ToListAsync();
+
+            return Ok(new { success = true, count = specialties.Count, specialties });
+        }
+
         [HttpGet("{staffID:int}")]
         public async Task<IActionResult> GetStaffById(int staffID)
         {
