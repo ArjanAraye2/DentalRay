@@ -18,13 +18,12 @@ BEGIN
 END;
 GO
 
-/* Initial Image Types. Add future values through the SuperAdmin maintenance form. */
+/* Initial radiology Image Types (not file formats). Add future values through the SuperAdmin maintenance form. */
 DECLARE @ImageTypes TABLE (ImageTypeName NVARCHAR(150));
 INSERT INTO @ImageTypes (ImageTypeName)
 VALUES
-    (N'JPG / JPEG'),
-    (N'PNG'),
-    (N'PDF');
+    (N'OPG'),
+    (N'CBCT');
 
 INSERT INTO dbo.tblImageTypes (ImageTypeName, IsActive)
 SELECT s.ImageTypeName, 1
