@@ -1,4 +1,3 @@
-﻿using System.Text.RegularExpressions;
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
@@ -7,1179 +6,236 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DentalRay.Api.Controllers
 {
-    // ============================================================
-    // RadiologyImagesController
-    // ============================================================
-    //
-    // مسئول عملیات تصاویر رادیولوژی است.
-    //
-    // قابلیت‌های این Controller:
-    //
-    // - Upload تصویر
-    // - دریافت فایل تصویر
-    // - دریافت لیست تصاویر یک Study
-    // - حذف تصویر
-    //
-    // نکته مهم:
-    //
-    // فایل واقعی تصویر روی Disk ذخیره می‌شود.
-    //
-    // SQL Server فقط Metadata را نگهداری می‌کند.
-    //
-    // بنابراین در عملیات Upload و Delete باید همیشه تلاش کنیم:
-    //
-    // Database
-    //
-    // و
-    //
-    // Physical File
-    //
-    // با یکدیگر هماهنگ باقی بمانند.
-    //
-    // ============================================================
-
     [ApiController]
     [Route("api/[controller]")]
-    public class RadiologyImagesController :
-        ControllerBase
+    public class RadiologyImagesController : ControllerBase
     {
-        private readonly DentalRayDbContext
-            _context;
+        private readonly DentalRayDbContext _context;
+        private readonly RadiologyStorageService _storage;
 
-
-        private readonly RadiologyStorageService
-            _storageService;
-
-
-        // ========================================================
-        // تنظیمات Upload
-        // ========================================================
-
-        // حداکثر حجم هر تصویر:
-        //
-        // 25 MB
-        //
-        private const long MaxImageSize =
-            25L * 1024L * 1024L;
-
-
-        // ========================================================
-        // Constructor
-        // ========================================================
-
-        public RadiologyImagesController(
-            DentalRayDbContext context,
-            RadiologyStorageService storageService)
+        public RadiologyImagesController(DentalRayDbContext context, RadiologyStorageService storage)
         {
-            _context =
-                context;
-
-
-            _storageService =
-                storageService;
+            _context = context;
+            _storage = storage;
         }
 
-
-        // ========================================================
-        // POST
-        // Upload تصویر
-        // ========================================================
-        //
-        // مثال:
-        //
-        // POST /api/radiologyimages?studyID=7
-        //
-        // فایل به صورت multipart/form-data ارسال می‌شود.
-        //
-        // ========================================================
-
+        // New files can only enter DentalRay through a Study. One file per request.
         [HttpPost]
-        public async Task<IActionResult> UploadImage(
-            int studyID,
-            IFormFile file)
+        public async Task<IActionResult> UploadImage(int studyID, IFormFile file)
         {
+            if (studyID <= 0 || file == null || file.Length == 0)
+                return BadRequest(new { success=false, message="Study and file are required." });
+
+            string ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (ext is not (".jpg" or ".jpeg" or ".png" or ".pdf"))
+                return BadRequest(new { success=false, message="Only JPG, JPEG, PNG and PDF files are allowed." });
+
+            if (!await HasValidSignatureAsync(file, ext))
+                return BadRequest(new { success=false, message="The selected file signature is invalid." });
+
+            var study = await _context.RadiologyStudies.AsNoTracking().FirstOrDefaultAsync(x=>x.StudyID==studyID);
+            if (study == null) return NotFound(new { success=false, message="Study not found." });
+            var patient = await _context.Patients.AsNoTracking().FirstOrDefaultAsync(x=>x.PatientID==study.PatientID);
+            if (patient == null) return NotFound(new { success=false, message="Patient not found." });
+
+            int serial = (await _context.RadiologyImages
+                .Where(x=>x.PatientID==patient.PatientID)
+                .Select(x=>(int?)x.SerialNumber).MaxAsync() ?? 0) + 1;
+
+            DateTime now = DateTime.Now;
+            string? relativePath = null;
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                // ------------------------------------------------
-                // بررسی StudyID
-                // ------------------------------------------------
+                await using (var input=file.OpenReadStream())
+                    relativePath = await _storage.SaveImageAsync(input,file.FileName,patient.NationalCode,now,serial);
 
-                if (studyID <= 0)
+                var image = new RadiologyImage
                 {
-                    return BadRequest(new
-                    {
-                        success = false,
+                    PatientID=patient.PatientID,
+                    FileName=Path.GetFileName(relativePath),
+                    RelativePath=relativePath,
+                    ContentType=ContentTypeFor(ext),
+                    SerialNumber=serial,
+                    CreatedDate=now
+                };
+                _context.RadiologyImages.Add(image);
+                await _context.SaveChangesAsync();
 
-                        message =
-                            "StudyID must be greater than zero."
-                    });
-                }
-
-
-                // ------------------------------------------------
-                // بررسی وجود فایل
-                // ------------------------------------------------
-
-                if (file == null ||
-                    file.Length == 0)
+                _context.RadiologyStudyImages.Add(new RadiologyStudyImage
                 {
-                    return BadRequest(new
-                    {
-                        success = false,
-
-                        message =
-                            "Image file is required."
-                    });
-                }
-
-
-                // ------------------------------------------------
-                // محدودیت حجم
-                // ------------------------------------------------
-
-                if (file.Length >
-                    MaxImageSize)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-
-                        message =
-                            "Image file is too large. Maximum size is 25 MB."
-                    });
-                }
-
-
-                // =================================================
-                // بررسی پسوند فایل
-                // =================================================
-
-                string extension =
-                    Path.GetExtension(
-                        file.FileName)
-                    .ToLowerInvariant();
-
-
-                bool extensionIsValid =
-                    extension == ".jpg" ||
-                    extension == ".jpeg" ||
-                    extension == ".png";
-
-
-                if (!extensionIsValid)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-
-                        message =
-                            "Only JPG, JPEG and PNG files are allowed."
-                    });
-                }
-
-
-                // =================================================
-                // بررسی Header واقعی فایل
-                // =================================================
-                //
-                // فقط بررسی extension کافی نیست.
-                //
-                // ممکن است کاربر فایل دیگری را Rename کرده باشد:
-                //
-                // document.exe
-                //
-                // به:
-                //
-                // document.jpg
-                //
-                // بنابراین Signature واقعی فایل نیز بررسی می‌شود.
-                //
-                // =================================================
-
-                bool signatureIsValid =
-                    await HasValidImageSignatureAsync(
-                        file,
-                        extension);
-
-
-                if (!signatureIsValid)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-
-                        message =
-                            "The selected file is not a valid JPG or PNG image."
-                    });
-                }
-
-
-                // ------------------------------------------------
-                // دریافت Study
-                // ------------------------------------------------
-
-                var study =
-                    await _context.RadiologyStudies
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(
-                            s => s.StudyID ==
-                                 studyID);
-
-
-                if (study == null)
-                {
-                    return NotFound(new
-                    {
-                        success = false,
-
-                        message =
-                            "Study not found."
-                    });
-                }
-
-
-                // ------------------------------------------------
-                // دریافت Patient مربوط به Study
-                // ------------------------------------------------
-
-                var patient =
-                    await _context.Patients
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(
-                            p => p.PatientID ==
-                                 study.PatientID);
-
-
-                if (patient == null)
-                {
-                    return NotFound(new
-                    {
-                        success = false,
-
-                        message =
-                            "Patient not found."
-                    });
-                }
-
-
-                // =================================================
-                // تعیین Serial بعدی
-                // =================================================
-                //
-                // مثال:
-                //
-                // 1860271855_7_001.jpg
-                // 1860271855_7_002.jpg
-                //
-                // تصویر بعدی:
-                //
-                // 1860271855_7_003.jpg
-                //
-                // =================================================
-
-                var existingFileNames =
-                    await _context
-                        .RadiologyImages
-                        .AsNoTracking()
-
-                        .Where(
-                            i => i.StudyID ==
-                                 studyID)
-
-                        .Select(
-                            i => i.FileName)
-
-                        .ToListAsync();
-
-
-                int nextSerial = 1;
-
-
-                foreach (string fileName
-                         in existingFileNames)
-                {
-                    Match match =
-                        Regex.Match(
-                            fileName,
-
-                            @"_(\d{3})\.(jpg|jpeg|png)$",
-
-                            RegexOptions
-                                .IgnoreCase);
-
-
-                    if (!match.Success)
-                    {
-                        continue;
-                    }
-
-
-                    if (int.TryParse(
-                        match.Groups[1].Value,
-                        out int serial))
-                    {
-                        if (serial >=
-                            nextSerial)
-                        {
-                            nextSerial =
-                                serial + 1;
-                        }
-                    }
-                }
-
-
-                // ------------------------------------------------
-                // Serial سه رقمی
-                // ------------------------------------------------
-
-                if (nextSerial > 999)
-                {
-                    return Conflict(new
-                    {
-                        success = false,
-
-                        message =
-                            "Maximum image serial 999 has been reached for this study."
-                    });
-                }
-
-
-                // =================================================
-                // ContentType معتبر
-                // =================================================
-                //
-                // ContentType ارسالی Browser را مستقیماً اعتماد
-                // نمی‌کنیم.
-                //
-                // آن را از extension تأییدشده تعیین می‌کنیم.
-                //
-                // =================================================
-
-                string contentType =
-                    extension == ".png"
-                        ? "image/png"
-                        : "image/jpeg";
-
-
-                // =================================================
-                // ذخیره فایل فیزیکی
-                // =================================================
-
-                string relativePath;
-
-
-                using (Stream imageStream =
-                       file.OpenReadStream())
-                {
-                    relativePath =
-                        await _storageService
-                            .SaveImageAsync(
-                                imageStream,
-
-                                file.FileName,
-
-                                patient
-                                    .NationalCode,
-
-                                studyID,
-
-                                nextSerial);
-                }
-
-
-                // =================================================
-                // ایجاد Metadata
-                // =================================================
-
-                var image =
-                    new RadiologyImage
-                    {
-                        StudyID =
-                            studyID,
-
-                        FileName =
-                            Path.GetFileName(
-                                relativePath),
-
-                        RelativePath =
-                            relativePath,
-
-                        ContentType =
-                            contentType,
-
-                        CreatedDate =
-                            DateTime.Now
-                    };
-
-
-                // =================================================
-                // ثبت Metadata
-                // =================================================
-                //
-                // اگر INSERT در SQL شکست بخورد،
-                // فایل فیزیکی تازه ایجادشده را حذف می‌کنیم.
-                //
-                // =================================================
-
-                try
-                {
-                    _context
-                        .RadiologyImages
-                        .Add(image);
-
-
-                    await _context
-                        .SaveChangesAsync();
-                }
-                catch
-                {
-                    // ---------------------------------------------
-                    // Cleanup فایل فیزیکی
-                    // ---------------------------------------------
-
-                    try
-                    {
-                        // ----------------------------------------------------
-                        // مسیر فیزیکی تصویر
-                        // ----------------------------------------------------
-                        //
-                        // StorageService فقط نام فایل مستقیم زیر RootPath
-                        // را قبول می‌کند.
-                        //
-                        // بنابراین از FileName استفاده می‌کنیم، نه RelativePath.
-                        //
-                        string physicalPath =
-                            _storageService
-                                .GetPhysicalPath(
-                                    image.FileName);
-
-                        if (System.IO.File
-                            .Exists(
-                                physicalPath))
-                        {
-                            System.IO.File
-                                .Delete(
-                                    physicalPath);
-                        }
-                    }
-                    catch
-                    {
-                        // خطای Cleanup نباید خطای اصلی
-                        // Database را مخفی کند.
-                    }
-
-
-                    throw;
-                }
-
-
-                // =================================================
-                // پاسخ
-                // =================================================
-
-                return Ok(new
-                {
-                    success = true,
-
-                    imageID =
-                        image.ImageID,
-
-                    patientID =
-                        patient.PatientID,
-
-                    nationalCode =
-                        patient.NationalCode,
-
-                    studyID =
-                        image.StudyID,
-
-                    fileName =
-                        image.FileName,
-
-                    relativePath =
-                        image.RelativePath,
-
-                    contentType =
-                        image.ContentType,
-
-                    createdDate =
-                        image.CreatedDate,
-
-                    serial =
-                        nextSerial
+                    StudyID=studyID, ImageID=image.ImageID, CreatedDate=now
                 });
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                return Ok(new { success=true, imageID=image.ImageID, patientID=image.PatientID,
+                    studyID, image.FileName, image.RelativePath, image.ContentType,
+                    image.SerialNumber, image.CreatedDate });
             }
             catch (Exception ex)
             {
-                return StatusCode(
-                    500,
-                    new
-                    {
-                        success = false,
-
-                        message =
-                            "Image upload failed.",
-
-                        error =
-                            ex.Message
-                    });
+                await tx.RollbackAsync();
+                if (!string.IsNullOrWhiteSpace(relativePath))
+                {
+                    try { _storage.DeleteFile(relativePath); } catch { }
+                }
+                return StatusCode(500,new { success=false, message="Image upload failed.", error=ex.Message });
             }
         }
-
-
-        // ========================================================
-        // GET
-        // دریافت فایل تصویر
-        // ========================================================
-        //
-        // مثال:
-        //
-        // GET /api/radiologyimages/12
-        //
-        // ========================================================
 
         [HttpGet("{imageID:long}")]
-        public async Task<IActionResult> GetImage(
-            long imageID)
+        public async Task<IActionResult> GetImage(long imageID)
         {
-            // ----------------------------------------------------
-            // بررسی ImageID
-            // ----------------------------------------------------
-
-            if (imageID <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-
-                    message =
-                        "ImageID must be greater than zero."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // دریافت Metadata
-            // ----------------------------------------------------
-
-            var image =
-                await _context.RadiologyImages
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(
-                        i => i.ImageID ==
-                             imageID);
-
-
-            if (image == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-
-                    message =
-                        "Image not found."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // Physical Path
-            // ----------------------------------------------------
-
-            string physicalPath =
-                _storageService
-                    .GetPhysicalPath(
-                        image.RelativePath);
-
-
-            // ----------------------------------------------------
-            // بررسی وجود فایل
-            // ----------------------------------------------------
-
-            if (!System.IO.File.Exists(
-                physicalPath))
-            {
-                return NotFound(new
-                {
-                    success = false,
-
-                    message =
-                        "Physical image file not found."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // خواندن فایل
-            // ----------------------------------------------------
-
-            byte[] fileBytes =
-                await System.IO.File
-                    .ReadAllBytesAsync(
-                        physicalPath);
-
-
-            // ----------------------------------------------------
-            // ارسال فایل
-            // ----------------------------------------------------
-
-            return File(
-                fileBytes,
-
-                image.ContentType,
-
-                image.FileName);
+            var image=await _context.RadiologyImages.AsNoTracking().FirstOrDefaultAsync(x=>x.ImageID==imageID);
+            if (image==null) return NotFound(new { success=false,message="Image not found." });
+            string path=_storage.GetPhysicalPath(image.RelativePath);
+            if (!System.IO.File.Exists(path)) return NotFound(new { success=false,message="Physical file not found." });
+            return PhysicalFile(path,image.ContentType,image.FileName,enableRangeProcessing:true);
         }
 
-
-        // ========================================================
-        // GET
-        // لیست تصاویر یک Study
-        // ========================================================
-        //
-        // مثال:
-        //
-        // GET /api/radiologyimages/study/7
-        //
-        // فقط Metadata برمی‌گردد.
-        //
-        // ========================================================
-
+        // Gallery for a Study, filename descending as approved.
         [HttpGet("study/{studyID:int}")]
-        public async Task<IActionResult>
-            GetStudyImages(
-                int studyID)
+        public async Task<IActionResult> GetStudyImages(int studyID)
         {
-            // ----------------------------------------------------
-            // بررسی StudyID
-            // ----------------------------------------------------
+            if (!await _context.RadiologyStudies.AnyAsync(x=>x.StudyID==studyID))
+                return NotFound(new { success=false,message="Study not found." });
 
-            if (studyID <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-
-                    message =
-                        "StudyID must be greater than zero."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // بررسی وجود Study
-            // ----------------------------------------------------
-
-            bool studyExists =
-                await _context
-                    .RadiologyStudies
-                    .AsNoTracking()
-
-                    .AnyAsync(
-                        s => s.StudyID ==
-                             studyID);
-
-
-            if (!studyExists)
-            {
-                return NotFound(new
-                {
-                    success = false,
-
-                    message =
-                        "Study not found."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // دریافت Metadata تصاویر
-            // ----------------------------------------------------
-
-            var images =
-                await _context
-                    .RadiologyImages
-                    .AsNoTracking()
-
-                    .Where(
-                        i => i.StudyID ==
-                             studyID)
-
-                    .OrderBy(
-                        i => i.ImageID)
-
-                    .Select(i => new
-                    {
-                        i.ImageID,
-
-                        i.StudyID,
-
-                        i.FileName,
-
-                        i.RelativePath,
-
-                        i.ContentType,
-
-                        i.CreatedDate
-                    })
-
-                    .ToListAsync();
-
-
-            // ----------------------------------------------------
-            // پاسخ
-            // ----------------------------------------------------
-
-            return Ok(new
-            {
-                success = true,
-
-                studyID =
-                    studyID,
-
-                count =
-                    images.Count,
-
-                images =
-                    images
-            });
+            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking()
+                              join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID
+                              where l.StudyID==studyID
+                              orderby i.FileName descending
+                              select new { i.ImageID,i.PatientID,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate })
+                              .ToListAsync();
+            return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
-
-        // ========================================================
-        // DELETE
-        // حذف تصویر
-        // ========================================================
-        //
-        // مثال:
-        //
-        // DELETE /api/radiologyimages/15
-        //
-        //
-        // هدف:
-        //
-        // رکورد SQL
-        //
-        // و
-        //
-        // فایل فیزیکی
-        //
-        // باید تا حد ممکن هماهنگ حذف شوند.
-        //
-        //
-        // روش کار:
-        //
-        // 1. فایل اصلی ابتدا Rename شده و به یک نام موقت می‌رود.
-        //
-        //    مثال:
-        //
-        //    123_7_001.jpeg
-        //
-        //    تبدیل می‌شود به:
-        //
-        //    .delete_<GUID>_123_7_001.jpeg
-        //
-        //
-        // 2. Transaction SQL شروع می‌شود.
-        //
-        // 3. Metadata حذف می‌شود.
-        //
-        // 4. SQL Commit می‌شود.
-        //
-        // 5. فایل موقت حذف فیزیکی می‌شود.
-        //
-        //
-        // اگر SQL شکست بخورد:
-        //
-        // فایل موقت دوباره به نام اصلی برگردانده می‌شود.
-        //
-        // ========================================================
-
-        [HttpDelete("{imageID:long}")]
-        public async Task<IActionResult>
-            DeleteImage(
-                long imageID)
+        // Patient Images section. Frontend hides the section when count is zero.
+        [HttpGet("patient/{patientID:int}")]
+        public async Task<IActionResult> GetPatientImages(int patientID)
         {
-            // ----------------------------------------------------
-            // بررسی ImageID
-            // ----------------------------------------------------
+            if (!await _context.Patients.AnyAsync(x=>x.PatientID==patientID))
+                return NotFound(new { success=false,message="Patient not found." });
 
-            if (imageID <= 0)
-            {
-                return BadRequest(new
-                {
-                    success = false,
+            var images=await _context.RadiologyImages.AsNoTracking()
+                .Where(x=>x.PatientID==patientID).OrderByDescending(x=>x.FileName)
+                .Select(x=>new { x.ImageID,x.FileName,x.ContentType,x.CreatedDate,
+                    studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) })
+                .ToListAsync();
+            return Ok(new { success=true,patientID,count=images.Count,images });
+        }
 
-                    message =
-                        "ImageID must be greater than zero."
-                });
-            }
+        // Picker shows all Patient images and tells Frontend which are already attached.
+        [HttpGet("study/{studyID:int}/picker")]
+        public async Task<IActionResult> GetPicker(int studyID)
+        {
+            var study=await _context.RadiologyStudies.AsNoTracking().FirstOrDefaultAsync(x=>x.StudyID==studyID);
+            if (study==null) return NotFound(new { success=false,message="Study not found." });
+            var attached=await _context.RadiologyStudyImages.AsNoTracking().Where(x=>x.StudyID==studyID).Select(x=>x.ImageID).ToListAsync();
+            var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==study.PatientID)
+                .OrderByDescending(x=>x.FileName)
+                .Select(x=>new { x.ImageID,x.FileName,x.ContentType,attached=attached.Contains(x.ImageID) }).ToListAsync();
+            return Ok(new { success=true,studyID,images });
+        }
 
+        // Supports one or several existing image IDs; backend enforces same Patient.
+        [HttpPost("study/{studyID:int}/attach")]
+        public async Task<IActionResult> Attach(int studyID,[FromBody] long[] imageIDs)
+        {
+            var study=await _context.RadiologyStudies.FirstOrDefaultAsync(x=>x.StudyID==studyID);
+            if (study==null) return NotFound(new { success=false,message="Study not found." });
+            var ids=(imageIDs??Array.Empty<long>()).Where(x=>x>0).Distinct().ToList();
+            if (ids.Count==0) return BadRequest(new { success=false,message="At least one ImageID is required." });
+            var images=await _context.RadiologyImages.Where(x=>ids.Contains(x.ImageID)).ToListAsync();
+            if (images.Count!=ids.Count) return BadRequest(new { success=false,message="One or more images do not exist." });
+            if (images.Any(x=>x.PatientID!=study.PatientID)) return Conflict(new { success=false,message="An image cannot be attached to another patient's Study." });
+            var existing=await _context.RadiologyStudyImages.Where(x=>x.StudyID==studyID && ids.Contains(x.ImageID)).Select(x=>x.ImageID).ToListAsync();
+            foreach(long id in ids.Except(existing)) _context.RadiologyStudyImages.Add(new RadiologyStudyImage { StudyID=studyID,ImageID=id,CreatedDate=DateTime.Now });
+            await _context.SaveChangesAsync();
+            return Ok(new { success=true,attached=ids.Count-existing.Count,alreadyAttached=existing.Count });
+        }
 
-            // ----------------------------------------------------
-            // دریافت Metadata
-            // ----------------------------------------------------
+        // Detach only removes links. Response identifies newly-unattached images so UI can immediately ask about deletion.
+        [HttpPost("study/{studyID:int}/detach")]
+        public async Task<IActionResult> Detach(int studyID,[FromBody] long[] imageIDs)
+        {
+            var ids=(imageIDs??Array.Empty<long>()).Distinct().ToList();
+            var links=await _context.RadiologyStudyImages.Where(x=>x.StudyID==studyID && ids.Contains(x.ImageID)).ToListAsync();
+            _context.RadiologyStudyImages.RemoveRange(links);
+            await _context.SaveChangesAsync();
+            var stillLinked=await _context.RadiologyStudyImages.Where(x=>ids.Contains(x.ImageID)).Select(x=>x.ImageID).Distinct().ToListAsync();
+            var unattached=ids.Except(stillLinked).ToArray();
+            return Ok(new { success=true,detached=links.Count,unattachedImageIDs=unattached });
+        }
 
-            var image =
-                await _context
-                    .RadiologyImages
+        // Physical deletion is allowed only when no Study link remains.
+        // The physical file is first moved to a temporary quarantine name. The database row
+        // is then deleted inside a transaction. If SQL fails, the file is restored. This avoids
+        // leaving a live database row whose physical file has already disappeared.
+        [HttpDelete("{imageID:long}")]
+        public async Task<IActionResult> DeleteImage(long imageID)
+        {
+            var image=await _context.RadiologyImages.FirstOrDefaultAsync(x=>x.ImageID==imageID);
+            if (image==null) return NotFound(new { success=false,message="Image not found." });
+            if (await _context.RadiologyStudyImages.AnyAsync(x=>x.ImageID==imageID))
+                return Conflict(new { success=false,message="Detach the image from all Studies before deleting it." });
 
-                    .FirstOrDefaultAsync(
-                        i => i.ImageID ==
-                             imageID);
+            string originalPath=_storage.GetPhysicalPath(image.RelativePath);
+            if (!System.IO.File.Exists(originalPath))
+                return Conflict(new { success=false,message="Physical file not found. Database metadata was not deleted." });
 
-
-            if (image == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-
-                    message =
-                        "Image not found."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // مسیر فایل اصلی
-            // ----------------------------------------------------
-            //
-            // GetPhysicalPath برای امنیت فقط FileName را می‌پذیرد.
-            //
-            string originalPhysicalPath =
-                _storageService
-                    .GetPhysicalPath(
-                        image.FileName);
-
-            // ----------------------------------------------------
-            // اگر فایل فیزیکی پیدا نشد
-            // ----------------------------------------------------
-            //
-            // رکورد SQL را خودکار حذف نمی‌کنیم.
-            //
-            // چون این وضعیت باید ابتدا بررسی شود.
-            //
-            // ----------------------------------------------------
-
-            if (!System.IO.File.Exists(
-                originalPhysicalPath))
-            {
-                return Conflict(new
-                {
-                    success = false,
-
-                    message =
-                        "Physical image file not found. Database metadata was not deleted."
-                });
-            }
-
-
-            // ----------------------------------------------------
-            // پوشه فایل
-            // ----------------------------------------------------
-
-            string? directory =
-                Path.GetDirectoryName(
-                    originalPhysicalPath);
-
-
-            if (string.IsNullOrWhiteSpace(
-                directory))
-            {
-                return StatusCode(
-                    500,
-                    new
-                    {
-                        success = false,
-
-                        message =
-                            "Could not determine the image directory."
-                    });
-            }
-
-
-            // ----------------------------------------------------
-            // نام موقت
-            // ----------------------------------------------------
-
-            string temporaryPhysicalPath =
-                Path.Combine(
-                    directory,
-
-                    $".delete_{Guid.NewGuid():N}_{Path.GetFileName(originalPhysicalPath)}");
-
-
-            // ----------------------------------------------------
-            // Transaction
-            // ----------------------------------------------------
-
-            using var transaction =
-                await _context.Database
-                    .BeginTransactionAsync();
-
-
-            bool fileWasRenamed =
-                false;
-
-
+            string directory=Path.GetDirectoryName(originalPath)!;
+            string temporaryPath=Path.Combine(directory,$".delete_{Guid.NewGuid():N}_{Path.GetFileName(originalPath)}");
+            bool quarantined=false;
+            await using var tx=await _context.Database.BeginTransactionAsync();
             try
             {
-                // =================================================
-                // Step 1
-                // Rename فایل اصلی به نام موقت
-                // =================================================
-
-                System.IO.File.Move(
-                    originalPhysicalPath,
-
-                    temporaryPhysicalPath);
-
-
-                fileWasRenamed =
-                    true;
-
-
-                // =================================================
-                // Step 2
-                // حذف Metadata
-                // =================================================
-
-                _context.RadiologyImages
-                    .Remove(image);
-
-
-                await _context
-                    .SaveChangesAsync();
-
-
-                // =================================================
-                // Step 3
-                // Commit SQL
-                // =================================================
-
-                await transaction
-                    .CommitAsync();
-
-
-                // =================================================
-                // Step 4
-                // حذف نهایی فایل موقت
-                // =================================================
-                //
-                // SQL در این نقطه Commit شده است.
-                //
-                // اگر حذف فایل موقت به دلیل Lock یا Antivirus
-                // شکست بخورد، عملیات منطقی حذف همچنان انجام شده است.
-                //
-                // در این حالت Cleanup Warning برمی‌گردانیم.
-                //
-                // =================================================
-
-                bool cleanupWarning =
-                    false;
-
-
-                string? cleanupMessage =
-                    null;
-
-
-                try
-                {
-                    if (System.IO.File.Exists(
-                        temporaryPhysicalPath))
-                    {
-                        System.IO.File.Delete(
-                            temporaryPhysicalPath);
-                    }
-                }
-                catch (Exception cleanupEx)
-                {
-                    cleanupWarning =
-                        true;
-
-
-                    cleanupMessage =
-                        cleanupEx.Message;
-                }
-
-
-                // =================================================
-                // پاسخ موفق
-                // =================================================
-
-                return Ok(new
-                {
-                    success = true,
-
-                    imageID =
-                        imageID,
-
-                    studyID =
-                        image.StudyID,
-
-                    fileName =
-                        image.FileName,
-
-                    cleanupWarning =
-                        cleanupWarning,
-
-                    cleanupMessage =
-                        cleanupMessage,
-
-                    message =
-                        cleanupWarning
-                            ? "Image metadata was deleted, but temporary file cleanup could not be completed."
-                            : "Image deleted successfully."
-                });
+                System.IO.File.Move(originalPath,temporaryPath);
+                quarantined=true;
+                _context.RadiologyImages.Remove(image);
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                // =================================================
-                // Rollback SQL
-                // =================================================
-
+                try { await tx.RollbackAsync(); } catch { }
                 try
                 {
-                    await transaction
-                        .RollbackAsync();
+                    if (quarantined && System.IO.File.Exists(temporaryPath) && !System.IO.File.Exists(originalPath))
+                        System.IO.File.Move(temporaryPath,originalPath);
                 }
-                catch
-                {
-                    // خطای Rollback نباید خطای اصلی را مخفی کند.
-                }
-
-
-                // =================================================
-                // Restore فایل فیزیکی
-                // =================================================
-                //
-                // اگر فایل به نام موقت Rename شده ولی SQL شکست
-                // خورده است، آن را به نام قبلی برمی‌گردانیم.
-                //
-                // =================================================
-
-                try
-                {
-                    if (fileWasRenamed &&
-                        System.IO.File.Exists(
-                            temporaryPhysicalPath) &&
-                        !System.IO.File.Exists(
-                            originalPhysicalPath))
-                    {
-                        System.IO.File.Move(
-                            temporaryPhysicalPath,
-
-                            originalPhysicalPath);
-                    }
-                }
-                catch
-                {
-                    // خطای Restore فایل نباید Exception اصلی
-                    // را مخفی کند.
-                }
-
-
-                return StatusCode(
-                    500,
-                    new
-                    {
-                        success = false,
-
-                        message =
-                            "Image delete failed.",
-
-                        error =
-                            ex.Message
-                    });
+                catch { }
+                return StatusCode(500,new { success=false,message="Image delete failed. Database changes were rolled back and the system attempted to restore the physical file.",error=ex.Message });
             }
+
+            bool cleanupWarning=false;
+            string? cleanupMessage=null;
+            try
+            {
+                if (System.IO.File.Exists(temporaryPath)) System.IO.File.Delete(temporaryPath);
+                _storage.DeletePatientFolderIfEmpty(Path.GetDirectoryName(image.RelativePath));
+            }
+            catch(Exception ex)
+            {
+                cleanupWarning=true;
+                cleanupMessage=ex.Message;
+            }
+
+            return Ok(new { success=true,imageID,cleanupWarning,cleanupMessage,
+                message=cleanupWarning ? "Image metadata was deleted, but temporary-file cleanup could not be completed." : "Image deleted successfully." });
         }
 
+        private static string ContentTypeFor(string ext)=>ext switch
+        { ".png"=>"image/png", ".pdf"=>"application/pdf", _=>"image/jpeg" };
 
-        // ========================================================
-        // Helper
-        // بررسی Signature واقعی تصویر
-        // ========================================================
-        //
-        // JPEG:
-        //
-        // FF D8 FF
-        //
-        //
-        // PNG:
-        //
-        // 89 50 4E 47 0D 0A 1A 0A
-        //
-        // ========================================================
-
-        private static async Task<bool>
-            HasValidImageSignatureAsync(
-                IFormFile file,
-                string extension)
+        private static async Task<bool> HasValidSignatureAsync(IFormFile file,string ext)
         {
-            // ----------------------------------------------------
-            // حداقل Header موردنیاز
-            // ----------------------------------------------------
-
-            byte[] header =
-                new byte[8];
-
-
-            using Stream stream =
-                file.OpenReadStream();
-
-
-            int bytesRead =
-                await stream.ReadAsync(
-                    header.AsMemory(
-                        0,
-                        header.Length));
-
-
-            // ----------------------------------------------------
-            // JPEG
-            // ----------------------------------------------------
-
-            if (extension == ".jpg" ||
-                extension == ".jpeg")
-            {
-                if (bytesRead < 3)
-                {
-                    return false;
-                }
-
-
-                return
-                    header[0] == 0xFF &&
-                    header[1] == 0xD8 &&
-                    header[2] == 0xFF;
-            }
-
-
-            // ----------------------------------------------------
-            // PNG
-            // ----------------------------------------------------
-
-            if (extension == ".png")
-            {
-                if (bytesRead < 8)
-                {
-                    return false;
-                }
-
-
-                return
-                    header[0] == 0x89 &&
-                    header[1] == 0x50 &&
-                    header[2] == 0x4E &&
-                    header[3] == 0x47 &&
-                    header[4] == 0x0D &&
-                    header[5] == 0x0A &&
-                    header[6] == 0x1A &&
-                    header[7] == 0x0A;
-            }
-
-
+            byte[] b=new byte[8];
+            await using var s=file.OpenReadStream();
+            int n=await s.ReadAsync(b.AsMemory(0,b.Length));
+            if (ext is ".jpg" or ".jpeg") return n>=3 && b[0]==0xFF && b[1]==0xD8 && b[2]==0xFF;
+            if (ext==".png") return n>=8 && b.SequenceEqual(new byte[]{137,80,78,71,13,10,26,10});
+            if (ext==".pdf") return n>=5 && b[0]==0x25 && b[1]==0x50 && b[2]==0x44 && b[3]==0x46 && b[4]==0x2D;
             return false;
         }
     }
