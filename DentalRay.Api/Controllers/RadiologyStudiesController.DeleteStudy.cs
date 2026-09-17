@@ -1,92 +1,66 @@
 using DentalRay.Api.Data;
+using DentalRay.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DentalRay.Api.Controllers
 {
-    // ============================================================
-    // RadiologyStudiesDeleteController
-    // ============================================================
-    //
-    // سیاست حذف Study در DentalRay:
-    //
-    // - اگر Study هیچ تصویری نداشته باشد، قابل حذف است.
-    // - اگر حتی یک تصویر به Study متصل باشد، حذف مجاز نیست.
-    // - کاربر باید ابتدا تصاویر Study را حذف کند.
-    //
-    // Route عمداً با RadiologyStudiesController یکسان است تا
-    // Endpoint نهایی به شکل زیر باقی بماند:
-    //
-    // DELETE /api/radiologystudies/{studyID}
-    // ============================================================
     [ApiController]
     [Route("api/radiologystudies")]
     public class RadiologyStudiesDeleteController : ControllerBase
     {
         private readonly DentalRayDbContext _context;
+        private readonly RadiologyStorageService _storage;
+        public RadiologyStudiesDeleteController(DentalRayDbContext context,RadiologyStorageService storage)
+        { _context=context; _storage=storage; }
 
-        public RadiologyStudiesDeleteController(
-            DentalRayDbContext context)
+        // Preview lets Frontend show shared images separately from images used only by this Study.
+        [HttpGet("{studyID:int}/delete-preview")]
+        public async Task<IActionResult> Preview(int studyID)
         {
-            _context = context;
+            if (!await _context.RadiologyStudies.AnyAsync(x=>x.StudyID==studyID)) return NotFound();
+            var rows=await (from l in _context.RadiologyStudyImages
+                            join i in _context.RadiologyImages on l.ImageID equals i.ImageID
+                            where l.StudyID==studyID
+                            select new { i.ImageID,i.FileName,
+                                studyCount=_context.RadiologyStudyImages.Count(x=>x.ImageID==i.ImageID) }).ToListAsync();
+            return Ok(new { success=true,studyID,
+                sharedImages=rows.Where(x=>x.studyCount>1),
+                studyOnlyImages=rows.Where(x=>x.studyCount==1) });
         }
 
-        // ========================================================
-        // DELETE
-        // حذف Study فقط در صورتی که هیچ Image نداشته باشد
-        // ========================================================
+        // deleteImageIDs may contain only Study-only images selected by the user.
         [HttpDelete("{studyID:int}")]
-        public async Task<IActionResult> DeleteStudy(int studyID)
+        public async Task<IActionResult> DeleteStudy(int studyID,[FromQuery] long[]? deleteImageIDs)
         {
-            // StudyID باید معتبر باشد.
-            if (studyID <= 0)
+            var study=await _context.RadiologyStudies.FirstOrDefaultAsync(x=>x.StudyID==studyID);
+            if (study==null) return NotFound(new { success=false,message="Study not found." });
+            var selected=(deleteImageIDs??Array.Empty<long>()).Distinct().ToHashSet();
+            var links=await _context.RadiologyStudyImages.Where(x=>x.StudyID==studyID).ToListAsync();
+            var ids=links.Select(x=>x.ImageID).ToList();
+            var shared=await _context.RadiologyStudyImages.Where(x=>ids.Contains(x.ImageID) && x.StudyID!=studyID)
+                .Select(x=>x.ImageID).Distinct().ToListAsync();
+            if (selected.Overlaps(shared)) return Conflict(new { success=false,message="Shared images cannot be deleted with this Study." });
+            if (selected.Any(x=>!ids.Contains(x))) return BadRequest(new { success=false,message="A selected image is not attached to this Study." });
+
+            var deleteImages=await _context.RadiologyImages.Where(x=>selected.Contains(x.ImageID)).ToListAsync();
+            var paths=deleteImages.Select(x=>x.RelativePath).ToList();
+            await using var tx=await _context.Database.BeginTransactionAsync();
+            try
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "StudyID must be greater than zero."
-                });
+                _context.RadiologyStudyImages.RemoveRange(links);
+                _context.RadiologyImages.RemoveRange(deleteImages);
+                _context.RadiologyStudies.Remove(study);
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
             }
+            catch { await tx.RollbackAsync(); throw; }
 
-            // Study موردنظر را دریافت می‌کنیم.
-            var study = await _context.RadiologyStudies
-                .FirstOrDefaultAsync(s => s.StudyID == studyID);
-
-            if (study == null)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = "Study not found."
-                });
-            }
-
-            // فقط وجود حداقل یک Image برای جلوگیری از حذف کافی است.
-            // AnyAsync از خواندن تمام رکوردهای Image جلوگیری می‌کند.
-            bool hasImages = await _context.RadiologyImages
-                .AsNoTracking()
-                .AnyAsync(image => image.StudyID == studyID);
-
-            if (hasImages)
-            {
-                return Conflict(new
-                {
-                    success = false,
-                    message = "Study cannot be deleted because it has attached images. Delete the images first.",
-                    studyID = studyID
-                });
-            }
-
-            // هیچ Image وابسته‌ای وجود ندارد؛ حذف Study مجاز است.
-            _context.RadiologyStudies.Remove(study);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                success = true,
-                studyID = studyID,
-                message = "Study deleted successfully."
-            });
+            // Database is authoritative; physical cleanup occurs after successful commit.
+            var cleanupErrors=new List<string>();
+            foreach(string path in paths) try { _storage.DeleteFile(path); } catch(Exception ex) { cleanupErrors.Add(ex.Message); }
+            return Ok(new { success=true,studyID,deletedImages=deleteImages.Count,
+                retainedImages=ids.Count-deleteImages.Count,cleanupErrors });
         }
     }
 }
