@@ -23,12 +23,17 @@ namespace DentalRay.Api.Controllers
 
         // New files can only enter DentalRay through a Study that the current user may access.
         [HttpPost]
-        public async Task<IActionResult> UploadImage(int studyID, IFormFile file)
+        public async Task<IActionResult> UploadImage(int studyID, int imageTypeID, IFormFile file)
         {
             if (studyID <= 0 || file == null || file.Length == 0)
                 return BadRequest(new { success=false, message="Study and file are required." });
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User))
                 return NotFound(new { success=false,message="Study not found." });
+            if (imageTypeID <= 0)
+                return BadRequest(new { success=false, message="نوع تصویر را انتخاب کنید.", messageEn="Image Type is required." });
+            if (!await _context.ImageTypes.AsNoTracking().AnyAsync(x=>x.ImageTypeID==imageTypeID && x.IsActive))
+                return BadRequest(new { success=false, message="نوع تصویر انتخاب‌شده معتبر یا فعال نیست.", messageEn="The selected Image Type is invalid or inactive." });
+
 
             string ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             // DentalRay accepts any browser-supplied image format, plus PDF.
@@ -60,7 +65,7 @@ namespace DentalRay.Api.Controllers
             {
                 await using (var input=file.OpenReadStream())
                     relativePath = await _storage.SaveImageAsync(input,file.FileName,patient.NationalCode,now,serial);
-                var image = new RadiologyImage { PatientID=patient.PatientID,FileName=Path.GetFileName(relativePath),RelativePath=relativePath,ContentType=ContentTypeFor(file, ext),SerialNumber=serial,CreatedDate=now };
+                var image = new RadiologyImage { PatientID=patient.PatientID,ImageTypeID=imageTypeID,FileName=Path.GetFileName(relativePath),RelativePath=relativePath,ContentType=ContentTypeFor(file, ext),SerialNumber=serial,CreatedDate=now };
                 _context.RadiologyImages.Add(image); await _context.SaveChangesAsync();
                 _context.RadiologyStudyImages.Add(new RadiologyStudyImage { StudyID=studyID,ImageID=image.ImageID,CreatedDate=now });
                 await _context.SaveChangesAsync(); await tx.CommitAsync();
@@ -88,7 +93,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetStudyImages(int studyID)
         {
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound(new { success=false,message="Study not found." });
-            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate }).ToListAsync();
+            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate }).ToListAsync();
             return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
@@ -100,7 +105,7 @@ namespace DentalRay.Api.Controllers
             var accessibleStudyIDs=_studyAccess.ApplyAccess(_context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==patientID),User).Select(s=>s.StudyID);
             var accessibleImageIDs=_context.RadiologyStudyImages.AsNoTracking().Where(l=>accessibleStudyIDs.Contains(l.StudyID)).Select(l=>l.ImageID).Distinct();
             var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==patientID && (StudyAccessService.IsSuperAdmin(User) || accessibleImageIDs.Contains(x.ImageID))).OrderByDescending(x=>x.FileName)
-                .Select(x=>new { x.ImageID,x.FileName,x.ContentType,x.CreatedDate,studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) }).ToListAsync();
+                .Select(x=>new { x.ImageID,x.ImageTypeID,x.FileName,x.ContentType,x.CreatedDate,studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) }).ToListAsync();
             return Ok(new { success=true,patientID,count=images.Count,images });
         }
 
@@ -113,7 +118,7 @@ namespace DentalRay.Api.Controllers
             var accessibleStudyIDs=_studyAccess.ApplyAccess(_context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==study.PatientID),User).Select(s=>s.StudyID);
             var accessibleImageIDs=_context.RadiologyStudyImages.AsNoTracking().Where(l=>accessibleStudyIDs.Contains(l.StudyID)).Select(l=>l.ImageID).Distinct();
             var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==study.PatientID && (StudyAccessService.IsSuperAdmin(User) || accessibleImageIDs.Contains(x.ImageID)))
-                .OrderByDescending(x=>x.FileName).Select(x=>new { x.ImageID,x.FileName,x.ContentType,attached=attached.Contains(x.ImageID) }).ToListAsync();
+                .OrderByDescending(x=>x.FileName).Select(x=>new { x.ImageID,x.ImageTypeID,x.FileName,x.ContentType,attached=attached.Contains(x.ImageID) }).ToListAsync();
             return Ok(new { success=true,studyID,images });
         }
 
