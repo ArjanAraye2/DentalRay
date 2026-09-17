@@ -43,8 +43,9 @@ namespace DentalRay.Api.Controllers
         }
 
         // Lookup used by the Staff form. Only active specialties can be assigned to a dentist.
+        // Read-only lookup is available to authenticated operational forms.
+        // Creating/editing/deactivating specialty definitions remains a SuperAdmin responsibility.
         [HttpGet("specialties")]
-        [SuperAdminOnly]
         public async Task<IActionResult> GetActiveSpecialties()
         {
             var specialties = await _context.DentalSpecialties
