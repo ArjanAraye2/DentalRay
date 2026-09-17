@@ -55,7 +55,7 @@ namespace DentalRay.Api.Controllers
                 .Where(x => x.Staff.NationalCode == userName)
                 .Select(x => x.Account)
                 .FirstOrDefaultAsync();
-            if (user == null || !user.IsActive || string.IsNullOrWhiteSpace(user.PasswordHash)) return Unauthorized(new { success = false, message = "Invalid username or password." });
+            if (user == null || !user.IsActive || (user.EndDate.HasValue && user.EndDate.Value.Date < DateTime.Today) || string.IsNullOrWhiteSpace(user.PasswordHash)) return Unauthorized(new { success = false, message = "Invalid username or password." });
             var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
             if (verification == PasswordVerificationResult.Failed) return Unauthorized(new { success = false, message = "Invalid username or password." });
             var staff = await _context.Staff.AsNoTracking().FirstOrDefaultAsync(x => x.StaffID == user.StaffID);
