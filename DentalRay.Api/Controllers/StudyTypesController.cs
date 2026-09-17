@@ -1,4 +1,5 @@
 using DentalRay.Api.Data;
+using DentalRay.Api.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,7 @@ namespace DentalRay.Api.Controllers
 {
     [ApiController]
     [Route("api/studytypes")]
+    [SuperAdminOnly]
     public class StudyTypesController : ControllerBase
     {
         private readonly DentalRayDbContext _context;
