@@ -30,8 +30,8 @@
                 <div class="form-field"><label for="staffNationalCode">کد ملی</label><input id="staffNationalCode" maxlength="10" inputmode="numeric" pattern="[0-9۰-۹٠-٩]{10}" required><small class="field-hint">کد ملی معتبر ۱۰ رقمی</small></div>
                 <div class="form-field"><label for="staffType">نوع شخص</label><select id="staffType" required><option value="1">کارمند</option><option value="2">دندانپزشک</option></select></div>
                 <div id="staffSpecialtyField" class="form-field hidden"><label for="staffSpecialtyID">تخصص</label><select id="staffSpecialtyID"></select></div>
-                <div class="form-field"><label for="staffStartDate">تاریخ شروع</label><input id="staffStartDate" type="date" required></div>
-                <div class="form-field"><label for="staffEndDate">تاریخ پایان</label><input id="staffEndDate" type="date"></div>
+                <div class="form-field"><label for="staffStartDate">تاریخ شروع</label><input id="staffStartDate" data-jalali-date type="text" inputmode="numeric" placeholder="1405/06/27" required></div>
+                <div class="form-field"><label for="staffEndDate">تاریخ پایان</label><input id="staffEndDate" data-jalali-date type="text" inputmode="numeric" placeholder="1405/06/27"></div>
             </div>
             <div id="staffFormStatus" class="status-message"></div>
             <div class="form-actions"><button type="submit">ذخیره</button><button id="cancelStaffButton" type="button" class="secondary-button">انصراف</button></div>
@@ -121,8 +121,8 @@
         $("staffLastName").value = s?.lastName || "";
         $("staffNationalCode").value = s?.nationalCode || "";
         $("staffType").value = String(s?.staffType || 1);
-        $("staffStartDate").value = s?.startDate ? String(s.startDate).slice(0,10) : new Date().toISOString().slice(0,10);
-        $("staffEndDate").value = s?.endDate ? String(s.endDate).slice(0,10) : "";
+        $("staffStartDate").value = s?.startDate ? (window.formatPersianDateForInput?.(s.startDate) || "") : (window.toEnglishJalaliInput?.(new Date(),false) || "");
+        $("staffEndDate").value = s?.endDate ? (window.formatPersianDateForInput?.(s.endDate) || "") : "";
         updateSpecialtyVisibility();
         loadSpecialties(s?.specialtyID);
         $("staffFormStatus").textContent = "";
@@ -149,8 +149,8 @@
                 lastName: $("staffLastName").value.trim(),
                 staffType: Number($("staffType").value),
                 specialtyID: $("staffType").value === "2" ? Number($("staffSpecialtyID").value) || null : null,
-                startDate: $("staffStartDate").value,
-                endDate: $("staffEndDate").value || null
+                startDate: window.parsePersianDateForBackend($("staffStartDate").value,false),
+                endDate: $("staffEndDate").value ? window.parsePersianDateForBackend($("staffEndDate").value,false) : null
             };
             $("staffFormStatus").textContent = "در حال ذخیره...";
             await apiJson(id ? `/api/staff/${id}` : "/api/staff", {
