@@ -74,7 +74,6 @@ app.Use(async (context, next) =>
             const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
             const string featureScripts =
-                "<script src=\"/js/study-delete.js\"></script>\n" +
                 "<script src=\"/js/mobile-camera-loader.js\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
