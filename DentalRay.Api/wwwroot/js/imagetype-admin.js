@@ -40,7 +40,8 @@
     async function save(){
         const name=nameInput.value.trim();if(!name)return;
         const url=editing?`/api/admin/imagetypes/${editing.imageTypeID}`:"/api/admin/imagetypes";
-        const isActive=section.querySelector("#imageTypeAdminActive").checked;\n        const body=editing?{imageTypeID:editing.imageTypeID,imageTypeName:name,isActive}:{imageTypeName:name,isActive};
+        const isActive=section.querySelector("#imageTypeAdminActive").checked;
+        const body=editing?{imageTypeID:editing.imageTypeID,imageTypeName:name,isActive}:{imageTypeName:name,isActive};
         const r=await fetch(url,{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();
         if(!r.ok){status.textContent=apiError(x,"ذخیره انجام نشد.");return;} toast("نوع تصویر ذخیره شد.");await load();
     }
