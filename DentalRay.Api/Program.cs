@@ -17,6 +17,7 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
+builder.Services.AddScoped<StudyAccessService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
