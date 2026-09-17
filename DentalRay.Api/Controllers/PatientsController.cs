@@ -62,7 +62,10 @@ namespace DentalRay.Api.Controllers
             patient.IsActive = true;
             _context.Patients.Add(patient);
             await _context.SaveChangesAsync();
-            return Ok(patient);
+
+            // Keep the create response consistent with the rest of the API. The frontend uses
+            // this flag to distinguish a successful save from an API validation/conflict error.
+            return Ok(new { success = true, patient });
         }
 
         // NationalCode correction also moves every Patient-owned image to the new folder/name.
