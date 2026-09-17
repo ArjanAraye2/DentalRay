@@ -21,5 +21,8 @@ namespace DentalRay.Api.Models
         public string? PasswordHash { get; set; }
 
         public bool IsActive { get; set; }
+
+        // Optional account expiration date. After this date the account cannot sign in.
+        public DateTime? EndDate { get; set; }
     }
 }
