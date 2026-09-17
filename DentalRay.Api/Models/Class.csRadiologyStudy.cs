@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -10,12 +10,19 @@ namespace DentalRay.Api.Models
     {
         [Key]
         public int StudyID { get; set; }
+
         public int PatientID { get; set; }
+
+        // These two fields are nullable only for legacy Studies created before
+        // Clinic/Dentist support was introduced. New Studies will later require them.
+        public int? ClinicID { get; set; }
+        public int? DentistStaffID { get; set; }
+
         public DateTime StudyDate { get; set; }
 
-        [Required]
-        [MaxLength(50)]
-        public string StudyType { get; set; } = string.Empty;
+        // StudyType is now a lookup value stored in tblStudyTypes.
+        // The old free-text StudyType column has been removed from SQL Server.
+        public int StudyTypeID { get; set; }
 
         [MaxLength(100)]
         public string? BodyPart { get; set; }
