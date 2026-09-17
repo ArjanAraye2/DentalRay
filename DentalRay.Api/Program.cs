@@ -34,9 +34,10 @@ if (app.Environment.IsDevelopment()) app.MapOpenApi();
 // ============================================================
 // Frontend Entry Page
 // ============================================================
-// app.js is included by index.html. These small feature modules are loaded
-// afterwards so newer features can be introduced incrementally while the
-// original frontend remains usable during the DentalRay learning project.
+// app.js is included by index.html. Feature modules are injected afterwards.
+// The Login screen is currently UI-only: it deliberately does not fake a
+// successful authentication until password storage and Backend authentication
+// are implemented securely.
 app.Use(async (context, next) =>
 {
     if (context.Request.Path == "/" || context.Request.Path == "/index.html")
@@ -45,11 +46,18 @@ app.Use(async (context, next) =>
         if (File.Exists(indexPath))
         {
             string html = await File.ReadAllTextAsync(indexPath);
+
+            // Login CSS is injected separately because the original index.html
+            // currently contains only the main DentalRay stylesheet.
+            const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css\" />";
+            html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
+
             const string featureScripts =
                 "<script src=\"/js/study-delete.js\"></script>\n" +
                 "<script src=\"/js/mobile-camera-loader.js\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js\"></script>\n" +
-                "<script src=\"/js/ai-study-analysis.js\"></script>";
+                "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
+                "<script src=\"/js/login-ui.js\"></script>";
 
             html = html.Replace(
                 "</body>",
