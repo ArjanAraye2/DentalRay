@@ -31,8 +31,19 @@ namespace DentalRay.Api.Controllers
                 return NotFound(new { success=false,message="Study not found." });
 
             string ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (ext is not (".jpg" or ".jpeg" or ".png" or ".pdf"))
-                return BadRequest(new { success=false, message="Only JPG, JPEG, PNG and PDF files are allowed." });
+            // DentalRay accepts any browser-supplied image format, plus PDF.
+            // Image Type (OPG, CBCT, ...) is a separate clinical lookup and is not a file-format restriction.
+            bool isImage = !string.IsNullOrWhiteSpace(file.ContentType) &&
+                           file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+            bool isPdf = string.Equals(file.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase) ||
+                         ext == ".pdf";
+            if (!isImage && !isPdf)
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "فایل انتخاب‌شده باید تصویر یا PDF باشد.",
+                    messageEn = "The selected file must be an image or PDF."
+                });
             if (!await HasValidSignatureAsync(file, ext))
                 return BadRequest(new { success=false, message="The selected file signature is invalid." });
 
@@ -49,7 +60,7 @@ namespace DentalRay.Api.Controllers
             {
                 await using (var input=file.OpenReadStream())
                     relativePath = await _storage.SaveImageAsync(input,file.FileName,patient.NationalCode,now,serial);
-                var image = new RadiologyImage { PatientID=patient.PatientID,FileName=Path.GetFileName(relativePath),RelativePath=relativePath,ContentType=ContentTypeFor(ext),SerialNumber=serial,CreatedDate=now };
+                var image = new RadiologyImage { PatientID=patient.PatientID,FileName=Path.GetFileName(relativePath),RelativePath=relativePath,ContentType=ContentTypeFor(file, ext),SerialNumber=serial,CreatedDate=now };
                 _context.RadiologyImages.Add(image); await _context.SaveChangesAsync();
                 _context.RadiologyStudyImages.Add(new RadiologyStudyImage { StudyID=studyID,ImageID=image.ImageID,CreatedDate=now });
                 await _context.SaveChangesAsync(); await tx.CommitAsync();
@@ -171,14 +182,21 @@ namespace DentalRay.Api.Controllers
             return await _context.RadiologyStudyImages.AsNoTracking().AnyAsync(l=>l.ImageID==imageID && studyIDs.Contains(l.StudyID));
         }
 
-        private static string ContentTypeFor(string ext)=>ext switch { ".png"=>"image/png", ".pdf"=>"application/pdf", _=>"image/jpeg" };
+        private static string ContentTypeFor(IFormFile file, string ext)
+        {
+            if (ext == ".pdf") return "application/pdf";
+            return !string.IsNullOrWhiteSpace(file.ContentType) ? file.ContentType : "application/octet-stream";
+        }
         private static async Task<bool> HasValidSignatureAsync(IFormFile file,string ext)
         {
             byte[] b=new byte[8]; await using var s=file.OpenReadStream(); int n=await s.ReadAsync(b.AsMemory(0,b.Length));
             if (ext is ".jpg" or ".jpeg") return n>=3 && b[0]==0xFF && b[1]==0xD8 && b[2]==0xFF;
             if (ext==".png") return n>=8 && b.SequenceEqual(new byte[]{137,80,78,71,13,10,26,10});
             if (ext==".pdf") return n>=5 && b[0]==0x25 && b[1]==0x50 && b[2]==0x44 && b[3]==0x46 && b[4]==0x2D;
-            return false;
+            // For other image formats, the browser-provided image/* MIME type was already checked.
+            // Do not reject them merely because DentalRay has no format-specific signature rule yet.
+            return !string.IsNullOrWhiteSpace(file.ContentType) &&
+                   file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
