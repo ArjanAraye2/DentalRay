@@ -17,6 +17,9 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
+// HttpClientFactory is used by the runtime AI controller. The API key is never
+// sent to the browser; only the DentalRay backend communicates with OpenAI.
+builder.Services.AddHttpClient();
 builder.Services.Configure<RadiologyStorageOptions>(builder.Configuration.GetSection("RadiologyStorage"));
 builder.Services.AddDbContext<DentalRayDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DentalRay")));
