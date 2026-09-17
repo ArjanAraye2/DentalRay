@@ -5,45 +5,40 @@ using Microsoft.EntityFrameworkCore;
 namespace DentalRay.Api.Controllers
 {
     // ============================================================
-    // RadiologyStudiesController - Delete Study
+    // RadiologyStudiesDeleteController
     // ============================================================
     //
     // سیاست حذف Study در DentalRay:
     //
     // - اگر Study هیچ تصویری نداشته باشد، قابل حذف است.
     // - اگر حتی یک تصویر به Study متصل باشد، حذف مجاز نیست.
-    // - در این حالت کاربر باید ابتدا تصاویر Study را حذف کند.
+    // - کاربر باید ابتدا تصاویر Study را حذف کند.
     //
-    // این سیاست از حذف ناخواسته Study و از بین رفتن ارتباط
-    // تصاویر رادیولوژی جلوگیری می‌کند.
+    // Route عمداً با RadiologyStudiesController یکسان است تا
+    // Endpoint نهایی به شکل زیر باقی بماند:
+    //
+    // DELETE /api/radiologystudies/{studyID}
     // ============================================================
-    public partial class RadiologyStudiesController
+    [ApiController]
+    [Route("api/radiologystudies")]
+    public class RadiologyStudiesDeleteController : ControllerBase
     {
+        private readonly DentalRayDbContext _context;
+
+        public RadiologyStudiesDeleteController(
+            DentalRayDbContext context)
+        {
+            _context = context;
+        }
+
         // ========================================================
         // DELETE
         // حذف Study فقط در صورتی که هیچ Image نداشته باشد
         // ========================================================
-        //
-        // مثال:
-        // DELETE /api/radiologystudies/7
-        //
-        // پاسخ‌های اصلی:
-        //
-        // 200 OK
-        // Study با موفقیت حذف شد.
-        //
-        // 404 Not Found
-        // Study وجود ندارد.
-        //
-        // 409 Conflict
-        // Study دارای تصویر است و قابل حذف نیست.
-        // ========================================================
         [HttpDelete("{studyID:int}")]
         public async Task<IActionResult> DeleteStudy(int studyID)
         {
-            // ----------------------------------------------------
-            // بررسی StudyID
-            // ----------------------------------------------------
+            // StudyID باید معتبر باشد.
             if (studyID <= 0)
             {
                 return BadRequest(new
@@ -53,9 +48,7 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
-            // ----------------------------------------------------
-            // دریافت Study
-            // ----------------------------------------------------
+            // Study موردنظر را دریافت می‌کنیم.
             var study = await _context.RadiologyStudies
                 .FirstOrDefaultAsync(s => s.StudyID == studyID);
 
@@ -68,13 +61,8 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
-            // ----------------------------------------------------
-            // بررسی وجود Image وابسته
-            // ----------------------------------------------------
-            //
-            // از AnyAsync استفاده می‌کنیم چون برای تصمیم حذف،
-            // فقط دانستن وجود حداقل یک Image کافی است و نیازی
-            // به خواندن تمام رکوردهای Image نداریم.
+            // فقط وجود حداقل یک Image برای جلوگیری از حذف کافی است.
+            // AnyAsync از خواندن تمام رکوردهای Image جلوگیری می‌کند.
             bool hasImages = await _context.RadiologyImages
                 .AsNoTracking()
                 .AnyAsync(image => image.StudyID == studyID);
@@ -89,14 +77,8 @@ namespace DentalRay.Api.Controllers
                 });
             }
 
-            // ----------------------------------------------------
-            // حذف Study
-            // ----------------------------------------------------
-            //
-            // در این نقطه مطمئن هستیم هیچ Image وابسته‌ای وجود
-            // ندارد؛ بنابراین حذف Study با سیاست DentalRay سازگار است.
+            // هیچ Image وابسته‌ای وجود ندارد؛ حذف Study مجاز است.
             _context.RadiologyStudies.Remove(study);
-
             await _context.SaveChangesAsync();
 
             return Ok(new
