@@ -93,6 +93,7 @@ public class UsersAdminController : ControllerBase
         var staff=await _context.Staff.FirstOrDefaultAsync(x=>x.StaffID==request.StaffID);
         if(staff==null) return BadRequest(new {success=false,message="پرسنل انتخاب‌شده یافت نشد."});
         if(await _context.Users.AnyAsync(x=>x.StaffID==request.StaffID)) return Conflict(new {success=false,message="برای این پرسنل قبلاً حساب کاربری ساخته شده است."});
+        if(!request.StartDate.HasValue) return BadRequest(new {success=false,message="تاریخ شروع فعالیت الزامی است."});
         if(string.IsNullOrWhiteSpace(request.Password)) return BadRequest(new {success=false,message="رمز عبور الزامی است."});
         var user=new User {StaffID=staff.StaffID,UserName=staff.NationalCode,IsActive=request.IsActive,StartDate=request.StartDate,EndDate=request.EndDate};
         user.PasswordHash=_hasher.HashPassword(user,request.Password);
@@ -108,6 +109,7 @@ public class UsersAdminController : ControllerBase
         if(user==null) return NotFound(new {success=false,message="کاربر یافت نشد."});
         var staff=await _context.Staff.AsNoTracking().FirstOrDefaultAsync(x=>x.StaffID==user.StaffID);
         if(staff==null) return BadRequest(new {success=false,message="پرسنل مرتبط یافت نشد."});
+        if(!request.StartDate.HasValue) return BadRequest(new {success=false,message="تاریخ شروع فعالیت الزامی است."});
         user.UserName=staff.NationalCode; user.IsActive=request.IsActive; user.StartDate=request.StartDate; user.EndDate=request.EndDate;
         if(!string.IsNullOrWhiteSpace(request.NewPassword)) user.PasswordHash=_hasher.HashPassword(user,request.NewPassword);
         await _context.SaveChangesAsync();
