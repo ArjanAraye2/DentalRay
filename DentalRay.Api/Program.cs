@@ -1,6 +1,7 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,11 +18,11 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
-
-// HttpClientFactory is used by services such as runtime AI analysis.
-// Sensitive API credentials stay on the DentalRay server and are never sent
-// to the browser/mobile frontend.
 builder.Services.AddHttpClient();
+
+// ASP.NET Core PasswordHasher creates a salted one-way hash. DentalRay never
+// needs to store a user's original password in SQL Server.
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.Configure<RadiologyStorageOptions>(builder.Configuration.GetSection("RadiologyStorage"));
 builder.Services.AddDbContext<DentalRayDbContext>(options =>
@@ -31,13 +32,6 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
-// ============================================================
-// Frontend Entry Page
-// ============================================================
-// app.js is included by index.html. Feature modules are injected afterwards.
-// The Login screen is currently UI-only: it deliberately does not fake a
-// successful authentication until password storage and Backend authentication
-// are implemented securely.
 app.Use(async (context, next) =>
 {
     if (context.Request.Path == "/" || context.Request.Path == "/index.html")
@@ -46,9 +40,6 @@ app.Use(async (context, next) =>
         if (File.Exists(indexPath))
         {
             string html = await File.ReadAllTextAsync(indexPath);
-
-            // Login CSS is injected separately because the original index.html
-            // currently contains only the main DentalRay stylesheet.
             const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
 
@@ -59,17 +50,12 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
                 "<script src=\"/js/login-ui.js\"></script>";
 
-            html = html.Replace(
-                "</body>",
-                $"{featureScripts}{Environment.NewLine}</body>",
-                StringComparison.OrdinalIgnoreCase);
-
+            html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             await context.Response.WriteAsync(html);
             return;
         }
     }
-
     await next();
 });
 
