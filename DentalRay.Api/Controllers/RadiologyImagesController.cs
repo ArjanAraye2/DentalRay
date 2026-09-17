@@ -69,7 +69,7 @@ namespace DentalRay.Api.Controllers
                 _context.RadiologyImages.Add(image); await _context.SaveChangesAsync();
                 _context.RadiologyStudyImages.Add(new RadiologyStudyImage { StudyID=studyID,ImageID=image.ImageID,CreatedDate=now });
                 await _context.SaveChangesAsync(); await tx.CommitAsync();
-                return Ok(new { success=true,imageID=image.ImageID,patientID=image.PatientID,studyID,image.FileName,image.RelativePath,image.ContentType,image.SerialNumber,image.CreatedDate });
+                return Ok(new { success=true,imageID=image.ImageID,patientID=image.PatientID,studyID,image.ImageTypeID,image.FileName,image.RelativePath,image.ContentType,image.SerialNumber,image.CreatedDate });
             }
             catch (Exception ex)
             {
@@ -93,7 +93,7 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetStudyImages(int studyID)
         {
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound(new { success=false,message="Study not found." });
-            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate }).ToListAsync();
+            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=t!=null?t.ImageTypeName:null,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate }).ToListAsync();
             return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
@@ -105,7 +105,7 @@ namespace DentalRay.Api.Controllers
             var accessibleStudyIDs=_studyAccess.ApplyAccess(_context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==patientID),User).Select(s=>s.StudyID);
             var accessibleImageIDs=_context.RadiologyStudyImages.AsNoTracking().Where(l=>accessibleStudyIDs.Contains(l.StudyID)).Select(l=>l.ImageID).Distinct();
             var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==patientID && (StudyAccessService.IsSuperAdmin(User) || accessibleImageIDs.Contains(x.ImageID))).OrderByDescending(x=>x.FileName)
-                .Select(x=>new { x.ImageID,x.ImageTypeID,x.FileName,x.ContentType,x.CreatedDate,studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) }).ToListAsync();
+                .Select(x=>new { x.ImageID,x.ImageTypeID,ImageTypeName=_context.ImageTypes.Where(t=>t.ImageTypeID==x.ImageTypeID).Select(t=>t.ImageTypeName).FirstOrDefault(),x.FileName,x.ContentType,x.CreatedDate,studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) }).ToListAsync();
             return Ok(new { success=true,patientID,count=images.Count,images });
         }
 
@@ -118,7 +118,7 @@ namespace DentalRay.Api.Controllers
             var accessibleStudyIDs=_studyAccess.ApplyAccess(_context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==study.PatientID),User).Select(s=>s.StudyID);
             var accessibleImageIDs=_context.RadiologyStudyImages.AsNoTracking().Where(l=>accessibleStudyIDs.Contains(l.StudyID)).Select(l=>l.ImageID).Distinct();
             var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==study.PatientID && (StudyAccessService.IsSuperAdmin(User) || accessibleImageIDs.Contains(x.ImageID)))
-                .OrderByDescending(x=>x.FileName).Select(x=>new { x.ImageID,x.ImageTypeID,x.FileName,x.ContentType,attached=attached.Contains(x.ImageID) }).ToListAsync();
+                .OrderByDescending(x=>x.FileName).Select(x=>new { x.ImageID,x.ImageTypeID,ImageTypeName=_context.ImageTypes.Where(t=>t.ImageTypeID==x.ImageTypeID).Select(t=>t.ImageTypeName).FirstOrDefault(),x.FileName,x.ContentType,attached=attached.Contains(x.ImageID) }).ToListAsync();
             return Ok(new { success=true,studyID,images });
         }
 
