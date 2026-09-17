@@ -45,7 +45,16 @@ namespace DentalRay.Api.Controllers
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
             }
 
-            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserName == userName);
+            // For every normal account, the login name is the staff member's Iranian National Code.
+            // The configured SuperAdmin account above is the only exception.
+            var user = await _context.Users.AsNoTracking()
+                .Join(_context.Staff.AsNoTracking(),
+                    account => account.StaffID,
+                    staffMember => staffMember.StaffID,
+                    (account, staffMember) => new { Account = account, Staff = staffMember })
+                .Where(x => x.Staff.NationalCode == userName)
+                .Select(x => x.Account)
+                .FirstOrDefaultAsync();
             if (user == null || !user.IsActive || string.IsNullOrWhiteSpace(user.PasswordHash)) return Unauthorized(new { success = false, message = "Invalid username or password." });
             var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
             if (verification == PasswordVerificationResult.Failed) return Unauthorized(new { success = false, message = "Invalid username or password." });
@@ -54,7 +63,7 @@ namespace DentalRay.Api.Controllers
             var today = DateTime.Today;
             if (staff.StartDate.Date > today || (staff.EndDate.HasValue && staff.EndDate.Value.Date < today)) return Unauthorized(new { success = false, message = "Invalid username or password." });
 
-            var normalIdentity = new LoginIdentity(user.UserID, user.UserName, staff.StaffID, staff.FirstName, staff.LastName, staff.StaffType, false);
+            var normalIdentity = new LoginIdentity(user.UserID, staff.NationalCode, staff.StaffID, staff.FirstName, staff.LastName, staff.StaffType, false);
             await SignInAsync(normalIdentity);
             return Ok(new { success = true, user = normalIdentity });
         }
