@@ -25,7 +25,8 @@
         document.querySelector(".header-content")?.appendChild(navButton);
     }
     function syncAuth(){ensureUi(); const ok=window.dentalRayCurrentUser?.isSuperAdmin===true; navButton.classList.toggle("hidden",!ok);if(!ok)section.classList.add("hidden");}
-    function reset(){editing=null;nameInput.value="";saveButton.textContent="ذخیره";section.querySelector("#imageTypeAdminActive").checked=true;section.querySelector("#imageTypeAdminForm").classList.add("hidden");}\n    function openForm(item=null){editing=item;nameInput.value=item?.imageTypeName||"";section.querySelector("#imageTypeAdminActive").checked=item?.isActive??true;saveButton.textContent=item?"ذخیره ویرایش":"ذخیره";section.querySelector("#imageTypeAdminForm").classList.remove("hidden");nameInput.focus();}
+    function reset(){editing=null;nameInput.value="";saveButton.textContent="ذخیره";section.querySelector("#imageTypeAdminActive").checked=true;section.querySelector("#imageTypeAdminForm").classList.add("hidden");}
+    function openForm(item=null){editing=item;nameInput.value=item?.imageTypeName||"";section.querySelector("#imageTypeAdminActive").checked=item?.isActive??true;saveButton.textContent=item?"ذخیره ویرایش":"ذخیره";section.querySelector("#imageTypeAdminForm").classList.remove("hidden");nameInput.focus();}
     async function load(){
         status.textContent="در حال دریافت انواع تصویر...";
         const r=await fetch("/api/admin/imagetypes"),x=await r.json(); if(!r.ok){status.textContent=apiError(x,"خطا در دریافت اطلاعات.");return;}
