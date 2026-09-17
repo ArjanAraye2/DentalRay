@@ -11,14 +11,15 @@ namespace DentalRay.Api.Controllers
     {
         private readonly DentalRayDbContext _context;
         private readonly RadiologyStorageService _storage;
-        public RadiologyStudiesDeleteController(DentalRayDbContext context,RadiologyStorageService storage)
-        { _context=context; _storage=storage; }
+        private readonly StudyAccessService _studyAccess;
+        public RadiologyStudiesDeleteController(DentalRayDbContext context,RadiologyStorageService storage,StudyAccessService studyAccess)
+        { _context=context; _storage=storage; _studyAccess=studyAccess; }
 
-        // Preview lets Frontend show shared images separately from images used only by this Study.
+        // Preview is protected by the same Study authorization rule as the actual delete.
         [HttpGet("{studyID:int}/delete-preview")]
         public async Task<IActionResult> Preview(int studyID)
         {
-            if (!await _context.RadiologyStudies.AnyAsync(x=>x.StudyID==studyID)) return NotFound();
+            if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound();
             var rows=await (from l in _context.RadiologyStudyImages
                             join i in _context.RadiologyImages on l.ImageID equals i.ImageID
                             where l.StudyID==studyID
@@ -33,6 +34,8 @@ namespace DentalRay.Api.Controllers
         [HttpDelete("{studyID:int}")]
         public async Task<IActionResult> DeleteStudy(int studyID,[FromQuery] long[]? deleteImageIDs)
         {
+            // Check access before loading any Study-specific image metadata.
+            if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound(new { success=false,message="Study not found." });
             var study=await _context.RadiologyStudies.FirstOrDefaultAsync(x=>x.StudyID==studyID);
             if (study==null) return NotFound(new { success=false,message="Study not found." });
             var selected=(deleteImageIDs??Array.Empty<long>()).Distinct().ToHashSet();
