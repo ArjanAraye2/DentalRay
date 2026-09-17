@@ -1,6 +1,7 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
+using DentalRay.Api.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,6 +44,7 @@ namespace DentalRay.Api.Controllers
 
         // Lookup used by the Staff form. Only active specialties can be assigned to a dentist.
         [HttpGet("specialties")]
+        [SuperAdminOnly]
         public async Task<IActionResult> GetActiveSpecialties()
         {
             var specialties = await _context.DentalSpecialties
