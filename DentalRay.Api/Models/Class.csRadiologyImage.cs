@@ -20,6 +20,10 @@ namespace DentalRay.Api.Models
         // مالک دائمی فایل Patient است.
         public int PatientID { get; set; }
 
+        // نوع بالینی تصویر (برای مثال OPG یا CBCT).
+        // برای تصاویر قدیمی تا زمان تعیین نوع، مقدار می‌تواند NULL باشد.
+        public int? ImageTypeID { get; set; }
+
         // نام استاندارد تولیدشده توسط DentalRay است؛ نام اصلی
         // Upload شده طبق تصمیم طراحی نگهداری نمی‌شود.
         [Required]
