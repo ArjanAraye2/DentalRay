@@ -38,6 +38,54 @@ public class UsersAdminController : ControllerBase
         return Ok(new { success=true, staff });
     }
 
+    // Returns active clinics and their dentist members for the access editor.
+    [HttpGet("access-options")]
+    public async Task<IActionResult> AccessOptions()
+    {
+        var options = await (from cs in _context.ClinicStaff.AsNoTracking()
+                             join c in _context.Clinics.AsNoTracking() on cs.ClinicID equals c.ClinicID
+                             join s in _context.Staff.AsNoTracking() on cs.StaffID equals s.StaffID
+                             where c.IsActive && s.StaffType == 2
+                             orderby c.ClinicName, s.LastName, s.FirstName
+                             select new { c.ClinicID, c.ClinicName, DentistStaffID=s.StaffID, s.FirstName, s.LastName })
+                            .ToListAsync();
+        return Ok(new { success=true, options });
+    }
+
+    [HttpGet("{id:int}/access")]
+    public async Task<IActionResult> GetAccess(int id)
+    {
+        if (!await _context.Users.AnyAsync(x=>x.UserID==id)) return NotFound(new {success=false,message="کاربر یافت نشد."});
+        var access=await _context.UserDentists.AsNoTracking().Where(x=>x.UserID==id)
+            .Select(x=>new {x.ClinicID,x.DentistStaffID}).ToListAsync();
+        return Ok(new {success=true,access});
+    }
+
+    public sealed class AccessItem { public int ClinicID {get;set;} public int DentistStaffID {get;set;} }
+    public sealed class AccessRequest { public List<AccessItem> Access {get;set;} = new(); }
+
+    [HttpPut("{id:int}/access")]
+    public async Task<IActionResult> SetAccess(int id, AccessRequest request)
+    {
+        var user=await _context.Users.AsNoTracking().FirstOrDefaultAsync(x=>x.UserID==id);
+        if(user==null) return NotFound(new {success=false,message="کاربر یافت نشد."});
+
+        var requested=request.Access.DistinctBy(x=>new {x.ClinicID,x.DentistStaffID}).ToList();
+        foreach(var a in requested)
+        {
+            bool valid=await _context.ClinicStaff.AsNoTracking().AnyAsync(x=>x.ClinicID==a.ClinicID && x.StaffID==a.DentistStaffID)
+                && await _context.Clinics.AsNoTracking().AnyAsync(x=>x.ClinicID==a.ClinicID && x.IsActive)
+                && await _context.Staff.AsNoTracking().AnyAsync(x=>x.StaffID==a.DentistStaffID && x.StaffType==2);
+            if(!valid) return BadRequest(new {success=false,message="یکی از دسترسی‌های مطب/دندانپزشک معتبر نیست."});
+        }
+
+        var old=await _context.UserDentists.Where(x=>x.UserID==id).ToListAsync();
+        _context.UserDentists.RemoveRange(old);
+        _context.UserDentists.AddRange(requested.Select(a=>new UserDentist {UserID=id,ClinicID=a.ClinicID,DentistStaffID=a.DentistStaffID}));
+        await _context.SaveChangesAsync();
+        return Ok(new {success=true});
+    }
+
     public sealed class CreateRequest { public int StaffID {get;set;} public string Password {get;set;}=string.Empty; public bool IsActive {get;set;}=true; }
     [HttpPost]
     public async Task<IActionResult> Create(CreateRequest request)
