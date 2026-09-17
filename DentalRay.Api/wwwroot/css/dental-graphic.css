@@ -1,0 +1,15 @@
+/* More image-like SVG teeth for DentalRay Dental Chart */
+.tooth-shape{width:40px!important;height:52px!important}
+.tooth-shape svg{width:100%;height:100%;overflow:visible}
+.tooth-shape .tooth-root{fill:#ead7b6;stroke:#a58b69;stroke-width:1.1;filter:drop-shadow(0 2px 2px rgba(65,45,25,.16))}
+.tooth-shape .tooth-crown{fill:#fffaf0;stroke:#9f896d;stroke-width:1.25;filter:drop-shadow(0 2px 2px rgba(65,45,25,.14))}
+.tooth-shape .tooth-detail{fill:none!important;stroke:#d5c19d!important;stroke-width:1;stroke-linecap:round;filter:none!important}
+.tooth-button:hover .tooth-crown{fill:#eef7ff;stroke:#3182ce}
+.tooth-button.selected .tooth-root{fill:#9bc8ff;stroke:#1671e8;stroke-width:1.7}
+.tooth-button.selected .tooth-crown{fill:#c8e1ff;stroke:#0969da;stroke-width:2}
+.tooth-button.selected .tooth-detail{stroke:#4b94e8!important}
+.dental-view-anatomical .tooth-button,.dental-view-arch .tooth-button{width:48px!important;min-width:48px!important}
+.dental-view-anatomical .dental-chart-row,.dental-view-arch .dental-chart-row{gap:4px}
+.dental-view-arch .dental-chart-group{background-image:radial-gradient(ellipse at center,rgba(248,194,201,.30),transparent 58%),linear-gradient(180deg,#fff,#f8fbff)}
+.dental-view-arch .dental-chart-group:nth-child(2){background-image:radial-gradient(ellipse at center,rgba(248,194,201,.24),transparent 58%),linear-gradient(180deg,#fff,#f8fff7)}
+@media(max-width:700px){.tooth-shape{width:36px!important;height:48px!important}.dental-view-anatomical .tooth-button,.dental-view-arch .tooth-button{width:42px!important;min-width:42px!important}}
