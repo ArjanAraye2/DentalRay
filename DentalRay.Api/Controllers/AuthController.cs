@@ -12,11 +12,13 @@ namespace DentalRay.Api.Controllers
     {
         private readonly DentalRayDbContext _context;
         private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(DentalRayDbContext context, IPasswordHasher<User> passwordHasher)
+        public AuthController(DentalRayDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
         {
             _context = context;
             _passwordHasher = passwordHasher;
+            _configuration = configuration;
         }
 
         public sealed class LoginRequest
@@ -32,10 +34,47 @@ namespace DentalRay.Api.Controllers
             if (userName.Length == 0 || string.IsNullOrEmpty(request.Password))
                 return BadRequest(new { success = false, message = "UserName and Password are required." });
 
-            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserName == userName);
+            // ------------------------------------------------------------
+            // Local Super Admin
+            // ------------------------------------------------------------
+            // There is deliberately no tblUsers row for this account. Both the
+            // username and password hash come from DentalRay.config.json on the
+            // server. No Super Admin secret is committed to GitHub or SQL Server.
+            if (string.Equals(userName, _configuration["SuperAdmin:UserName"], StringComparison.OrdinalIgnoreCase))
+            {
+                string? superHash = _configuration["SuperAdmin:PasswordHash"];
+                if (!string.IsNullOrWhiteSpace(superHash))
+                {
+                    // PasswordHasher requires a User instance only as contextual
+                    // input; this temporary object is never written to the database.
+                    var superUser = new User { UserName = userName };
+                    var result = _passwordHasher.VerifyHashedPassword(superUser, superHash, request.Password);
+                    if (result != PasswordVerificationResult.Failed)
+                    {
+                        return Ok(new
+                        {
+                            success = true,
+                            user = new
+                            {
+                                UserID = 0,
+                                UserName = userName,
+                                StaffID = 0,
+                                FirstName = "مدیر",
+                                LastName = "سیستم",
+                                StaffType = 0,
+                                IsSuperAdmin = true
+                            }
+                        });
+                    }
+                }
 
-            // Use the same generic response for unknown users and bad passwords so
-            // the Login API does not disclose whether a username exists.
+                return Unauthorized(new { success = false, message = "Invalid username or password." });
+            }
+
+            // ------------------------------------------------------------
+            // Normal database User
+            // ------------------------------------------------------------
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserName == userName);
             if (user == null || !user.IsActive || string.IsNullOrWhiteSpace(user.PasswordHash))
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
 
@@ -47,13 +86,10 @@ namespace DentalRay.Api.Controllers
             if (staff == null)
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
 
-            // A staff member whose employment has ended is not allowed to log in.
             var today = DateTime.Today;
             if (staff.StartDate.Date > today || (staff.EndDate.HasValue && staff.EndDate.Value.Date < today))
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
 
-            // This response intentionally contains no password/hash. Session/token
-            // issuance will be the next authentication step.
             return Ok(new
             {
                 success = true,
@@ -64,7 +100,8 @@ namespace DentalRay.Api.Controllers
                     staff.StaffID,
                     staff.FirstName,
                     staff.LastName,
-                    staff.StaffType
+                    staff.StaffType,
+                    IsSuperAdmin = false
                 }
             });
         }
