@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
@@ -70,8 +69,13 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> CreatePatient(Patient patient)
         {
             patient.NationalCode = patient.NationalCode.Trim();
-            if (!Regex.IsMatch(patient.NationalCode, @"^\d+$"))
-                return BadRequest(new { success = false, message = "NationalCode must contain only digits." });
+            if (!IranianNationalCodeValidator.IsValid(patient.NationalCode))
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "کد ملی واردشده معتبر نیست. لطفاً کد ملی ۱۰ رقمی صحیح را وارد کنید.",
+                    messageEn = "The entered National Code is invalid. Please enter a valid 10-digit Iranian National Code."
+                });
 
             if (await _context.Patients.AnyAsync(p => p.NationalCode == patient.NationalCode))
                 return Conflict(new { success = false, message = "A patient with this NationalCode already exists." });
@@ -93,8 +97,13 @@ namespace DentalRay.Api.Controllers
                 return BadRequest(new { success = false, message = "PatientID must be greater than zero." });
 
             string newCode = request.NationalCode.Trim();
-            if (!Regex.IsMatch(newCode, @"^\d+$"))
-                return BadRequest(new { success = false, message = "NationalCode must contain only digits." });
+            if (!IranianNationalCodeValidator.IsValid(newCode))
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "کد ملی واردشده معتبر نیست. لطفاً کد ملی ۱۰ رقمی صحیح را وارد کنید.",
+                    messageEn = "The entered National Code is invalid. Please enter a valid 10-digit Iranian National Code."
+                });
 
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientID == patientID);
             if (patient == null)
