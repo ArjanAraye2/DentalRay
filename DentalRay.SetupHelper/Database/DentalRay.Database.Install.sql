@@ -63,6 +63,21 @@ BEGIN
 END;
 GO
 
+DECLARE @StudyTypes TABLE (StudyTypeName NVARCHAR(150));
+INSERT INTO @StudyTypes(StudyTypeName)
+VALUES
+ (N'تعیین نشده'),(N'معاینه و تشخیص'),(N'مشاوره درمان'),(N'عصب‌کشی'),
+ (N'درمان مجدد ریشه'),(N'پرکردن دندان'),(N'ترمیم کامپوزیت'),(N'کشیدن دندان'),
+ (N'کشیدن دندان عقل'),(N'جراحی دندان عقل'),(N'جراحی دهان و فک'),(N'روکش'),
+ (N'بریج'),(N'ونیر / لمینت'),(N'ایمپلنت'),(N'پیوند استخوان'),(N'سینوس لیفت'),
+ (N'جرم‌گیری'),(N'بروساژ'),(N'درمان لثه'),(N'جراحی لثه'),(N'ارتودنسی'),
+ (N'درمان دندان شیری'),(N'پالپوتومی'),(N'فیشور سیلانت'),(N'فلورایدتراپی'),
+ (N'پروتز متحرک'),(N'پروتز کامل'),(N'تنظیم یا تعمیر پروتز'),(N'سایر');
+INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
+SELECT s.StudyTypeName,1 FROM @StudyTypes s
+WHERE NOT EXISTS(SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=s.StudyTypeName);
+GO
+
 /*
  Legacy StudyType text is preserved as Study Type data during upgrade.
  No radiology Image Type values are inserted into tblStudyTypes by the installer.
