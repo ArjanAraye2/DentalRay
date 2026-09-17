@@ -50,6 +50,24 @@ IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudie
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblPatients FOREIGN KEY(PatientID) REFERENCES dbo.tblPatients(PatientID);
 GO
 
+/* Clinical Image Types (OPG, CBCT, ...), separate from physical file formats. */
+IF OBJECT_ID(N'dbo.tblImageTypes', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblImageTypes
+    (
+        ImageTypeID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblImageTypes PRIMARY KEY,
+        ImageTypeName NVARCHAR(150) NOT NULL,
+        IsActive BIT NOT NULL CONSTRAINT DF_tblImageTypes_IsActive DEFAULT(1),
+        CONSTRAINT UQ_tblImageTypes_ImageTypeName UNIQUE(ImageTypeName)
+    );
+END;
+GO
+IF NOT EXISTS (SELECT 1 FROM dbo.tblImageTypes WHERE ImageTypeName=N'OPG')
+    INSERT INTO dbo.tblImageTypes(ImageTypeName,IsActive) VALUES(N'OPG',1);
+IF NOT EXISTS (SELECT 1 FROM dbo.tblImageTypes WHERE ImageTypeName=N'CBCT')
+    INSERT INTO dbo.tblImageTypes(ImageTypeName,IsActive) VALUES(N'CBCT',1);
+GO
+
 /* New installations create the patient-owned image table directly. */
 IF OBJECT_ID(N'dbo.tblRadiologyImages', N'U') IS NULL
 BEGIN
@@ -57,6 +75,7 @@ BEGIN
     (
         ImageID BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblRadiologyImages PRIMARY KEY,
         PatientID INT NOT NULL,
+        ImageTypeID INT NULL,
         FileName NVARCHAR(255) NOT NULL,
         RelativePath NVARCHAR(1000) NOT NULL,
         ContentType NVARCHAR(50) NOT NULL,
@@ -72,6 +91,9 @@ IF COL_LENGTH(N'dbo.tblRadiologyImages', N'PatientID') IS NULL
 GO
 IF COL_LENGTH(N'dbo.tblRadiologyImages', N'SerialNumber') IS NULL
     ALTER TABLE dbo.tblRadiologyImages ADD SerialNumber INT NULL;
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyImages', N'ImageTypeID') IS NULL
+    ALTER TABLE dbo.tblRadiologyImages ADD ImageTypeID INT NULL;
 GO
 
 IF COL_LENGTH(N'dbo.tblRadiologyImages', N'StudyID') IS NOT NULL
@@ -102,6 +124,9 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyImages_tblPatients')
     ALTER TABLE dbo.tblRadiologyImages ADD CONSTRAINT FK_tblRadiologyImages_tblPatients FOREIGN KEY(PatientID) REFERENCES dbo.tblPatients(PatientID);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyImages_tblImageTypes')
+    ALTER TABLE dbo.tblRadiologyImages ADD CONSTRAINT FK_tblRadiologyImages_tblImageTypes FOREIGN KEY(ImageTypeID) REFERENCES dbo.tblImageTypes(ImageTypeID);
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_tblRadiologyImages_PatientID_SerialNumber' AND object_id=OBJECT_ID(N'dbo.tblRadiologyImages'))
     CREATE UNIQUE INDEX UX_tblRadiologyImages_PatientID_SerialNumber ON dbo.tblRadiologyImages(PatientID,SerialNumber);
