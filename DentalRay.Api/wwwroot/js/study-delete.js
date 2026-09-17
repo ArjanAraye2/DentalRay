@@ -1,11 +1,16 @@
 // ============================================================
-// DentalRay Frontend - Study Delete
+// DentalRay Frontend - Study Delete + Study Dental Chart bootstrap
 // ============================================================
-// New policy:
+// Delete policy:
 // - Shared images are never deleted with a Study.
 // - Images used only by this Study can be kept in Patient Images
 //   or selected for physical deletion.
-// - The Backend preview endpoint is the source of truth.
+//
+// Dental Chart:
+// - The chart is injected into New Study and Edit Study without
+//   disturbing the existing Study form code.
+// - Permanent and primary FDI teeth can be selected.
+// - Persistence is connected separately to the Study API.
 // ============================================================
 
 (function () {
@@ -39,11 +44,6 @@
         return result;
     }
 
-    // The existing confirmation modal returns yes/no. To support the approved
-    // keep-all / delete-all / select-specific policy without introducing another
-    // modal, selection is done with the browser's multi-select prompt for now.
-    // Empty input means keep all; "all" means delete all; comma-separated ImageIDs
-    // allow selecting specific Study-only images. Shared images are never offered.
     async function chooseStudyOnlyImages(images) {
         if (!images || images.length === 0) return [];
 
@@ -98,11 +98,7 @@
             }
 
             if (result.cleanupErrors?.length) {
-                showToast(
-                    "Study حذف شد، اما پاک‌سازی یک یا چند فایل فیزیکی کامل نشد.",
-                    "warning",
-                    "هشدار پاک‌سازی"
-                );
+                showToast("Study حذف شد، اما پاک‌سازی یک یا چند فایل فیزیکی کامل نشد.", "warning", "هشدار پاک‌سازی");
             }
             else {
                 showToast("Study با موفقیت حذف شد.", "success");
@@ -116,10 +112,85 @@
         }
     }
 
+    // ------------------------------------------------------------
+    // Dental Chart bootstrap
+    // ------------------------------------------------------------
+    // index.html already loads this file after app.js. Loading the small
+    // dental-chart component from here lets us add the chart safely without
+    // replacing the large existing index.html file.
+    function installDentalChartStyles() {
+        if (document.getElementById("dentalChartStyles")) return;
+        const style = document.createElement("style");
+        style.id = "dentalChartStyles";
+        style.textContent = `
+            .study-dental-chart-field{grid-column:1/-1;margin-top:4px}
+            .study-dental-chart-field>label{display:block;margin-bottom:8px;font-weight:bold}
+            .dental-chart{padding:14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;overflow-x:auto}
+            .dental-chart-group+.dental-chart-group{margin-top:18px}
+            .dental-chart-group-title{text-align:center;font-weight:bold;margin-bottom:8px;color:#475569}
+            .dental-chart-row{display:flex;justify-content:center;gap:5px;min-width:max-content;margin:6px auto;direction:ltr}
+            .tooth-button{width:46px;min-width:46px;padding:5px 3px;background:#fff;color:#334155;border:1px solid #cbd5e1;border-radius:9px;box-shadow:none}
+            .tooth-button:hover:not(:disabled){transform:none;box-shadow:0 2px 7px rgba(15,23,42,.08)}
+            .tooth-button.selected{background:#2563eb;color:#fff;border-color:#1d4ed8}
+            .tooth-shape{display:block;font-size:23px;line-height:22px}
+            .tooth-number{display:block;font-size:12px;font-weight:bold;direction:ltr}
+            .dental-chart-hint{display:block;margin-top:7px;color:#64748b;font-size:12px}
+            @media(max-width:700px){.tooth-button{width:40px;min-width:40px}.dental-chart{padding:10px}.dental-chart-row{justify-content:flex-start}}
+        `;
+        document.head.appendChild(style);
+    }
+
+    function createDentalChartField(containerId) {
+        const field = document.createElement("div");
+        field.className = "form-field full-width study-dental-chart-field";
+        const label = document.createElement("label");
+        label.textContent = "شمای دندان‌ها";
+        const hint = document.createElement("small");
+        hint.className = "dental-chart-hint";
+        hint.textContent = "دندان‌های مربوط به این Study را انتخاب کنید. شماره‌گذاری بر اساس FDI است.";
+        const chart = document.createElement("div");
+        chart.id = containerId;
+        field.append(label, chart, hint);
+        return field;
+    }
+
+    function injectDentalCharts() {
+        if (!window.DentalRayDentalChart) return;
+
+        const newGrid = document.querySelector("#newStudyForm .form-grid");
+        if (newGrid && !document.getElementById("newStudyDentalChart")) {
+            const field = createDentalChartField("newStudyDentalChart");
+            newGrid.appendChild(field);
+            window.DentalRayDentalChart.render(field.querySelector("#newStudyDentalChart"), []);
+        }
+
+        const editGrid = document.querySelector("#editStudyForm .form-grid");
+        if (editGrid && !document.getElementById("editStudyDentalChart")) {
+            const field = createDentalChartField("editStudyDentalChart");
+            editGrid.appendChild(field);
+            window.DentalRayDentalChart.render(field.querySelector("#editStudyDentalChart"), []);
+        }
+    }
+
+    function loadDentalChart() {
+        installDentalChartStyles();
+        if (window.DentalRayDentalChart) {
+            injectDentalCharts();
+            return;
+        }
+        const script = document.createElement("script");
+        script.src = "/js/dental-chart.js";
+        script.onload = injectDentalCharts;
+        script.onerror = () => console.error("DentalRay: dental-chart.js could not be loaded.");
+        document.body.appendChild(script);
+    }
+
     const container = document.getElementById("studiesContainer");
     if (container) {
         const observer = new MutationObserver(addDeleteButtonsToStudyCards);
         observer.observe(container, { childList: true, subtree: true });
         addDeleteButtonsToStudyCards();
     }
+
+    loadDentalChart();
 })();
