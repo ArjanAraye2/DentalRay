@@ -40,6 +40,7 @@
         if (appHeader()) appHeader().classList.remove('login-app-hidden');
         if (appMain()) appMain().classList.remove('login-app-hidden');
         ensureLogoutControl(user);
+        window.dispatchEvent(new CustomEvent('dentalray-auth-changed', { detail: user }));
     }
 
     async function restoreSession() {
@@ -82,7 +83,7 @@
 
     window.dentalRayLogout = async function () {
         try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); }
-        finally { window.dentalRayCurrentUser = null; createLogin(); }
+        finally { window.dentalRayCurrentUser = null; window.dispatchEvent(new CustomEvent('dentalray-auth-changed')); createLogin(); }
     };
 
     async function initialize() { const authenticated = await restoreSession(); if (!authenticated) createLogin(); }
