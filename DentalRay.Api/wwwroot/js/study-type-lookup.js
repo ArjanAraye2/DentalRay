@@ -82,15 +82,28 @@
             return originalFetch(input, init);
         };
 
-        // When an existing Study is opened for editing, app.js may still assign the
-        // old textual value. Keep the select synchronized with StudyTypeID instead.
+        // app.js stores the selected Study in module/global lexical state rather than
+        // window.selectedStudy. When the edit section opens, read the authoritative
+        // Study from the backend and select its StudyTypeID.
         const editSection = document.getElementById('editStudySection');
         if (editSection) {
-            new MutationObserver(() => {
-                if (editSection.classList.contains('hidden')) return;
-                const selected = window.selectedStudy;
-                if (selected?.studyTypeID && editSelect)
-                    editSelect.value = String(selected.studyTypeID);
+            let loadSequence = 0;
+            new MutationObserver(async () => {
+                if (editSection.classList.contains('hidden') || !editSelect) return;
+                const subtitle = document.getElementById('editStudySubtitle')?.textContent || '';
+                const match = subtitle.match(/(\d+)/);
+                const studyID = match ? Number(match[1]) : 0;
+                if (!studyID) return;
+                const sequence = ++loadSequence;
+                try {
+                    const response = await originalFetch(`/api/radiologystudies/${studyID}`);
+                    const result = await response.json();
+                    if (sequence !== loadSequence || !response.ok || result.success === false) return;
+                    const id = result.study?.studyTypeID;
+                    if (id) editSelect.value = String(id);
+                } catch (error) {
+                    console.error('Study Type synchronization failed.', error);
+                }
             }).observe(editSection, { attributes: true, attributeFilter: ['class'] });
         }
     }
