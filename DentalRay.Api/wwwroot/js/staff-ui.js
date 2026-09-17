@@ -27,7 +27,7 @@
             <div class="form-grid">
                 <div class="form-field"><label for="staffFirstName">نام</label><input id="staffFirstName" maxlength="100" required></div>
                 <div class="form-field"><label for="staffLastName">نام خانوادگی</label><input id="staffLastName" maxlength="100" required></div>
-                <div class="form-field"><label for="staffNationalCode">کد ملی</label><input id="staffNationalCode" maxlength="10" inputmode="numeric" pattern="[0-9۰-۹٠-٩]{10}" required><small class="field-hint">کد ملی معتبر ۱۰ رقمی</small></div>
+                <div class="form-field"><label for="staffNationalCode">کد ملی</label><input id="staffNationalCode" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required><small class="field-hint">کد ملی معتبر ۱۰ رقمی</small></div>
                 <div class="form-field"><label for="staffType">نوع شخص</label><select id="staffType" required><option value="1">کارمند</option><option value="2">دندانپزشک</option></select></div>
                 <div id="staffSpecialtyField" class="form-field hidden"><label for="staffSpecialtyID">تخصص</label><select id="staffSpecialtyID"></select></div>
             </div>
