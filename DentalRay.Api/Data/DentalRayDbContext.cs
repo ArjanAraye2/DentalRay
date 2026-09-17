@@ -18,6 +18,7 @@ namespace DentalRay.Api.Data
         public DbSet<Clinic> Clinics { get; set; }
         public DbSet<ClinicStaff> ClinicStaff { get; set; }
         public DbSet<DentalSpecialty> DentalSpecialties { get; set; }
+        public DbSet<ImageType> ImageTypes { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<UserDentist> UserDentists { get; set; }
 
