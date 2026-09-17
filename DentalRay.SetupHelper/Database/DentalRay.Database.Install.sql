@@ -71,6 +71,34 @@ SELECT s.StudyTypeName,1 FROM @StudyTypes s
 WHERE NOT EXISTS(SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=s.StudyTypeName);
 GO
 
+/* Upgrade legacy StudyType text storage to StudyTypeID without losing Study rows. */
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'StudyTypeID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD StudyTypeID INT NULL;
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'StudyType') IS NOT NULL
+BEGIN
+    INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
+    SELECT DISTINCT LTRIM(RTRIM(s.StudyType)),1
+    FROM dbo.tblRadiologyStudies s
+    WHERE NULLIF(LTRIM(RTRIM(s.StudyType)),N'') IS NOT NULL
+      AND NOT EXISTS
+          (SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=LTRIM(RTRIM(s.StudyType)));
+
+    UPDATE s SET StudyTypeID=t.StudyTypeID
+    FROM dbo.tblRadiologyStudies s
+    JOIN dbo.tblStudyTypes t ON t.StudyTypeName=LTRIM(RTRIM(s.StudyType))
+    WHERE s.StudyTypeID IS NULL;
+END;
+GO
+IF EXISTS(SELECT 1 FROM dbo.tblRadiologyStudies WHERE StudyTypeID IS NULL)
+    THROW 51011, 'Study Type migration could not be completed.', 1;
+GO
+ALTER TABLE dbo.tblRadiologyStudies ALTER COLUMN StudyTypeID INT NOT NULL;
+GO
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_tblStudyTypes')
+    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblStudyTypes FOREIGN KEY(StudyTypeID) REFERENCES dbo.tblStudyTypes(StudyTypeID);
+GO
+
 /* Clinical Image Types (OPG, CBCT, ...), separate from physical file formats. */
 IF OBJECT_ID(N'dbo.tblImageTypes', N'U') IS NULL
 BEGIN
