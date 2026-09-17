@@ -1,5 +1,6 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
+using DentalRay.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,8 @@ namespace DentalRay.Api.Controllers
     public class RadiologyStudiesController : ControllerBase
     {
         private readonly DentalRayDbContext _context;
-        public RadiologyStudiesController(DentalRayDbContext context) => _context = context;
+        private readonly StudyAccessService _studyAccess;
+        public RadiologyStudiesController(DentalRayDbContext context, StudyAccessService studyAccess) { _context = context; _studyAccess = studyAccess; }
 
         [HttpPost]
         public async Task<IActionResult> CreateStudy(RadiologyStudy study)
@@ -21,6 +23,17 @@ namespace DentalRay.Api.Controllers
                 if (!await _context.Patients.AnyAsync(p=>p.PatientID==study.PatientID)) return NotFound(new { success=false, message="Patient not found." });
                 if (study.StudyTypeID <= 0) return BadRequest(new { success=false, message="StudyTypeID is required." });
                 if (!await _context.StudyTypes.AnyAsync(t=>t.StudyTypeID==study.StudyTypeID && t.IsActive)) return BadRequest(new { success=false, message="Selected Study type does not exist or is inactive." });
+
+                // Ordinary users may create a Study only inside their permitted Dentist/Clinic scope.
+                // Super Admin may also create legacy/test Studies without ownership while migration is unfinished.
+                if (!StudyAccessService.IsSuperAdmin(User))
+                {
+                    if (!study.ClinicID.HasValue || !study.DentistStaffID.HasValue)
+                        return BadRequest(new { success=false, message="ClinicID and DentistStaffID are required." });
+                    if (!await CanCreateForDentistAsync(study.ClinicID.Value, study.DentistStaffID.Value))
+                        return Forbid();
+                }
+
                 var teeth=NormalizeTeeth(study.ToothNumbers); if(teeth==null)return BadRequest(new{success=false,message="One or more FDI tooth numbers are invalid."});
                 study.BodyPart=NormalizeOptionalText(study.BodyPart);study.Description=NormalizeOptionalText(study.Description);study.Report=NormalizeOptionalText(study.Report);
                 if(study.BodyPart?.Length>100)return BadRequest(new{success=false,message="BodyPart cannot be longer than 100 characters."});
@@ -40,7 +53,8 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetStudy(int studyID)
         {
             if(studyID<=0)return BadRequest(new{success=false,message="StudyID must be greater than zero."});
-            var study=await _context.RadiologyStudies.AsNoTracking().FirstOrDefaultAsync(s=>s.StudyID==studyID);
+            var study=await _studyAccess.ApplyAccess(_context.RadiologyStudies.AsNoTracking(),User).FirstOrDefaultAsync(s=>s.StudyID==studyID);
+            // Do not disclose whether a Study exists when the current user has no access to it.
             if(study==null)return NotFound(new{success=false,message="Study not found."});
             var typeName=await _context.StudyTypes.AsNoTracking().Where(t=>t.StudyTypeID==study.StudyTypeID).Select(t=>t.StudyTypeName).FirstOrDefaultAsync();
             var teeth=await _context.RadiologyStudyTeeth.AsNoTracking().Where(x=>x.StudyID==studyID).OrderBy(x=>x.ToothNumber).Select(x=>(int)x.ToothNumber).ToListAsync();
@@ -52,7 +66,8 @@ namespace DentalRay.Api.Controllers
         {
             if(patientID<=0)return BadRequest(new{success=false,message="PatientID must be greater than zero."});
             if(!await _context.Patients.AsNoTracking().AnyAsync(p=>p.PatientID==patientID))return NotFound(new{success=false,message="Patient not found."});
-            var studies=await _context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==patientID).OrderByDescending(s=>s.StudyDate).ThenByDescending(s=>s.StudyID).ToListAsync();
+            var query=_context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==patientID);
+            var studies=await _studyAccess.ApplyAccess(query,User).OrderByDescending(s=>s.StudyDate).ThenByDescending(s=>s.StudyID).ToListAsync();
             var ids=studies.Select(s=>s.StudyID).ToList();
             var toothRows=await _context.RadiologyStudyTeeth.AsNoTracking().Where(x=>ids.Contains(x.StudyID)).ToListAsync();
             var typeIds=studies.Select(s=>s.StudyTypeID).Distinct().ToList();
@@ -68,6 +83,7 @@ namespace DentalRay.Api.Controllers
             {
                 if(studyID<=0)return BadRequest(new{success=false,message="StudyID must be greater than zero."});
                 if(request==null)return BadRequest(new{success=false,message="Study information is required."});
+                if(!await _studyAccess.CanAccessStudyAsync(studyID,User))return NotFound(new{success=false,message="Study not found."});
                 if(request.StudyTypeID<=0)return BadRequest(new{success=false,message="StudyTypeID is required."});
                 if(!await _context.StudyTypes.AnyAsync(t=>t.StudyTypeID==request.StudyTypeID && t.IsActive))return BadRequest(new{success=false,message="Selected Study type does not exist or is inactive."});
                 var teeth=NormalizeTeeth(request.ToothNumbers);if(teeth==null)return BadRequest(new{success=false,message="One or more FDI tooth numbers are invalid."});
@@ -82,6 +98,16 @@ namespace DentalRay.Api.Controllers
                 return Ok(new{success=true,study,toothNumbers=teeth,message="Study updated successfully."});
             }
             catch(Exception ex){return StatusCode(500,new{success=false,message="Study update failed.",error=ex.Message});}
+        }
+
+        private async Task<bool> CanCreateForDentistAsync(int clinicID,int dentistStaffID)
+        {
+            int.TryParse(User.FindFirst("StaffID")?.Value,out int staffID);
+            int.TryParse(User.FindFirst("StaffType")?.Value,out int staffType);
+            int.TryParse(User.FindFirst("UserID")?.Value,out int userID);
+            if(staffType==2)return staffID==dentistStaffID;
+            if(staffType==1)return await _context.UserDentists.AsNoTracking().AnyAsync(x=>x.UserID==userID&&x.ClinicID==clinicID&&x.DentistStaffID==dentistStaffID);
+            return false;
         }
 
         private static List<int>? NormalizeTeeth(IEnumerable<int>? values){var result=(values??Array.Empty<int>()).Distinct().OrderBy(x=>x).ToList();return result.All(IsValidFdi)?result:null;}
