@@ -22,6 +22,9 @@ namespace DentalRay.Api.Data
         // جدول واسط Many-to-Many بین Study و Image.
         public DbSet<RadiologyStudyImage> RadiologyStudyImages { get; set; }
 
+        // دندان‌های انتخاب‌شده برای هر Study بر اساس شماره‌گذاری FDI.
+        public DbSet<RadiologyStudyTooth> RadiologyStudyTeeth { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -61,6 +64,17 @@ namespace DentalRay.Api.Data
                 .HasOne<RadiologyImage>()
                 .WithMany()
                 .HasForeignKey(link => link.ImageID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // هر دندان فقط یک بار در هر Study ثبت می‌شود.
+            // کلید مرکب دقیقاً با Primary Key جدول SQL هماهنگ است.
+            modelBuilder.Entity<RadiologyStudyTooth>()
+                .HasKey(x => new { x.StudyID, x.ToothNumber });
+
+            modelBuilder.Entity<RadiologyStudyTooth>()
+                .HasOne<RadiologyStudy>()
+                .WithMany()
+                .HasForeignKey(x => x.StudyID)
                 .OnDelete(DeleteBehavior.NoAction);
         }
     }
