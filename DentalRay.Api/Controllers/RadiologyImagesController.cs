@@ -169,6 +169,9 @@ namespace DentalRay.Api.Controllers
         }
 
         // Physical deletion is allowed only when no Study link remains.
+        // The physical file is first moved to a temporary quarantine name. The database row
+        // is then deleted inside a transaction. If SQL fails, the file is restored. This avoids
+        // leaving a live database row whose physical file has already disappeared.
         [HttpDelete("{imageID:long}")]
         public async Task<IActionResult> DeleteImage(long imageID)
         {
@@ -177,12 +180,49 @@ namespace DentalRay.Api.Controllers
             if (await _context.RadiologyStudyImages.AnyAsync(x=>x.ImageID==imageID))
                 return Conflict(new { success=false,message="Detach the image from all Studies before deleting it." });
 
-            string path=image.RelativePath;
-            _context.RadiologyImages.Remove(image);
-            await _context.SaveChangesAsync();
-            try { _storage.DeleteFile(path); }
-            catch (Exception ex) { return StatusCode(500,new { success=false,message="Database record was deleted but physical-file cleanup failed.",error=ex.Message }); }
-            return Ok(new { success=true,imageID });
+            string originalPath=_storage.GetPhysicalPath(image.RelativePath);
+            if (!System.IO.File.Exists(originalPath))
+                return Conflict(new { success=false,message="Physical file not found. Database metadata was not deleted." });
+
+            string directory=Path.GetDirectoryName(originalPath)!;
+            string temporaryPath=Path.Combine(directory,$".delete_{Guid.NewGuid():N}_{Path.GetFileName(originalPath)}");
+            bool quarantined=false;
+            await using var tx=await _context.Database.BeginTransactionAsync();
+            try
+            {
+                System.IO.File.Move(originalPath,temporaryPath);
+                quarantined=true;
+                _context.RadiologyImages.Remove(image);
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            }
+            catch(Exception ex)
+            {
+                try { await tx.RollbackAsync(); } catch { }
+                try
+                {
+                    if (quarantined && System.IO.File.Exists(temporaryPath) && !System.IO.File.Exists(originalPath))
+                        System.IO.File.Move(temporaryPath,originalPath);
+                }
+                catch { }
+                return StatusCode(500,new { success=false,message="Image delete failed. Database changes were rolled back and the system attempted to restore the physical file.",error=ex.Message });
+            }
+
+            bool cleanupWarning=false;
+            string? cleanupMessage=null;
+            try
+            {
+                if (System.IO.File.Exists(temporaryPath)) System.IO.File.Delete(temporaryPath);
+                _storage.DeletePatientFolderIfEmpty(Path.GetDirectoryName(image.RelativePath));
+            }
+            catch(Exception ex)
+            {
+                cleanupWarning=true;
+                cleanupMessage=ex.Message;
+            }
+
+            return Ok(new { success=true,imageID,cleanupWarning,cleanupMessage,
+                message=cleanupWarning ? "Image metadata was deleted, but temporary-file cleanup could not be completed." : "Image deleted successfully." });
         }
 
         private static string ContentTypeFor(string ext)=>ext switch
