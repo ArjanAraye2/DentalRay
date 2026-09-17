@@ -50,5 +50,5 @@
         const r=await fetch(`/api/admin/imagetypes/${item.imageTypeID}/active`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({isActive:value})}),x=await r.json();
         if(!r.ok){status.textContent=apiError(x,"عملیات انجام نشد.");return;}await load();
     }
-    document.addEventListener("dentalray-auth-changed",syncAuth);ensureUi();syncAuth();
+    window.addEventListener("dentalray-auth-changed",syncAuth);ensureUi();syncAuth();
 })();
