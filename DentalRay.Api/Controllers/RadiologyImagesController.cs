@@ -122,6 +122,36 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success=true,studyID,images });
         }
 
+        // SuperAdmin may classify legacy images that predate Image Type support.
+        // Ordinary users cannot alter historical image classification through this maintenance endpoint.
+        [HttpPatch("{imageID:long}/type")]
+        public async Task<IActionResult> SetImageType(long imageID, [FromBody] SetImageTypeRequest request)
+        {
+            if (!StudyAccessService.IsSuperAdmin(User)) return Forbid();
+
+            var image = await _context.RadiologyImages.FirstOrDefaultAsync(x => x.ImageID == imageID);
+            if (image == null)
+                return NotFound(new { success=false, message="تصویر پیدا نشد.", messageEn="Image not found." });
+
+            if (!await _context.ImageTypes.AsNoTracking().AnyAsync(x => x.ImageTypeID == request.ImageTypeID && x.IsActive))
+                return BadRequest(new { success=false, message="نوع تصویر انتخاب‌شده معتبر یا فعال نیست.", messageEn="The selected Image Type is invalid or inactive." });
+
+            image.ImageTypeID = request.ImageTypeID;
+            await _context.SaveChangesAsync();
+
+            var name = await _context.ImageTypes.AsNoTracking()
+                .Where(x => x.ImageTypeID == request.ImageTypeID)
+                .Select(x => x.ImageTypeName)
+                .FirstAsync();
+
+            return Ok(new { success=true, imageID, imageTypeID=request.ImageTypeID, imageTypeName=name });
+        }
+
+        public sealed class SetImageTypeRequest
+        {
+            public int ImageTypeID { get; set; }
+        }
+
         [HttpPost("study/{studyID:int}/attach")]
         public async Task<IActionResult> Attach(int studyID,[FromBody] long[] imageIDs)
         {
