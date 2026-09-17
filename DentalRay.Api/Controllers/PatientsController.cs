@@ -250,12 +250,12 @@ namespace DentalRay.Api.Controllers
             });
         }
 
-        // Merge changes every Study/Image belonging to the source Patient, including records
-        // outside an ordinary user's Study scope. Therefore it remains a Super Admin operation.
+        // Merge is a Patient-level data-correction operation.
+        // It is intentionally independent of Study authorization: Study ownership/scope fields
+        // (ClinicID and DentistStaffID) are preserved when the duplicate Patient is merged.
         [HttpPost("merge")]
         public async Task<IActionResult> MergePatients(MergePatientRequest request)
         {
-            if (!StudyAccessService.IsSuperAdmin(User)) return Forbid();
             if (request.SourcePatientID <= 0 || request.TargetPatientID <= 0 || request.SourcePatientID == request.TargetPatientID)
                 return BadRequest(new { success = false, message = "SourcePatientID and TargetPatientID must be valid and different." });
 
