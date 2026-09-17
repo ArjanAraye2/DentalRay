@@ -2,6 +2,7 @@ using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,7 +44,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             return Task.CompletedTask;
         };
     });
-builder.Services.AddAuthorization();
+
+// Security is the default for every controller/action. An endpoint is public only
+// when it explicitly declares [AllowAnonymous] (for example api/auth/login).
+// This prevents a newly added API from accidentally being exposed on the clinic LAN.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 builder.Services.Configure<RadiologyStorageOptions>(builder.Configuration.GetSection("RadiologyStorage"));
 builder.Services.AddDbContext<DentalRayDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DentalRay")));
