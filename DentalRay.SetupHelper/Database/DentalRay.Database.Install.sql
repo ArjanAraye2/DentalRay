@@ -50,7 +50,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudie
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblPatients FOREIGN KEY(PatientID) REFERENCES dbo.tblPatients(PatientID);
 GO
 
-/* Study Type lookup and installation seed data. */
+/* Study Type lookup. Business values are NOT Image Types and are not seeded automatically. */
 IF OBJECT_ID(N'dbo.tblStudyTypes', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblStudyTypes
@@ -62,16 +62,11 @@ BEGIN
     );
 END;
 GO
-DECLARE @StudyTypes TABLE (StudyTypeName NVARCHAR(150));
-INSERT INTO @StudyTypes(StudyTypeName)
-VALUES (N'پانورامیک'),(N'پری‌اپیکال'),(N'بایت‌وینگ'),(N'اکلوزال'),
-       (N'سفالومتری'),(N'CBCT'),(N'عکس داخل دهانی'),(N'عکس دندان');
-INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
-SELECT s.StudyTypeName,1 FROM @StudyTypes s
-WHERE NOT EXISTS(SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=s.StudyTypeName);
-GO
 
-/* Upgrade legacy StudyType text storage to StudyTypeID without losing Study rows. */
+/*
+ Legacy StudyType text is preserved as Study Type data during upgrade.
+ No radiology Image Type values are inserted into tblStudyTypes by the installer.
+*/
 IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'StudyTypeID') IS NULL
     ALTER TABLE dbo.tblRadiologyStudies ADD StudyTypeID INT NULL;
 GO
@@ -81,8 +76,7 @@ BEGIN
     SELECT DISTINCT LTRIM(RTRIM(s.StudyType)),1
     FROM dbo.tblRadiologyStudies s
     WHERE NULLIF(LTRIM(RTRIM(s.StudyType)),N'') IS NOT NULL
-      AND NOT EXISTS
-          (SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=LTRIM(RTRIM(s.StudyType)));
+      AND NOT EXISTS (SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=LTRIM(RTRIM(s.StudyType)));
 
     UPDATE s SET StudyTypeID=t.StudyTypeID
     FROM dbo.tblRadiologyStudies s
@@ -90,27 +84,8 @@ BEGIN
     WHERE s.StudyTypeID IS NULL;
 END;
 GO
-IF EXISTS(SELECT 1 FROM dbo.tblRadiologyStudies WHERE StudyTypeID IS NULL)
-    THROW 51011, 'Study Type migration could not be completed.', 1;
-GO
-ALTER TABLE dbo.tblRadiologyStudies ALTER COLUMN StudyTypeID INT NOT NULL;
-GO
-IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_tblStudyTypes')
-    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblStudyTypes FOREIGN KEY(StudyTypeID) REFERENCES dbo.tblStudyTypes(StudyTypeID);
-GO
-IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'StudyType') IS NOT NULL
-BEGIN
-    DECLARE @studyTypeDefault sysname;
-    SELECT TOP(1) @studyTypeDefault=dc.name
-    FROM sys.default_constraints dc
-    JOIN sys.columns col ON col.default_object_id=dc.object_id
-    WHERE dc.parent_object_id=OBJECT_ID(N'dbo.tblRadiologyStudies') AND col.name=N'StudyType';
-    IF @studyTypeDefault IS NOT NULL EXEC(N'ALTER TABLE dbo.tblRadiologyStudies DROP CONSTRAINT ['+@studyTypeDefault+N']');
-    ALTER TABLE dbo.tblRadiologyStudies DROP COLUMN StudyType;
-END;
-GO
 
-/* Clinical Image Types (OPG, CBCT, ...), separate from physical file formats. */
+/* Clinical Image Types, separate from Study Type and physical file format. */
 IF OBJECT_ID(N'dbo.tblImageTypes', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblImageTypes
@@ -122,10 +97,13 @@ BEGIN
     );
 END;
 GO
-IF NOT EXISTS (SELECT 1 FROM dbo.tblImageTypes WHERE ImageTypeName=N'OPG')
-    INSERT INTO dbo.tblImageTypes(ImageTypeName,IsActive) VALUES(N'OPG',1);
-IF NOT EXISTS (SELECT 1 FROM dbo.tblImageTypes WHERE ImageTypeName=N'CBCT')
-    INSERT INTO dbo.tblImageTypes(ImageTypeName,IsActive) VALUES(N'CBCT',1);
+DECLARE @ImageTypes TABLE (ImageTypeName NVARCHAR(150));
+INSERT INTO @ImageTypes(ImageTypeName)
+VALUES (N'CBCT'),(N'اکلوزال'),(N'بایت‌وینگ'),(N'پانورامیک'),
+       (N'پری‌اپیکال'),(N'سفالومتری'),(N'عکس داخل دهانی'),(N'عکس دندان');
+INSERT INTO dbo.tblImageTypes(ImageTypeName,IsActive)
+SELECT s.ImageTypeName,1 FROM @ImageTypes s
+WHERE NOT EXISTS(SELECT 1 FROM dbo.tblImageTypes t WHERE t.ImageTypeName=s.ImageTypeName);
 GO
 
 /* New installations create the patient-owned image table directly. */
