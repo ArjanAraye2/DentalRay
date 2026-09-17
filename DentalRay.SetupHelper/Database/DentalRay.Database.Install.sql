@@ -98,6 +98,17 @@ GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_tblStudyTypes')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblStudyTypes FOREIGN KEY(StudyTypeID) REFERENCES dbo.tblStudyTypes(StudyTypeID);
 GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies', N'StudyType') IS NOT NULL
+BEGIN
+    DECLARE @studyTypeDefault sysname;
+    SELECT TOP(1) @studyTypeDefault=dc.name
+    FROM sys.default_constraints dc
+    JOIN sys.columns col ON col.default_object_id=dc.object_id
+    WHERE dc.parent_object_id=OBJECT_ID(N'dbo.tblRadiologyStudies') AND col.name=N'StudyType';
+    IF @studyTypeDefault IS NOT NULL EXEC(N'ALTER TABLE dbo.tblRadiologyStudies DROP CONSTRAINT ['+@studyTypeDefault+N']');
+    ALTER TABLE dbo.tblRadiologyStudies DROP COLUMN StudyType;
+END;
+GO
 
 /* Clinical Image Types (OPG, CBCT, ...), separate from physical file formats. */
 IF OBJECT_ID(N'dbo.tblImageTypes', N'U') IS NULL
