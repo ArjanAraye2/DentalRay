@@ -50,6 +50,27 @@ IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudie
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblPatients FOREIGN KEY(PatientID) REFERENCES dbo.tblPatients(PatientID);
 GO
 
+/* Study Type lookup and installation seed data. */
+IF OBJECT_ID(N'dbo.tblStudyTypes', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblStudyTypes
+    (
+        StudyTypeID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblStudyTypes PRIMARY KEY,
+        StudyTypeName NVARCHAR(150) NOT NULL,
+        IsActive BIT NOT NULL CONSTRAINT DF_tblStudyTypes_IsActive DEFAULT(1),
+        CONSTRAINT UQ_tblStudyTypes_StudyTypeName UNIQUE(StudyTypeName)
+    );
+END;
+GO
+DECLARE @StudyTypes TABLE (StudyTypeName NVARCHAR(150));
+INSERT INTO @StudyTypes(StudyTypeName)
+VALUES (N'پانورامیک'),(N'پری‌اپیکال'),(N'بایت‌وینگ'),(N'اکلوزال'),
+       (N'سفالومتری'),(N'CBCT'),(N'عکس داخل دهانی'),(N'عکس دندان');
+INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
+SELECT s.StudyTypeName,1 FROM @StudyTypes s
+WHERE NOT EXISTS(SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=s.StudyTypeName);
+GO
+
 /* Clinical Image Types (OPG, CBCT, ...), separate from physical file formats. */
 IF OBJECT_ID(N'dbo.tblImageTypes', N'U') IS NULL
 BEGIN
