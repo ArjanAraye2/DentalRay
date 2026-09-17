@@ -17,9 +17,12 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
-// HttpClientFactory is used by the runtime AI controller. The API key is never
-// sent to the browser; only the DentalRay backend communicates with OpenAI.
+
+// HttpClientFactory is used by services such as runtime AI analysis.
+// Sensitive API credentials stay on the DentalRay server and are never sent
+// to the browser/mobile frontend.
 builder.Services.AddHttpClient();
+
 builder.Services.Configure<RadiologyStorageOptions>(builder.Configuration.GetSection("RadiologyStorage"));
 builder.Services.AddDbContext<DentalRayDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DentalRay")));
@@ -31,9 +34,9 @@ if (app.Environment.IsDevelopment()) app.MapOpenApi();
 // ============================================================
 // Frontend Entry Page
 // ============================================================
-// These feature scripts are injected after app.js. AI results are runtime-only:
-// ai-study-analysis.js renders the returned analysis in the browser and does not
-// write it to DentalRay's database.
+// app.js is included by index.html. These small feature modules are loaded
+// afterwards so newer features can be introduced incrementally while the
+// original frontend remains usable during the DentalRay learning project.
 app.Use(async (context, next) =>
 {
     if (context.Request.Path == "/" || context.Request.Path == "/index.html")
@@ -45,13 +48,20 @@ app.Use(async (context, next) =>
             const string featureScripts =
                 "<script src=\"/js/study-delete.js\"></script>\n" +
                 "<script src=\"/js/mobile-camera-loader.js\"></script>\n" +
+                "<script src=\"/js/study-type-lookup.js\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js\"></script>";
-            html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
+
+            html = html.Replace(
+                "</body>",
+                $"{featureScripts}{Environment.NewLine}</body>",
+                StringComparison.OrdinalIgnoreCase);
+
             context.Response.ContentType = "text/html; charset=utf-8";
             await context.Response.WriteAsync(html);
             return;
         }
     }
+
     await next();
 });
 
