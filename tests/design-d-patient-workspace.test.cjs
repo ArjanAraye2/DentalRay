@@ -56,6 +56,8 @@ assert.match(controller, /RadiologyStudies[\s\S]*AnyAsync\(s => s\.PatientID == 
 assert.match(html, /\/js\/navigation\.js/, "Shell navigation script is not loaded.");
 assert.match(navigation, /settingsAdminActions/, "Administrative actions must be moved to Settings.");
 assert.match(navigation, /data-nav/, "Right sidebar navigation is not wired.");
+assert.doesNotMatch(html, /data-nav=["']studies["']/, "Studies must remain inside the Patient workspace, not the main menu.");
+assert.doesNotMatch(html, /data-nav=["']images["']/, "Images must remain inside the Patient workspace, not the main menu.");
 assert.doesNotMatch(navigation, /dashboard-shortcuts/, "Dashboard must not contain operational shortcuts.");
 assert.match(navigation, /dashboardPatientsToday/, "Today's patient metric is missing.");
 assert.match(navigation, /dashboardRecentStudies/, "Recent Studies panel is missing.");

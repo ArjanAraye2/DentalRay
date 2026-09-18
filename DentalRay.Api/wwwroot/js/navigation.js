@@ -45,8 +45,6 @@
     main.appendChild(settings);
 
     const placeholders = {
-        studies: ["مطالعات", "جستجو و مشاهدهٔ سراسری مطالعات همهٔ بیماران"],
-        images: ["تصاویر", "جستجو و مشاهدهٔ سراسری تصاویر رادیولوژی"],
         reports: ["گزارش‌ها", "گزارش‌های مدیریتی و آماری سامانه"]
     };
     const placeholderSections = {};
