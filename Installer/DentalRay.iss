@@ -88,7 +88,7 @@ var
 function RunHiddenAndWait(FileName: String; Parameters: String; WorkingDirectory: String; var ResultCode: Integer): Boolean; forward;
 function DiscoverDentalRaySqlServer: Boolean; forward;
 function PrepareDentalRayDatabase: Boolean;
-var HelperExe, HelperDirectory, ScriptPath, CheckFile, StateText: String; ResultCode: Integer; Params: String;
+var HelperExe, HelperDirectory, ScriptPath, CheckFile, StateText: String; StateAnsi: AnsiString; ResultCode: Integer; Params: String;
 begin
     Result := False;
     HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
@@ -117,7 +117,13 @@ begin
     end;
 
     StateText := '';
-    LoadStringFromFile(CheckFile, StateText);
+    StateAnsi := '';
+    if not LoadStringFromFile(CheckFile, StateAnsi) then
+    begin
+        MsgBox('نتیجه بررسی دیتابیس دریافت نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
+        Exit;
+    end;
+    StateText := Trim(String(StateAnsi));
 
     if Pos('MISSING', UpperCase(StateText)) > 0 then
     begin
