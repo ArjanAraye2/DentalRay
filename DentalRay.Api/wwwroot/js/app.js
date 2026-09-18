@@ -170,6 +170,7 @@ async function saveStudyDetails(){
  }catch(e){setFormStatus(E.studyDetailsStatus,e.message||"ویرایش Study انجام نشد.",true);
  }finally{studyDetailsSaveInProgress=false;E.studyDetailsSaveButton.disabled=false;E.studyDetailsSaveButton.textContent="ذخیره تغییرات";}
 }
+window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveStudyDetails();};
 
 function renderStudiesSafe(studies){
  E.studiesContainer.replaceChildren();
@@ -259,7 +260,6 @@ E.studyDetailsImagesButton?.addEventListener("click",()=>{if(selectedStudy)openS
 E.studyDetailsEditButton?.addEventListener("click",()=>setStudyDetailsEditing(true));
 E.studyDetailsCancelButton?.addEventListener("click",()=>{if(selectedStudy)openStudyDetails(selectedStudy);});
 E.studyDetailsForm?.addEventListener("submit",e=>{e.preventDefault();saveStudyDetails();});
-E.studyDetailsSaveButton?.addEventListener("click",e=>{e.preventDefault();saveStudyDetails();});
 E.studyDetailsUploadButton?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});E.editPatientButton.onclick=openEditPatientForm;E.printPatientButton.onclick=printPatientInformation;E.deactivatePatientButton.onclick=togglePatientActiveStatus;E.newStudyButton.onclick=openNewStudyForm;E.mergePatientButton.onclick=openMergePatientForm;E.editPatientForm.onsubmit=e=>{e.preventDefault();updatePatient();};E.newStudyForm.onsubmit=e=>{e.preventDefault();createStudy();};E.editStudyForm.onsubmit=e=>{e.preventDefault();updateStudy();};E.uploadImageForm.onsubmit=e=>{e.preventDefault();uploadImage();};E.mergePatientForm.onsubmit=e=>{e.preventDefault();mergePatient();};
 [[E.cancelNewPatientButton,E.cancelNewPatientButtonBottom]].flat().forEach(b=>b.onclick=showPatientsScreen);[E.cancelEditPatientButton,E.cancelEditPatientButtonBottom,E.cancelNewStudyButton,E.cancelNewStudyButtonBottom,E.cancelMergePatientButton,E.cancelMergePatientButtonBottom].forEach(b=>b.onclick=()=>openPatient(selectedPatientID));[E.cancelEditStudyButton,E.cancelEditStudyButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyDetails(selectedStudy):openPatient(selectedPatientID));[E.cancelUploadImageButton,E.cancelUploadImageButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyImages(selectedStudy):openPatient(selectedPatientID));
 E.patientPhotoButton?.addEventListener("click",()=>E.patientPhotoInput?.click());

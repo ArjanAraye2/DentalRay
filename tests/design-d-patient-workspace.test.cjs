@@ -48,9 +48,9 @@ assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards mu
 assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
 assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
 assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']button["']/, "Study save must use an explicit non-submitting button.");
-assert.doesNotMatch(html, /DentalRaySaveStudyDetails/, "Obsolete global click interception must not handle Study saves.");
+assert.match(html, /onclick=["'][^"']*DentalRaySaveStudyDetails/, "Study Save must invoke its handler directly.");
 assert.match(app, /studyDetailsSaveInProgress/, "Study save must guard against duplicate submissions.");
-assert.match(app, /studyDetailsSaveButton\?\.addEventListener\(["']click["']/, "Study Save button must be wired directly.");
+assert.match(app, /window\.DentalRaySaveStudyDetails=event=>/, "Study Save must expose a direct, cache-diagnostic handler.");
 assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
