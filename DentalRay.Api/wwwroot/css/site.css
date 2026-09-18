@@ -1273,3 +1273,123 @@ button {
     .header-search { width:58vw; }
     .header-brand h1 { font-size:17px; }
 }
+
+
+/* ==========================================================
+   Design D - Patients & Patient Record
+   Visual redesign only; existing IDs/behavior are preserved.
+   ========================================================== */
+#patientsSection,
+#patientDetailsSection {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+#patientsSection .section-header,
+#patientDetailsSection .section-header {
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    background: #fff;
+    border: 1px solid #dce9f5;
+    border-radius: 15px;
+    box-shadow: 0 6px 22px rgba(22,91,150,.06);
+}
+#patientsSection .section-header h2,
+#patientDetailsSection .section-header h2 {
+    color: #123f78;
+    font-size: 25px;
+}
+#patientsSection .search-panel {
+    padding: 15px;
+    background: linear-gradient(180deg,#fbfdff,#f3f9ff);
+    border-color: #d8e8f6;
+    border-radius: 14px;
+}
+#patientsSection .table-container {
+    background: #fff;
+    border-color: #d8e8f6;
+    border-radius: 14px;
+    box-shadow: 0 7px 24px rgba(22,91,150,.06);
+}
+#patientsSection .patient-table th {
+    padding: 13px 12px;
+    background: #edf6ff;
+    color: #174b84;
+}
+#patientsSection .patient-table td { padding: 12px; }
+#patientsSection .patient-table tbody tr:hover { background: #edf7ff; }
+#patientsSection .patient-table button {
+    padding: 7px 11px;
+    border-radius: 8px;
+}
+#patientDetailsSection .details-toolbar {
+    margin-bottom: 12px;
+    background: #fff;
+    box-shadow: 0 6px 22px rgba(22,91,150,.05);
+}
+#patientDetailsSection .patient-info-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #fff;
+    border: 1px solid #dce9f5;
+    border-radius: 15px;
+    box-shadow: 0 7px 24px rgba(22,91,150,.06);
+}
+#patientDetailsSection .info-item {
+    min-height: 64px;
+    background: #f8fbff;
+    border-color: #e1edf7;
+}
+#patientDetailsSection .info-item.full-width { grid-column: span 2; }
+#patientDetailsSection .summary-row {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,220px));
+    gap:12px;
+    margin:0 0 12px;
+}
+#patientDetailsSection .summary-box {
+    min-width:0;
+    background:linear-gradient(135deg,#eef8ff,#fff);
+    border-color:#d7e9f8;
+    box-shadow:0 5px 16px rgba(22,91,150,.05);
+}
+#patientDetailsSection .summary-number { color:#0878e8; }
+#patientDetailsSection .subsection-header {
+    margin:0;
+    padding:15px 18px 10px;
+    background:#fff;
+    border:1px solid #dce9f5;
+    border-bottom:0;
+    border-radius:15px 15px 0 0;
+}
+#patientDetailsSection .subsection-header h3 { color:#123f78; }
+#patientDetailsSection .studies-container {
+    padding:12px;
+    background:#fff;
+    border:1px solid #dce9f5;
+    border-radius:0 0 15px 15px;
+    box-shadow:0 7px 24px rgba(22,91,150,.06);
+}
+#patientDetailsSection .study-card {
+    padding:13px 15px;
+    border-color:#dce9f5;
+    background:linear-gradient(180deg,#fff,#f9fcff);
+    cursor:pointer;
+}
+#patientDetailsSection .study-card:hover {
+    border-color:#9fcdf7;
+    background:#f2f9ff;
+    transform:translateY(-1px);
+}
+@media(max-width:1100px){
+    #patientDetailsSection .patient-info-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    #patientDetailsSection .info-item.full-width { grid-column:1 / -1; }
+}
+@media(max-width:700px){
+    #patientDetailsSection .patient-info-grid { grid-template-columns:1fr; padding:10px; }
+    #patientDetailsSection .summary-row { grid-template-columns:1fr; }
+    #patientDetailsSection .summary-box { max-width:none; }
+}
