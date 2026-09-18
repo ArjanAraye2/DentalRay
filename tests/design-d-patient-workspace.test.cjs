@@ -51,6 +51,8 @@ assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']button["']/, "Stu
 assert.match(html, /onclick=["'][^"']*DentalRaySaveStudyDetails/, "Study Save must invoke its handler directly.");
 assert.match(app, /studyDetailsSaveInProgress/, "Study save must guard against duplicate submissions.");
 assert.match(app, /window\.DentalRaySaveStudyDetails=event=>/, "Study Save must expose a direct, cache-diagnostic handler.");
+assert.match(html, /onclick=["'][^"']*DentalRayOpenNewStudy/, "New Study must invoke its handler directly.");
+assert.match(app, /window\.DentalRayOpenNewStudy=event=>/, "New Study must expose a direct, cache-diagnostic handler.");
 assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");

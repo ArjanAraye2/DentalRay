@@ -244,7 +244,21 @@ async function togglePatientActiveStatus(){
  // Both corresponding controller actions use HttpPut; matching that verb prevents an HTTP 405 response.
  try{const action=isDeactivating?"deactivate":"activate";const r=await fetch(`/api/patients/${selectedPatientID}/${action}`,{method:"PUT"}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"عملیات انجام نشد."));await openPatient(selectedPatientID);showToast(isDeactivating?"بیمار غیرفعال شد.":"بیمار فعال شد.");}catch(e){showToast(e.message||"عملیات انجام نشد.","error");}
 }
-function openNewStudyForm(){E.newStudyForm.reset();setFormStatus(E.newStudyStatus,"",false);E.newStudyDate.value=toEnglishJalaliInput(new Date(),true);hideMainSections();E.newStudySection.classList.remove("hidden");E.newStudyType.focus();}
+function openNewStudyForm(){
+ if(!Number.isInteger(Number(selectedPatientID))||Number(selectedPatientID)<=0){
+  showToast("ابتدا یک بیمار را انتخاب کنید.","error");
+  return;
+ }
+ E.newStudyForm.reset();
+ setFormStatus(E.newStudyStatus,"",false);
+ E.newStudyDate.value=toEnglishJalaliInput(new Date(),true);
+ hideMainSections();
+ E.newStudySection.classList.remove("hidden");
+ E.newStudySection.scrollIntoView({behavior:"smooth",block:"start"});
+ E.newStudyType.focus();
+}
+// Public entry point keeps this primary action independent from later optional bindings.
+window.DentalRayOpenNewStudy=event=>{event?.preventDefault?.();return openNewStudyForm();};
 function studyPayload(prefix){const type=E[`${prefix}StudyType`].value.trim();if(!type)throw new Error("نوع رادیولوژی را وارد کنید.");return{studyDate:parsePersianDateForBackend(E[`${prefix}StudyDate`].value,true),studyType:type,bodyPart:emptyToNull(E[`${prefix}BodyPart`].value),description:emptyToNull(E[`${prefix}StudyDescription`].value),report:emptyToNull(E[`${prefix}StudyReport`].value)};}
 async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();if(!r.ok||x.success===false)throw new Error(getApiError(x,"ثبت رادیولوژی انجام نشد."));await openPatient(selectedPatientID);showToast("رادیولوژی ثبت شد.");}catch(e){setFormStatus(E.newStudyStatus,getApiError({message:e.message},"ثبت رادیولوژی انجام نشد."),true);}}
 function openEditStudyForm(s){selectedStudyID=s.studyID;selectedStudy=s;setFormStatus(E.editStudyStatus,"",false);E.editStudyType.value=s.studyTypeID?String(s.studyTypeID):(s.studyType||"");E.editBodyPart.value=s.bodyPart||"";E.editStudyDate.value=formatPersianDateTimeForInput(s.studyDate);E.editStudyDescription.value=s.description||"";E.editStudyReport.value=s.report||"";E.editStudySubtitle.textContent=`رادیولوژی شماره ${s.studyID}`;hideMainSections();E.editStudySection.classList.remove("hidden");}
@@ -260,7 +274,16 @@ E.studyDetailsImagesButton?.addEventListener("click",()=>{if(selectedStudy)openS
 E.studyDetailsEditButton?.addEventListener("click",()=>setStudyDetailsEditing(true));
 E.studyDetailsCancelButton?.addEventListener("click",()=>{if(selectedStudy)openStudyDetails(selectedStudy);});
 E.studyDetailsForm?.addEventListener("submit",e=>{e.preventDefault();saveStudyDetails();});
-E.studyDetailsUploadButton?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});E.editPatientButton.onclick=openEditPatientForm;E.printPatientButton.onclick=printPatientInformation;E.deactivatePatientButton.onclick=togglePatientActiveStatus;E.newStudyButton.onclick=openNewStudyForm;E.mergePatientButton.onclick=openMergePatientForm;E.editPatientForm.onsubmit=e=>{e.preventDefault();updatePatient();};E.newStudyForm.onsubmit=e=>{e.preventDefault();createStudy();};E.editStudyForm.onsubmit=e=>{e.preventDefault();updateStudy();};E.uploadImageForm.onsubmit=e=>{e.preventDefault();uploadImage();};E.mergePatientForm.onsubmit=e=>{e.preventDefault();mergePatient();};
+E.studyDetailsUploadButton?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});
+E.editPatientButton?.addEventListener("click",openEditPatientForm);
+E.printPatientButton?.addEventListener("click",printPatientInformation);
+E.deactivatePatientButton?.addEventListener("click",togglePatientActiveStatus);
+E.mergePatientButton?.addEventListener("click",openMergePatientForm);
+E.editPatientForm?.addEventListener("submit",e=>{e.preventDefault();updatePatient();});
+E.newStudyForm?.addEventListener("submit",e=>{e.preventDefault();createStudy();});
+E.editStudyForm?.addEventListener("submit",e=>{e.preventDefault();updateStudy();});
+E.uploadImageForm?.addEventListener("submit",e=>{e.preventDefault();uploadImage();});
+E.mergePatientForm?.addEventListener("submit",e=>{e.preventDefault();mergePatient();});
 [[E.cancelNewPatientButton,E.cancelNewPatientButtonBottom]].flat().forEach(b=>b.onclick=showPatientsScreen);[E.cancelEditPatientButton,E.cancelEditPatientButtonBottom,E.cancelNewStudyButton,E.cancelNewStudyButtonBottom,E.cancelMergePatientButton,E.cancelMergePatientButtonBottom].forEach(b=>b.onclick=()=>openPatient(selectedPatientID));[E.cancelEditStudyButton,E.cancelEditStudyButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyDetails(selectedStudy):openPatient(selectedPatientID));[E.cancelUploadImageButton,E.cancelUploadImageButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyImages(selectedStudy):openPatient(selectedPatientID));
 E.patientPhotoButton?.addEventListener("click",()=>E.patientPhotoInput?.click());
 E.patientPhotoInput?.addEventListener("change",async()=>{const file=E.patientPhotoInput.files?.[0];if(!file||!selectedPatientID)return;try{const fd=new FormData();fd.append("file",file);const r=await fetch(`/api/patients/${selectedPatientID}/photo`,{method:"POST",body:fd}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"ذخیره تصویر بیمار انجام نشد."));E.patientProfilePhoto.src=`/api/patients/${selectedPatientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.classList.remove("empty");showToast("تصویر بیمار ذخیره شد.");}catch(e){showToast(e.message||"ذخیره تصویر بیمار انجام نشد.","error");}finally{E.patientPhotoInput.value="";}});
