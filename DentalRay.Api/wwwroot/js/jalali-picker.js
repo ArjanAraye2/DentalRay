@@ -20,5 +20,8 @@
    };draw();modal.addEventListener("click",e=>{if(e.target===modal)modal.remove();});
  }
  window.DentalRayJalali={enhance,enhanceAll(root=document){if(root.matches?.("[data-jalali-date]"))enhance(root,false);else if(root.matches?.("[data-jalali-datetime]"))enhance(root,true);root.querySelectorAll?.("[data-jalali-date]").forEach(x=>enhance(x,false));root.querySelectorAll?.("[data-jalali-datetime]").forEach(x=>enhance(x,true));}};
- const run=()=>window.DentalRayJalali.enhanceAll();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();const observer=new MutationObserver(mutations=>{for(const m of mutations){for(const node of m.addedNodes){if(node.nodeType!==1)continue;window.DentalRayJalali.enhanceAll(node);}}});observer.observe(document.documentElement,{childList:true,subtree:true});
+ const run=()=>window.DentalRayJalali.enhanceAll();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();
+ // Dynamic admin forms explicitly call enhanceAll after rendering. A global DOM
+ // observer is intentionally avoided because enhancing a date input wraps/moves
+ // that same input, which can retrigger DOM observation and freeze the UI.
 })();
