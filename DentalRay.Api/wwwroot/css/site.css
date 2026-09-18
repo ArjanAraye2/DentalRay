@@ -1998,3 +1998,137 @@ table button {
         padding:10px;
     }
 }
+
+
+/* ==========================================================
+   Design D compact density - Patient workspace
+   Match the compact reference: smaller type, controls, cards and rows.
+   ========================================================== */
+#patientsSection,
+#patientsSection + #patientDetailsSection:not(.hidden) {
+    font-size:12px;
+}
+#patientsSection { padding:12px 14px; }
+#patientsSection + #patientDetailsSection:not(.hidden) { padding:12px 14px 15px; }
+
+#patientsSection .section-header,
+#patientsSection + #patientDetailsSection .section-header {
+    min-height:auto;
+    padding:10px 13px;
+    margin-bottom:8px;
+}
+#patientsSection .section-header h2,
+#patientsSection + #patientDetailsSection .section-header h2 {
+    font-size:18px;
+}
+#patientsSection .section-header p,
+#patientsSection + #patientDetailsSection .section-header p {
+    font-size:10px;
+    margin-top:2px;
+}
+#patientsSection button,
+#patientsSection + #patientDetailsSection button {
+    min-height:32px;
+    padding:6px 10px;
+    font-size:11px;
+    border-radius:7px;
+}
+#patientsSection .patient-statistics {
+    gap:7px;
+    margin:8px 0;
+}
+#patientsSection .patient-statistics > div {
+    min-height:48px;
+    padding:7px 10px;
+    border-radius:9px;
+}
+#patientsSection .patient-statistics strong { font-size:18px; }
+#patientsSection .patient-statistics span { font-size:10px; }
+
+#patientsSection .search-panel { padding:9px 10px; margin-bottom:8px; }
+#patientsSection #patientSearch { min-height:34px; height:34px; padding:6px 9px; font-size:11px; }
+#patientsSection .checkbox-row { margin-top:7px; padding:4px 8px; font-size:10px; }
+
+#patientsSection .table-container { padding:6px; }
+#patientsSection .patient-table th {
+    padding:7px 8px;
+    font-size:10px;
+}
+#patientsSection .patient-table td {
+    padding:6px 8px;
+    font-size:11px;
+}
+#patientsSection .patient-table button { min-height:27px; padding:4px 8px; font-size:10px; }
+
+#patientsSection + #patientDetailsSection .details-toolbar {
+    gap:6px;
+    padding-bottom:8px;
+    margin-bottom:8px;
+}
+#patientsSection + #patientDetailsSection .patient-profile-panel {
+    gap:10px;
+    padding:8px 10px;
+    margin-bottom:8px;
+    border-radius:10px;
+}
+#patientsSection + #patientDetailsSection .patient-photo-frame {
+    width:66px;
+    height:66px;
+    flex-basis:66px;
+}
+#patientsSection + #patientDetailsSection .patient-profile-panel strong { font-size:12px; }
+#patientsSection + #patientDetailsSection .patient-profile-panel p { margin:1px 0 5px; font-size:9px; }
+
+#patientsSection + #patientDetailsSection .patient-info-grid {
+    gap:6px;
+    padding:8px;
+    margin-bottom:8px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    border-radius:10px;
+}
+#patientsSection + #patientDetailsSection .info-item {
+    min-height:42px;
+    padding:7px 8px;
+    border-radius:8px;
+    font-size:11px;
+}
+#patientsSection + #patientDetailsSection .info-label { font-size:9px; }
+
+#patientsSection + #patientDetailsSection .summary-row {
+    gap:7px;
+    margin-bottom:8px;
+    grid-template-columns:repeat(2,minmax(0,150px));
+}
+#patientsSection + #patientDetailsSection .summary-box {
+    padding:8px 10px;
+    min-height:45px;
+    border-radius:9px;
+}
+#patientsSection + #patientDetailsSection .summary-number { font-size:18px; }
+
+#patientsSection + #patientDetailsSection .subsection-header {
+    margin-top:8px;
+    padding:8px 11px 6px;
+}
+#patientsSection + #patientDetailsSection .subsection-header h3 { font-size:14px; }
+#patientsSection + #patientDetailsSection .studies-container { padding:7px; }
+#patientsSection + #patientDetailsSection .study-card {
+    padding:8px 10px;
+    margin-bottom:6px;
+    border-radius:8px;
+    font-size:10px;
+}
+#patientsSection + #patientDetailsSection .study-title { font-size:11px; }
+#patientsSection + #patientDetailsSection .study-meta { font-size:9px; }
+
+@media(max-width:900px){
+    #patientsSection + #patientDetailsSection .patient-info-grid {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+@media(max-width:700px){
+    #patientsSection + #patientDetailsSection .patient-info-grid { grid-template-columns:1fr; }
+    #patientsSection + #patientDetailsSection .patient-photo-frame {
+        width:58px;height:58px;flex-basis:58px;
+    }
+}
