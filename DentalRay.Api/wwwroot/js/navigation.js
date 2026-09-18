@@ -4,6 +4,7 @@
 (() => {
     const main = document.querySelector(".page-container");
     const sidebarLinks = [...document.querySelectorAll(".sidebar-link[data-nav]")];
+    let latestNetwork = {};
     if (!main || !sidebarLinks.length) return;
 
     const hidePages = () => document.querySelectorAll(".page-container > section").forEach(x => x.classList.add("hidden"));
@@ -34,7 +35,7 @@
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین تصاویر</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentImages" class="dashboard-recent-list"></div></section>
       </div>
       <section class="dashboard-network-panel">
-        <div class="dashboard-panel-title"><strong>دسترسی شبکه</strong><span>کامپیوترها و موبایل</span></div>
+        <div class="dashboard-panel-title"><strong>دسترسی شبکه</strong><button type="button" class="secondary-button dashboard-network-settings-button" data-open-nav="settings" data-settings-focus="network">⚙ تنظیمات دسترسی شبکه</button></div>
         <div class="dashboard-network-grid">
           <div><span>نام کامپیوتر سرور</span><strong id="dashboardServerName">-</strong></div>
           <div><span>IP محلی</span><strong id="dashboardLocalIp">-</strong></div>
@@ -51,6 +52,15 @@
     settings.className = "card hidden shell-page";
     settings.innerHTML = `
       <div class="section-header"><div><h2>تنظیمات و مدیریت سیستم</h2><p>تعاریف پایه و دسترسی‌های مدیریتی DentalRay</p></div></div>
+      <section id="networkAccessSettings" class="network-settings-card">
+        <div class="dashboard-panel-title"><strong>تنظیمات دسترسی شبکه</strong><span>اجرای DentalRay در کامپیوتر و موبایل</span></div>
+        <div class="network-settings-steps">
+          <div><strong>۱. آدرس برنامه</strong><span>برای دستگاه‌های شبکه از لینک نام سرور یا IP محلی استفاده کنید.</span></div>
+          <div><strong>۲. Windows Firewall</strong><span>پورت TCP شماره 5202 باید برای شبکه Private باز باشد.</span><code>netsh advfirewall firewall add rule name="DentalRay Port 5202" dir=in action=allow protocol=TCP localport=5202 profile=private</code></div>
+          <div><strong>۳. IP استاتیک اینترنت</strong><span>PublicHost را در فایل DentalRay.config.json تنظیم و Port Forwarding روتر را به سرور هدایت کنید.</span></div>
+        </div>
+        <div id="settingsNetworkLinks" class="dashboard-access-links"></div>
+      </section>
       <div id="settingsAdminActions" class="settings-admin-actions"></div>`;
     main.appendChild(settings);
 
@@ -101,6 +111,7 @@
             document.getElementById("dashboardStorageStatus").textContent = storage.available ? `● فضای تصاویر آماده است — ${formatBytes(storage.freeBytes)} آزاد` : `● مسیر ${storage.rootPath || "D:\\RadiologyData"} در دسترس نیست`;
             document.getElementById("dashboardStorageStatus").className = storage.available ? "system-ok" : "system-error";
             renderNetworkAccess(result.system?.network || {});
+            renderSettingsNetworkLinks(result.system?.network || {});
         } catch {
             dashboard.querySelectorAll(".dashboard-summary-card strong").forEach(x => x.textContent = "-");
             document.getElementById("dashboardRecentStudies").textContent = "دریافت اطلاعات داشبورد ناموفق بود.";
@@ -110,18 +121,27 @@
 
     const formatBytes = value => !Number.isFinite(Number(value)) ? "-" : `${(Number(value) / 1073741824).toLocaleString("fa-IR", { maximumFractionDigits: 1 })} گیگابایت`;
     function renderNetworkAccess(network) {
+        latestNetwork = network;
         document.getElementById("dashboardServerName").textContent = network.hostName || "-";
         document.getElementById("dashboardLocalIp").textContent = (network.localIps || []).join(" ، ") || "شناسایی نشد";
         const publicIp = document.getElementById("dashboardPublicIp");
         publicIp.textContent = network.publicConfigured ? network.publicHost : "تنظیم نشده";
         publicIp.className = network.publicConfigured ? "network-configured" : "network-not-configured";
         const lanRoot = document.getElementById("dashboardLanLinks"); lanRoot.replaceChildren();
+        if (network.serverNameUrl) lanRoot.appendChild(createAccessLink(network.serverNameUrl, "نام سرور"));
         (network.localUrls || []).forEach(url => lanRoot.appendChild(createAccessLink(url, "شبکه محلی")));
-        if (!(network.localUrls || []).length) lanRoot.textContent = "لینک شبکه محلی شناسایی نشد.";
+        if (!network.serverNameUrl && !(network.localUrls || []).length) lanRoot.textContent = "لینک شبکه محلی شناسایی نشد.";
         const publicRoot = document.getElementById("dashboardPublicLink"); publicRoot.replaceChildren();
         if (network.publicUrl) publicRoot.appendChild(createAccessLink(network.publicUrl, "اینترنت / IP استاتیک"));
         else publicRoot.textContent = "برای لینک اینترنتی، PublicHost را در DentalRay.config.json تنظیم کنید.";
         document.getElementById("dashboardNetworkNote").textContent = network.note || "";
+    }
+    function renderSettingsNetworkLinks(network) {
+        const root = document.getElementById("settingsNetworkLinks"); if (!root) return; root.replaceChildren();
+        const heading = document.createElement("strong"); heading.textContent = "لینک‌های آماده استفاده"; root.appendChild(heading);
+        if (network.serverNameUrl) root.appendChild(createAccessLink(network.serverNameUrl, "نام سرور"));
+        (network.localUrls || []).forEach(url => root.appendChild(createAccessLink(url, "IP محلی")));
+        if (network.publicUrl) root.appendChild(createAccessLink(network.publicUrl, "IP استاتیک"));
     }
     function createAccessLink(url, label) {
         const row = document.createElement("div"); row.className = "dashboard-access-row";
@@ -150,8 +170,11 @@
         window.scrollTo(0, 0);
     }
 
-    function openSettings() {
-        hidePages(); settings.classList.remove("hidden"); setActive("settings"); window.scrollTo(0, 0);
+    function openSettings(focus) {
+        hidePages(); settings.classList.remove("hidden"); setActive("settings");
+        renderSettingsNetworkLinks(latestNetwork);
+        if (focus === "network") document.getElementById("networkAccessSettings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        else window.scrollTo(0, 0);
     }
 
     function openPlaceholder(name) {
@@ -171,7 +194,9 @@
     }));
     dashboard.addEventListener("click", event => {
         const button = event.target.closest("[data-open-nav]");
-        if (button) navigate(button.dataset.openNav);
+        if (!button) return;
+        if (button.dataset.openNav === "settings") return openSettings(button.dataset.settingsFocus);
+        navigate(button.dataset.openNav);
     });
 
     // Admin scripts run before this file and create their own working buttons.

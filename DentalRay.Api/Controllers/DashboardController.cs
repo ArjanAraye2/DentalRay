@@ -103,6 +103,7 @@ namespace DentalRay.Api.Controllers
                 localIps = Array.Empty<string>();
             }
             var localUrls = localIps.Select(address => $"{scheme}://{address}:{port}").ToArray();
+            string serverNameUrl = $"{scheme}://{hostName}:{port}";
             string? publicHost = _configuration["RemoteAccess:PublicHost"]?.Trim();
             string publicScheme = _configuration["RemoteAccess:PublicScheme"]?.Trim() ?? "http";
             int publicPort = _configuration.GetValue<int?>("RemoteAccess:PublicPort") ?? port;
@@ -114,6 +115,7 @@ namespace DentalRay.Api.Controllers
                 hostName,
                 localIps,
                 localUrls,
+                serverNameUrl,
                 currentUrl = $"{Request.Scheme}://{Request.Host}",
                 publicHost,
                 publicUrl,

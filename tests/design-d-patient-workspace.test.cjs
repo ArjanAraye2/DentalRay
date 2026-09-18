@@ -70,6 +70,9 @@ assert.match(navigation, /dashboardRecentStudies/, "Recent Studies panel is miss
 assert.match(navigation, /dashboardLocalIp/, "Dashboard local network information is missing.");
 assert.match(navigation, /dashboardPublicIp/, "Dashboard static/public IP information is missing.");
 assert.match(navigation, /dashboardLanLinks/, "Dashboard LAN access links are missing.");
+assert.match(navigation, /networkAccessSettings/, "Dashboard network settings must open a dedicated Settings section.");
+assert.match(navigation, /data-settings-focus=\"network\"/, "Dashboard must provide a direct Network Settings action.");
+assert.match(navigation, /network\.serverNameUrl/, "The server-name URL must be rendered with the network links.");
 assert.match(navigation, /navigator\.clipboard\.writeText/, "Dashboard network links must be copyable.");
 assert.match(navigation, /navigate\(["']dashboard["']\);\s*\}\)\(\);/, "Dashboard must be the default landing page.");
 assert.match(html, /sidebar-link active["'] data-nav=["']dashboard["']/, "Dashboard must be active in the initial navigation markup.");
@@ -78,3 +81,4 @@ assert.match(dashboardController, /recentImages/, "Dashboard API must return rec
 assert.match(dashboardController, /Dns\.GetHostAddresses/, "Dashboard API must discover local IPv4 addresses.");
 assert.match(dashboardController, /RemoteAccess:PublicHost/, "Dashboard API must read the configured public or static host.");
 assert.match(dashboardController, /localUrls/, "Dashboard API must return LAN access URLs.");
+assert.match(dashboardController, /serverNameUrl/, "Dashboard API must return an access URL based on the server name.");

@@ -3266,8 +3266,49 @@ textarea,
 .dashboard-access-row button { min-height: 28px; padding: 4px 9px; font-size: 9px; }
 .dashboard-network-note { margin: 9px 2px 0; color: #607b95; font-size: 9px; }
 
+.dashboard-network-settings-button {
+    min-height: 30px;
+    padding: 5px 10px;
+    color: #1767b7;
+    border-color: #bcd8f0;
+    background: #fff;
+    font-size: 10px;
+}
+
+.network-settings-card {
+    scroll-margin-top: 18px;
+    margin-top: 14px;
+    padding: 15px;
+    border: 1px solid #cce1f3;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #eef7ff, #f7f3ff);
+    box-shadow: 0 7px 20px rgba(27, 81, 130, .07);
+}
+
+.network-settings-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 12px;
+}
+
+.network-settings-steps > div {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    padding: 11px;
+    border: 1px solid #d6e6f4;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .88);
+}
+
+.network-settings-steps strong { color: #174b80; font-size: 11px; }
+.network-settings-steps span { color: #607b95; font-size: 10px; line-height: 1.8; }
+.network-settings-steps code { direction: ltr; padding: 7px; overflow-wrap: anywhere; border-radius: 7px; background: #132f4d; color: #dff2ff; font-size: 9px; text-align: left; }
+
 @media (max-width: 800px) {
     .dashboard-network-grid { grid-template-columns: 1fr; }
+    .network-settings-steps { grid-template-columns: 1fr; }
     .dashboard-access-row { grid-template-columns: 1fr auto; }
     .dashboard-access-row > span { grid-column: 1 / -1; }
 }
