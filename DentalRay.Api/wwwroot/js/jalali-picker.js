@@ -19,6 +19,9 @@
  function enhance(input,withTime=false){if(!input||input.dataset.jalaliPicker)return;input.dataset.jalaliPicker="1";input.type="text";input.inputMode="numeric";input.dir="ltr";input.maxLength=withTime?16:10;
    const wrap=document.createElement("div");wrap.className="jalali-input-wrap";input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);
    const b=document.createElement("button");b.type="button";b.className="jalali-calendar-button";b.textContent="📅";b.title="انتخاب از تقویم شمسی";wrap.appendChild(b);
+   const day=document.createElement("div");day.className="jalali-weekday-name";wrap.insertAdjacentElement("afterend",day);
+   const updateDay=()=>{const m=norm(input.value).match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);if(!m){day.textContent="";return;}const d=greg(+m[1],+m[2],+m[3]);day.textContent=d?new Intl.DateTimeFormat("fa-IR",{weekday:"long"}).format(d):"";};
+   input.addEventListener("input",updateDay);input.addEventListener("change",updateDay);updateDay();
    b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();open(input,withTime);});
  }
  function open(input,withTime){document.getElementById("jalaliPickerModal")?.remove();const now=parts(new Date()),m=norm(input.value).match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);let y=m?+m[1]:now[0],mo=m?+m[2]:now[1];
