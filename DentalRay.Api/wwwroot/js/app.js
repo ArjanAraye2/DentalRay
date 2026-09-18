@@ -49,7 +49,7 @@ async function loadStudyDetailsImages(study){
 function openStudyDetails(study){
  selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
  E.studyDetailsTitle.textContent=study.studyTypeName||("Study "+study.studyID);E.studyDetailsDate.textContent=formatPersianDateTime(study.studyDate);
- E.studyDetailsInfo.replaceChildren(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"),createInfoLine("تعداد تصاویر",study.imageCount||0));loadStudyDetailsImages(study);window.scrollTo(0,0);
+ const editAction=E.studyDetailsInfo.querySelector(".study-info-actions");E.studyDetailsInfo.replaceChildren(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"),createInfoLine("تعداد تصاویر",study.imageCount||0));if(editAction)E.studyDetailsInfo.prepend(editAction);loadStudyDetailsImages(study);window.scrollTo(0,0);
 }
 function renderStudiesSafe(studies){
  E.studiesContainer.replaceChildren();
