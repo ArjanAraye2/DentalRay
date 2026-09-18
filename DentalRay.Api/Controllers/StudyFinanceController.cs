@@ -55,7 +55,7 @@ public class StudyFinanceController : ControllerBase
     {
         if (!await CanAccess(studyID)) return NotFound(new { success=false, message="Study not found." });
         var error=ValidatePayment(request);if(error!=null)return BadRequest(new{success=false,message=error});
-        var row=new StudyPayment{StudyID=studyID,PaymentDate=request.PaymentDate==default?DateTime.Now:request.PaymentDate,Amount=request.Amount,Description=Clean(request.Description),CreatedDate=DateTime.Now};
+        var row=new StudyPayment{StudyID=studyID,PaymentDate=request.PaymentDate==default?DateTime.Now:request.PaymentDate,PaymentMethod=request.PaymentMethod,Amount=request.Amount,Description=Clean(request.Description),CreatedDate=DateTime.Now};
         _db.StudyPayments.Add(row);await _db.SaveChangesAsync();return Ok(new{success=true,payment=row});
     }
 
@@ -65,7 +65,7 @@ public class StudyFinanceController : ControllerBase
         if (!await CanAccess(studyID)) return NotFound(new { success=false, message="Study not found." });
         var error=ValidatePayment(request);if(error!=null)return BadRequest(new{success=false,message=error});
         var row=await _db.StudyPayments.FirstOrDefaultAsync(x=>x.StudyID==studyID&&x.StudyPaymentID==id);if(row==null)return NotFound(new{success=false,message="Payment not found."});
-        row.PaymentDate=request.PaymentDate;row.Amount=request.Amount;row.Description=Clean(request.Description);row.ModifiedDate=DateTime.Now;await _db.SaveChangesAsync();return Ok(new{success=true,payment=row});
+        row.PaymentDate=request.PaymentDate;row.PaymentMethod=request.PaymentMethod;row.Amount=request.Amount;row.Description=Clean(request.Description);row.ModifiedDate=DateTime.Now;await _db.SaveChangesAsync();return Ok(new{success=true,payment=row});
     }
 
     [HttpDelete("payments/{id:long}")]
@@ -78,9 +78,9 @@ public class StudyFinanceController : ControllerBase
 
     private Task<bool> CanAccess(int studyID)=>studyID>0?_access.CanAccessStudyAsync(studyID,User):Task.FromResult(false);
     private static string? ValidateAction(StudyActionRequest x){if(string.IsNullOrWhiteSpace(x.Description))return "Action description is required.";if(x.Description.Trim().Length>500)return "Action description is too long.";if(x.Amount<0)return "Action amount cannot be negative.";if(x.DiscountAmount<0||x.DiscountAmount>x.Amount)return "Discount must be between zero and the action amount.";return null;}
-    private static string? ValidatePayment(StudyPaymentRequest x){if(x.Amount<=0)return "Payment amount must be greater than zero.";if(x.PaymentDate==default)return "Payment date is required.";if(x.Description is not null&&x.Description.Trim().Length>500)return "Payment description is too long.";return null;}
+    private static string? ValidatePayment(StudyPaymentRequest x){if(x.Amount<=0)return "Payment amount must be greater than zero.";if(x.PaymentDate==default)return "Payment date is required.";if(x.PaymentMethod is null or <1 or >3)return "نوع دریافت را انتخاب کنید.";if(x.Description is not null&&x.Description.Trim().Length>500)return "Payment description is too long.";return null;}
     private static string? Clean(string? value)=>string.IsNullOrWhiteSpace(value)?null:value.Trim();
 }
 
 public sealed class StudyActionRequest { public string Description { get; set; }=string.Empty; public decimal Amount { get; set; } public decimal DiscountAmount { get; set; } }
-public sealed class StudyPaymentRequest { public DateTime PaymentDate { get; set; } public decimal Amount { get; set; } public string? Description { get; set; } }
+public sealed class StudyPaymentRequest { public DateTime PaymentDate { get; set; } public byte? PaymentMethod { get; set; } public decimal Amount { get; set; } public string? Description { get; set; } }

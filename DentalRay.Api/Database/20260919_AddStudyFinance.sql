@@ -26,14 +26,22 @@ BEGIN
   StudyPaymentID BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblStudyPayments PRIMARY KEY,
   StudyID INT NOT NULL,
   PaymentDate DATETIME2(0) NOT NULL,
+  PaymentMethod TINYINT NULL,
   Amount DECIMAL(18,2) NOT NULL,
   Description NVARCHAR(500) NULL,
   CreatedDate DATETIME2(0) NOT NULL CONSTRAINT DF_tblStudyPayments_Created DEFAULT(SYSDATETIME()),
   ModifiedDate DATETIME2(0) NULL,
   CONSTRAINT CK_tblStudyPayments_Amount CHECK(Amount>0),
+  CONSTRAINT CK_tblStudyPayments_Method CHECK(PaymentMethod IS NULL OR PaymentMethod BETWEEN 1 AND 3),
   CONSTRAINT FK_tblStudyPayments_Studies FOREIGN KEY(StudyID) REFERENCES dbo.tblRadiologyStudies(StudyID)
  );
  CREATE INDEX IX_tblStudyPayments_StudyID ON dbo.tblStudyPayments(StudyID);
+END;
+
+IF COL_LENGTH(N'dbo.tblStudyPayments',N'PaymentMethod') IS NULL
+BEGIN
+ ALTER TABLE dbo.tblStudyPayments ADD PaymentMethod TINYINT NULL;
+ ALTER TABLE dbo.tblStudyPayments ADD CONSTRAINT CK_tblStudyPayments_Method CHECK(PaymentMethod IS NULL OR PaymentMethod BETWEEN 1 AND 3);
 END;
 
 COMMIT TRANSACTION;

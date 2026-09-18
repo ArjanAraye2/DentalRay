@@ -11,6 +11,8 @@ public class StudyPayment
     public long StudyPaymentID { get; set; }
     public int StudyID { get; set; }
     public DateTime PaymentDate { get; set; }
+    // 1=POS, 2=card-to-card transfer, 3=cash. Null preserves older records whose method is unknown.
+    public byte? PaymentMethod { get; set; }
     [Column(TypeName = "decimal(18,2)")]
     public decimal Amount { get; set; }
     [MaxLength(500)]
