@@ -715,6 +715,7 @@ button {
     position: relative;
     width: 100%;
     height: 100%;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -726,7 +727,29 @@ button {
         max-width: 95%;
         max-height: 88%;
         object-fit: contain;
+        cursor: grab;
+        touch-action: none;
+        transform-origin: center center;
+        user-select: none;
     }
+
+.image-viewer-toolbar {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    z-index: 1010;
+    display: flex;
+    gap: 6px;
+    padding: 7px;
+    transform: translateX(-50%);
+    background: rgba( 17, 24, 39, 0.82 );
+    border-radius: 10px;
+}
+
+.image-viewer-toolbar button {
+    min-width: 42px;
+    white-space: nowrap;
+}
 
 
 .modal-close-button {
