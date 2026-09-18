@@ -1656,3 +1656,125 @@ button {
     #uploadImageForm > .status-message,#uploadImageForm > .form-actions,
     #cameraPreviewPanel { grid-column:auto; }
 }
+
+
+/* ==========================================================
+   Design D - Administration, Tables & Dialogs
+   Global consistency pass without changing application behavior.
+   ========================================================== */
+
+/* Administration sections are created dynamically by the admin scripts,
+   so target their stable admin class/id naming patterns. */
+[id$="AdminSection"], [class*="admin-section"] {
+    border-color:#d9e8f5 !important;
+    border-radius:15px !important;
+    box-shadow:0 7px 24px rgba(22,91,150,.06) !important;
+}
+[id$="AdminSection"] h2, [id$="AdminSection"] h3,
+[class*="admin-section"] h2, [class*="admin-section"] h3 {
+    color:#123f78;
+}
+[id$="AdminSection"] table, [class*="admin-section"] table {
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+}
+[id$="AdminSection"] th, [class*="admin-section"] th {
+    padding:12px 10px;
+    background:#edf6ff;
+    color:#174b84;
+    text-align:right;
+    border-bottom:1px solid #dce9f5;
+}
+[id$="AdminSection"] td, [class*="admin-section"] td {
+    padding:11px 10px;
+    border-bottom:1px solid #edf2f7;
+}
+[id$="AdminSection"] tbody tr:hover,
+[class*="admin-section"] tbody tr:hover { background:#f2f9ff; }
+
+/* Unified table language for tables injected by administration scripts. */
+table {
+    border-spacing:0;
+}
+table button {
+    border-radius:8px;
+}
+
+/* Inputs created dynamically by admin modules inherit the Design D language. */
+.card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.card select,
+.card textarea {
+    border-color:#cfe0ef;
+}
+.card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.card select:focus,.card textarea:focus {
+    border-color:#1685ff;
+    box-shadow:0 0 0 3px rgba(22,133,255,.10);
+}
+
+/* Dialogs */
+.confirm-overlay { backdrop-filter:blur(3px); }
+.confirm-dialog {
+    border:1px solid #dce9f5;
+    border-radius:18px;
+    box-shadow:0 28px 80px rgba(8,39,68,.28);
+}
+.confirm-dialog h3 { color:#123f78; }
+.confirm-actions button { min-width:105px; }
+
+/* Toasts */
+.toast {
+    border-radius:12px;
+    border-color:#d9e8f5;
+    box-shadow:0 14px 40px rgba(8,39,68,.16);
+}
+
+/* Calendar */
+.jalali-picker-dialog {
+    border:1px solid #d9e8f5;
+    border-radius:17px;
+    box-shadow:0 28px 80px rgba(8,39,68,.25);
+}
+.jalali-picker-header { color:#123f78; font-weight:700; }
+.jalali-picker-grid button { border-radius:8px; }
+.jalali-picker-grid button:hover {
+    background:linear-gradient(135deg,#1685ff,#1769e8);
+}
+.jalali-calendar-button {
+    background:#eaf4ff;
+    color:#1265bc;
+}
+
+/* Image viewer follows the navy Design D shell. */
+.image-modal { background:rgba(3,15,29,.92); }
+.image-viewer-toolbar {
+    background:linear-gradient(180deg,#0b3158,#082744);
+    border-color:rgba(255,255,255,.18);
+    border-radius:13px;
+}
+.image-viewer-toolbar button {
+    background:#176fe3;
+    border-radius:8px;
+}
+.modal-close-button {
+    border:1px solid rgba(255,255,255,.25);
+    box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+
+/* Small global refinements */
+.status-message.error {
+    padding:8px 11px;
+    background:#fff2f1;
+    border:1px solid #ffd7d3;
+    border-radius:9px;
+}
+.warning-box { line-height:1.9; }
+.status-badge.active { background:#dff8eb; color:#087647; }
+.status-badge.inactive { background:#fff0ef; color:#b42318; }
+
+@media(max-width:700px){
+    [id$="AdminSection"] .table-container,
+    [class*="admin-section"] .table-container { overflow-x:auto; }
+    .confirm-dialog { padding:18px; }
+}
