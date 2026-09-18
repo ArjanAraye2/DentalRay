@@ -57,6 +57,7 @@ assert.match(app, /window\.DentalRayOpenNewStudy=event=>/, "New Study must expos
 assert.match(app, /newStudyButton\?\.addEventListener\(["']click["']/, "New Study must use a standard click listener.");
 assert.match(html, /<select[^>]*id=["']newStudyType["'][^>]*>\s*<option/, "New Study must use the Study Type lookup.");
 assert.match(app, /studyTypeID/, "New Study payload must use StudyTypeID.");
+assert.match(app, /toothNumbers:window\.DentalRayDentalChart\?\.getSelected\(chart\)\|\|\[\]/, "New Study payload must include selected tooth numbers.");
 assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
