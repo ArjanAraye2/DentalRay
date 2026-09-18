@@ -44,7 +44,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
 
-Name: "persian"; MessagesFile: "compiler:Languages\Persian.isl"
+Name: "persian"; MessagesFile: "Farsi.isl"
 
 
 
@@ -566,9 +566,10 @@ begin
     end;
 
     // خط اول نام Instance و خط دوم وضعیت دیتابیس است.
-    SqlPage.Values[0] := Trim(Copy(StateText, 1, Pos(#13, StateText) - 1));
-    if Pos(#13, StateText) = 0 then
-        SqlPage.Values[0] := Trim(Copy(StateText, 1, Pos(#10, StateText) - 1));
+    if Pos(#10, StateText) > 0 then
+        SqlPage.Values[0] := Trim(Copy(StateText, 1, Pos(#10, StateText) - 1))
+    else
+        SqlPage.Values[0] := Trim(StateText);
 
     DiscoveredDatabaseState := StateText;
     Result := True;
