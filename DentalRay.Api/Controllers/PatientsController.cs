@@ -201,9 +201,14 @@ namespace DentalRay.Api.Controllers
             if (patientID <= 0)
                 return BadRequest(new { success = false, message = "PatientID must be greater than zero." });
 
-            // Patient information itself is shared, but Studies remain strictly scoped.
-            var patient = await _context.Patients.AsNoTracking().FirstOrDefaultAsync(p => p.PatientID == patientID);
-            if (patient == null) return NotFound(new { success = false, message = "Patient not found." });
+            // Keep the Patient Details endpoint deliberately simple and bounded.
+            // Patient identity is shared. Studies are already access-filtered here.
+            // Image totals are derived from the already-loaded Study image counts,
+            // so opening a patient never needs a second RadiologyImages count query.
+            var patient = await _context.Patients.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.PatientID == patientID);
+            if (patient == null)
+                return NotFound(new { success = false, message = "Patient not found." });
 
             var accessibleStudies = _studyAccess.ApplyAccess(
                 _context.RadiologyStudies.AsNoTracking().Where(s => s.PatientID == patientID), User);
@@ -228,40 +233,14 @@ namespace DentalRay.Api.Controllers
                     .Select(g => new { StudyID = g.Key, Count = g.Count() })
                     .ToDictionaryAsync(x => x.StudyID, x => x.Count);
 
-            // Count only images attached to Studies visible to the current user.
-            // For SuperAdmin, count the patient's image rows directly. Avoid composing a
-            // nested IQueryable here; materializing the accessible image IDs keeps this
-            // endpoint predictable and prevents the details request from remaining pending.
-            int totalImageCount;
-            if (StudyAccessService.IsSuperAdmin(User))
-            {
-                totalImageCount = await _context.RadiologyImages.AsNoTracking()
-                    .CountAsync(i => i.PatientID == patientID);
-            }
-            else if (studyIDs.Count == 0)
-            {
-                totalImageCount = 0;
-            }
-            else
-            {
-                var accessibleImageIDs = await _context.RadiologyStudyImages.AsNoTracking()
-                    .Where(x => studyIDs.Contains(x.StudyID))
-                    .Select(x => x.ImageID)
-                    .Distinct()
-                    .ToListAsync();
-
-                totalImageCount = accessibleImageIDs.Count == 0
-                    ? 0
-                    : await _context.RadiologyImages.AsNoTracking()
-                        .CountAsync(i => i.PatientID == patientID && accessibleImageIDs.Contains(i.ImageID));
-            }
-
             var studyList = studies.Select(s => new
             {
                 s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID, s.StudyTypeName,
                 s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
                 imageCount = imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0
             }).ToList();
+
+            int totalImageCount = studyList.Sum(s => s.imageCount);
 
             return Ok(new
             {
