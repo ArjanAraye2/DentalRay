@@ -2508,3 +2508,48 @@ textarea,
     #patientDetailsSection .patient-overview-studies .summary-row { grid-template-columns: 1fr; }
     #patientDetailsSection .patient-overview-identity .patient-info-grid { grid-template-columns: 1fr; }
 }
+
+/* Global navigation and Settings hub. */
+.settings-admin-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    padding: 14px;
+}
+
+.settings-admin-actions .settings-action-button {
+    min-height: 74px;
+    padding: 14px;
+    color: #174b80;
+    border: 1px solid #cfe2f4;
+    border-radius: 11px;
+    background: #f4f9fe;
+    font-weight: 800;
+}
+
+.dashboard-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 14px 0;
+}
+
+.dashboard-summary-card {
+    display: grid;
+    gap: 5px;
+    min-height: 96px;
+    place-content: center;
+    text-align: center;
+    border: 1px solid #d7e7f5;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #f9fcff, #edf6ff);
+}
+
+.dashboard-summary-card strong { color: #0878e8; font-size: 28px; }
+.dashboard-summary-card span { color: #526d88; }
+.dashboard-shortcuts { display: flex; gap: 9px; flex-wrap: wrap; }
+.shell-empty-state { padding: 48px 20px; color: #6d8299; text-align: center; }
+
+@media (max-width: 700px) {
+    .dashboard-summary-grid { grid-template-columns: 1fr; }
+}
