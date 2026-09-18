@@ -1,511 +1,266 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
+using Microsoft.Win32;
 
 namespace DentalRay.SetupHelper
 {
     internal class Program
     {
-        // ========================================================
-        // Main
-        // ========================================================
-        //
-        // این برنامه توسط Installer اجرا خواهد شد.
-        //
-        // وظایف:
-        //
-        // 1. اتصال به SQL Server
-        // 2. صبر کردن تا SQL Server آماده شود
-        // 3. اجرای DentalRay.Database.Install.sql
-        // 4. آماده‌سازی دسترسی Windows Service برنامه
-        //
-        // ========================================================
-
-        static async Task<int> Main(
-            string[] args)
+        static async Task<int> Main(string[] args)
         {
             try
             {
-                Console.WriteLine(
-                    "DentalRay Setup Helper"
-                );
+                if (HasFlag(args, "--discover"))
+                    return await DiscoverAsync(GetArgumentValue(args, "--output"));
 
-                Console.WriteLine(
-                    "----------------------"
-                );
+                string serverName = GetArgumentValue(args, "--server") ?? @".\DENTALRAY";
+                bool createDatabase = string.Equals(
+                    GetArgumentValue(args, "--create-database"),
+                    "true",
+                    StringComparison.OrdinalIgnoreCase);
 
+                string scriptPath = GetArgumentValue(args, "--script")
+                    ?? Path.Combine(AppContext.BaseDirectory, "Database", "DentalRay.Database.Install.sql");
 
-                // ------------------------------------------------
-                // دریافت Server Name
-                // ------------------------------------------------
-                //
-                // مثال:
-                //
-                // .\DENTALRAY
-                //
-                // ------------------------------------------------
-
-                string serverName =
-                    GetArgumentValue(
-                        args,
-                        "--server")
-                    ??
-                    @".\DENTALRAY";
-
-
-                // ------------------------------------------------
-                // مسیر SQL Script
-                // ------------------------------------------------
-
-                string scriptPath =
-                    GetArgumentValue(
-                        args,
-                        "--script")
-                    ??
-                    Path.Combine(
-                        AppContext.BaseDirectory,
-                        "Database",
-                        "DentalRay.Database.Install.sql"
-                    );
-
-
-                Console.WriteLine(
-                    $"SQL Server: {serverName}"
-                );
-
-                Console.WriteLine(
-                    $"SQL Script: {scriptPath}"
-                );
-
-
-                // ------------------------------------------------
-                // بررسی وجود Script
-                // ------------------------------------------------
-
-                if (!File.Exists(
-                    scriptPath))
+                if (!File.Exists(scriptPath))
                 {
-                    Console.Error.WriteLine(
-                        "Database installation script was not found."
-                    );
-
+                    Console.Error.WriteLine("Database installation script was not found.");
                     return 10;
                 }
 
+                string masterConnectionString = BuildMasterConnectionString(serverName);
 
-                // =================================================
-                // Connection String اولیه
-                // =================================================
-                //
-                // ابتدا به master وصل می‌شویم.
-                //
-                // Windows Authentication استفاده می‌کنیم چون
-                // Installer با Administrator اجرا خواهد شد.
-                //
-                // =================================================
-
-                string masterConnectionString =
-                    new SqlConnectionStringBuilder
-                    {
-                        DataSource =
-                            serverName,
-
-                        InitialCatalog =
-                            "master",
-
-                        IntegratedSecurity =
-                            true,
-
-                        TrustServerCertificate =
-                            true,
-
-                        Encrypt =
-                            true,
-
-                        ConnectTimeout =
-                            5
-                    }
-                    .ConnectionString;
-
-
-                // =================================================
-                // صبر برای آماده‌شدن SQL Server
-                // =================================================
-
-                bool sqlReady =
-                    await WaitForSqlServerAsync(
-                        masterConnectionString,
-                        maxAttempts: 30,
-                        delaySeconds: 2
-                    );
-
-
-                if (!sqlReady)
+                if (!await WaitForSqlServerAsync(masterConnectionString, 30, 2))
                 {
-                    Console.Error.WriteLine(
-                        "SQL Server did not become ready in time."
-                    );
-
+                    Console.Error.WriteLine("SQL Server is not reachable.");
                     return 20;
                 }
 
+                bool databaseExists = await DatabaseExistsAsync(masterConnectionString, "DentalRay");
 
-                Console.WriteLine(
-                    "SQL Server is ready."
-                );
+                if (!databaseExists && !createDatabase)
+                {
+                    Console.WriteLine("DentalRay database does not exist.");
+                    return 30;
+                }
 
+                string sqlScript = await File.ReadAllTextAsync(scriptPath);
+                await ExecuteSqlScriptAsync(masterConnectionString, sqlScript);
+                await ConfigureServiceDatabaseAccessAsync(masterConnectionString);
 
-                // =================================================
-                // خواندن Script
-                // =================================================
-
-                string sqlScript =
-                    await File.ReadAllTextAsync(
-                        scriptPath
-                    );
-
-
-                // =================================================
-                // اجرای Script
-                // =================================================
-
-                await ExecuteSqlScriptAsync(
-                    masterConnectionString,
-                    sqlScript
-                );
-
-
-                Console.WriteLine(
-                    "DentalRay database script completed."
-                );
-
-
-                // =================================================
-                // آماده‌سازی دسترسی Windows Service
-                // =================================================
-                //
-                // DentalRay به صورت Windows Service و با حساب
-                // LocalSystem اجرا خواهد شد.
-                //
-                // بنابراین SQL Login مربوط به:
-                //
-                // NT AUTHORITY\SYSTEM
-                //
-                // را ایجاد و به دیتابیس DentalRay دسترسی می‌دهیم.
-                //
-                // =================================================
-
-                await ConfigureServiceDatabaseAccessAsync(
-                    masterConnectionString
-                );
-
-
-                Console.WriteLine(
-                    "DentalRay service database access configured."
-                );
-
-
-                Console.WriteLine(
-                    "Setup Helper completed successfully."
-                );
-
-
+                Console.WriteLine("DentalRay database is ready.");
                 return 0;
+            }
+            catch (SqlException ex)
+            {
+                Console.Error.WriteLine($"SQL Error {ex.Number}: {ex.Message}");
+                return 40;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(
-                    "DentalRay Setup Helper failed."
-                );
-
-                Console.Error.WriteLine(
-                    ex.ToString()
-                );
-
-
+                Console.Error.WriteLine(ex.ToString());
                 return 100;
             }
         }
 
-
-        // ========================================================
-        // GetArgumentValue
-        // ========================================================
-        //
-        // مثال:
-        //
-        // --server .\DENTALRAY
-        //
-        // ========================================================
-
-        private static string? GetArgumentValue(
-            string[] args,
-            string argumentName)
-        {
-            for (
-                int i = 0;
-                i < args.Length;
-                i++)
+        private static string BuildMasterConnectionString(string serverName) =>
+            new SqlConnectionStringBuilder
             {
-                if (!string.Equals(
-                    args[i],
-                    argumentName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
+                DataSource = serverName,
+                InitialCatalog = "master",
+                IntegratedSecurity = true,
+                TrustServerCertificate = true,
+                Encrypt = true,
+                ConnectTimeout = 5
+            }.ConnectionString;
 
-
-                if (i + 1 >=
-                    args.Length)
-                {
-                    return null;
-                }
-
-
-                return args[i + 1];
-            }
-
-
-            return null;
-        }
-
-
-        // ========================================================
-        // WaitForSqlServerAsync
-        // ========================================================
-        //
-        // بعد از نصب SQL Express ممکن است Service چند ثانیه
-        // برای آماده‌شدن زمان نیاز داشته باشد.
-        //
-        // بنابراین چند بار اتصال را امتحان می‌کنیم.
-        //
-        // ========================================================
-
-        private static async Task<bool>
-            WaitForSqlServerAsync(
-                string connectionString,
-                int maxAttempts,
-                int delaySeconds)
+        private static async Task<int> DiscoverAsync(string? outputPath)
         {
-            for (
-                int attempt = 1;
-                attempt <= maxAttempts;
-                attempt++)
+            var candidates = DiscoverSqlInstances().Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            // اگر SQL Server به صورت Default Instance نصب شده باشد.
+            if (!candidates.Contains(".", StringComparer.OrdinalIgnoreCase))
+                candidates.Add(".");
+
+            var results = new List<(string Server, bool Reachable, bool HasDentalRay)>();
+
+            foreach (string server in candidates)
             {
                 try
                 {
-                    await using
-                    SqlConnection connection =
-                        new SqlConnection(
-                            connectionString
-                        );
+                    string cs = BuildMasterConnectionString(server);
+                    if (!await CanConnectAsync(cs))
+                        continue;
 
-
-                    await connection
-                        .OpenAsync();
-
-
-                    await using
-                    SqlCommand command =
-                        new SqlCommand(
-                            "SELECT 1;",
-                            connection
-                        );
-
-
-                    await command
-                        .ExecuteScalarAsync();
-
-
-                    return true;
+                    bool hasDb = await DatabaseExistsAsync(cs, "DentalRay");
+                    results.Add((server, true, hasDb));
                 }
                 catch
                 {
-                    Console.WriteLine(
-                        $"Waiting for SQL Server... " +
-                        $"Attempt {attempt}/{maxAttempts}"
-                    );
-
-
-                    await Task.Delay(
-                        TimeSpan.FromSeconds(
-                            delaySeconds
-                        )
-                    );
+                    // Instance نصب‌شده ولی غیرقابل دسترسی، از انتخاب خودکار حذف می‌شود.
                 }
             }
 
+            var selected = results.FirstOrDefault(x => x.HasDentalRay);
+            if (string.IsNullOrWhiteSpace(selected.Server))
+                selected = results.FirstOrDefault(x => x.Reachable);
+
+            if (string.IsNullOrWhiteSpace(selected.Server))
+            {
+                Console.Error.WriteLine("No reachable SQL Server instance was found.");
+                return 21;
+            }
+
+            string target = outputPath ?? Path.Combine(Path.GetTempPath(), "DentalRay.SqlDiscovery.txt");
+            await File.WriteAllTextAsync(target,
+                $"{selected.Server}|{(selected.HasDentalRay ? "EXISTS" : "MISSING")}");
+
+            Console.WriteLine(selected.Server);
+            Console.WriteLine(selected.HasDentalRay ? "EXISTS" : "MISSING");
+            return 0;
+        }
+
+        private static IEnumerable<string> DiscoverSqlInstances()
+        {
+            var names = new List<string>();
+
+            foreach (RegistryView view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+            {
+                try
+                {
+                    using RegistryKey? key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view)
+                        .OpenSubKey(@"SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL");
+
+                    if (key != null)
+                    {
+                        foreach (string instance in key.GetValueNames())
+                        {
+                            if (string.Equals(instance, "MSSQLSERVER", StringComparison.OrdinalIgnoreCase))
+                                names.Add(".");
+                            else
+                                names.Add($".\\{instance}");
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            return names;
+        }
+
+        private static async Task<bool> CanConnectAsync(string connectionString)
+        {
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            return connection.State == System.Data.ConnectionState.Open;
+        }
+
+        private static async Task<bool> DatabaseExistsAsync(string masterConnectionString, string databaseName)
+        {
+            await using var connection = new SqlConnection(masterConnectionString);
+            await connection.OpenAsync();
+
+            await using var command = new SqlCommand(
+                "SELECT CASE WHEN DB_ID(@name) IS NULL THEN 0 ELSE 1 END;",
+                connection);
+            command.Parameters.AddWithValue("@name", databaseName);
+            return Convert.ToInt32(await command.ExecuteScalarAsync()) == 1;
+        }
+
+        private static async Task<bool> WaitForSqlServerAsync(
+            string connectionString, int maxAttempts, int delaySeconds)
+        {
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    if (await CanConnectAsync(connectionString))
+                        return true;
+                }
+                catch { }
+
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+            }
 
             return false;
         }
 
-
-        // ========================================================
-        // ExecuteSqlScriptAsync
-        // ========================================================
-        //
-        // SQL Server خود کلمه GO را نمی‌شناسد.
-        //
-        // GO مربوط به ابزارهایی مانند SSMS و sqlcmd است.
-        //
-        // بنابراین Script را به Batchهای جدا تقسیم می‌کنیم.
-        //
-        // ========================================================
-
-        private static async Task
-            ExecuteSqlScriptAsync(
-                string connectionString,
-                string script)
+        private static async Task ExecuteSqlScriptAsync(string connectionString, string script)
         {
-            string[] batches =
-                Regex.Split(
-                    script,
-                    @"^\s*GO\s*;?\s*$",
-                    RegexOptions.Multiline |
-                    RegexOptions.IgnoreCase
-                );
+            string[] batches = Regex.Split(
+                script,
+                @"^\s*GO\s*;?\s*$",
+                RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
-
-            await using
-            SqlConnection connection =
-                new SqlConnection(
-                    connectionString
-                );
-
-
+            await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
 
-
-            foreach (
-                string batch
-                in batches)
+            foreach (string batch in batches)
             {
-                string sql =
-                    batch.Trim();
-
-
-                if (string.IsNullOrWhiteSpace(
-                    sql))
-                {
+                string sql = batch.Trim();
+                if (string.IsNullOrWhiteSpace(sql))
                     continue;
-                }
 
-
-                await using
-                SqlCommand command =
-                    new SqlCommand(
-                        sql,
-                        connection
-                    );
-
-
-                // Database creation ممکن است کمی زمان ببرد.
-                command.CommandTimeout =
-                    120;
-
-
-                await command
-                    .ExecuteNonQueryAsync();
+                await using var command = new SqlCommand(sql, connection)
+                {
+                    CommandTimeout = 120
+                };
+                await command.ExecuteNonQueryAsync();
             }
         }
 
-
-        // ========================================================
-        // ConfigureServiceDatabaseAccessAsync
-        // ========================================================
-        //
-        // Windows Service فعلی DentalRay تحت LocalSystem اجرا
-        // خواهد شد.
-        //
-        // بنابراین:
-        //
-        // Login:
-        // NT AUTHORITY\SYSTEM
-        //
-        // را روی SQL Server ایجاد می‌کنیم.
-        //
-        // در Database DentalRay نیز User متناظر ساخته می‌شود.
-        //
-        // سپس فقط دسترسی‌های موردنیاز برنامه داده می‌شود:
-        //
-        // db_datareader
-        // db_datawriter
-        //
-        // ========================================================
-
-        private static async Task
-            ConfigureServiceDatabaseAccessAsync(
-                string masterConnectionString)
+        private static async Task ConfigureServiceDatabaseAccessAsync(string masterConnectionString)
         {
             const string sql = @"
 IF NOT EXISTS
 (
-    SELECT 1
-    FROM sys.server_principals
+    SELECT 1 FROM sys.server_principals
     WHERE name = N'NT AUTHORITY\SYSTEM'
 )
 BEGIN
-    CREATE LOGIN [NT AUTHORITY\SYSTEM]
-    FROM WINDOWS;
+    CREATE LOGIN [NT AUTHORITY\SYSTEM] FROM WINDOWS;
 END;
 
 USE [DentalRay];
 
 IF NOT EXISTS
 (
-    SELECT 1
-    FROM sys.database_principals
+    SELECT 1 FROM sys.database_principals
     WHERE name = N'NT AUTHORITY\SYSTEM'
 )
 BEGIN
-    CREATE USER [NT AUTHORITY\SYSTEM]
-    FOR LOGIN [NT AUTHORITY\SYSTEM];
+    CREATE USER [NT AUTHORITY\SYSTEM] FOR LOGIN [NT AUTHORITY\SYSTEM];
 END;
 
-IF IS_ROLEMEMBER(
-    N'db_datareader',
-    N'NT AUTHORITY\SYSTEM'
-) <> 1
-BEGIN
-    ALTER ROLE [db_datareader]
-    ADD MEMBER [NT AUTHORITY\SYSTEM];
-END;
+IF IS_ROLEMEMBER(N'db_datareader', N'NT AUTHORITY\SYSTEM') <> 1
+    ALTER ROLE [db_datareader] ADD MEMBER [NT AUTHORITY\SYSTEM];
 
-IF IS_ROLEMEMBER(
-    N'db_datawriter',
-    N'NT AUTHORITY\SYSTEM'
-) <> 1
-BEGIN
-    ALTER ROLE [db_datawriter]
-    ADD MEMBER [NT AUTHORITY\SYSTEM];
-END;
+IF IS_ROLEMEMBER(N'db_datawriter', N'NT AUTHORITY\SYSTEM') <> 1
+    ALTER ROLE [db_datawriter] ADD MEMBER [NT AUTHORITY\SYSTEM];
 ";
 
-
-            await using
-            SqlConnection connection =
-                new SqlConnection(
-                    masterConnectionString
-                );
-
-
+            await using var connection = new SqlConnection(masterConnectionString);
             await connection.OpenAsync();
 
+            await using var command = new SqlCommand(sql, connection)
+            {
+                CommandTimeout = 60
+            };
+            await command.ExecuteNonQueryAsync();
+        }
 
-            await using
-            SqlCommand command =
-                new SqlCommand(
-                    sql,
-                    connection
-                );
+        private static bool HasFlag(string[] args, string name) =>
+            args.Any(a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
 
+        private static string? GetArgumentValue(string[] args, string name)
+        {
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+                    return args[i + 1];
+            }
 
-            command.CommandTimeout =
-                60;
-
-
-            await command
-                .ExecuteNonQueryAsync();
+            return null;
         }
     }
 }
