@@ -2132,3 +2132,122 @@ table button {
         width:58px;height:58px;flex-basis:58px;
     }
 }
+
+
+/* ==========================================================
+   Design D — Patient list with row photo and clinical summary
+   ========================================================== */
+:root {
+    --font-fa: Vazirmatn, "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.patient-table,
+.study-card {
+    font-family: var(--font-fa);
+}
+
+#patientsSection .table-container {
+    overflow-x: auto;
+    background: #fff;
+}
+
+#patientsSection .patient-table {
+    min-width: 1080px;
+}
+
+#patientsSection .patient-table th {
+    padding: 10px 9px;
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+#patientsSection .patient-table td {
+    padding: 8px 9px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+#patientsSection .patient-table th:first-child,
+#patientsSection .patient-table td:first-child {
+    min-width: 190px;
+    text-align: right;
+}
+
+.patient-identity-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.patient-row-avatar {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #eaf4ff;
+    box-shadow: 0 2px 9px rgba(21, 95, 158, .18);
+}
+
+.patient-row-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.patient-row-avatar-empty {
+    color: #2477c9;
+    font-size: 21px;
+}
+
+.patient-row-name {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.55;
+}
+
+.patient-row-name strong {
+    color: #123f78;
+    font-size: 13px;
+}
+
+.patient-row-name small {
+    color: #3576bc;
+    direction: ltr;
+    font-size: 11px;
+}
+
+#patientsSection .patient-open-button {
+    min-width: 92px;
+    background: #eef6ff;
+    color: #086bd8;
+    border: 1px solid #bddcff;
+    font-weight: 700;
+}
+
+#patientsSection .patient-list-row.selected td {
+    background: #e8f4ff;
+}
+
+#patientDetailsSection .study-card {
+    border-color: #cfe3f6;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff, #f7fbff);
+}
+
+@media (max-width: 900px) {
+    #patientsSection .patient-table { min-width: 980px; }
+    .patient-row-avatar { width: 40px; height: 40px; flex-basis: 40px; }
+}

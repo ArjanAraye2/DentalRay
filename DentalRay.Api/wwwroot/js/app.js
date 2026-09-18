@@ -41,7 +41,49 @@ window.formatPersianDateForInput=formatPersianDateForInput;
 window.formatPersianDateTimeForInput=formatPersianDateTimeForInput;
 function validatePatientFields(f,l,n,m){if(!f)throw new Error("نام بیمار را وارد کنید.");if(!l)throw new Error("نام خانوادگی بیمار را وارد کنید.");if(!/^\d{10}$/.test(n))throw new Error("کد ملی باید دقیقاً ۱۰ رقم باشد.");if(m&&!/^\+?\d+$/.test(m))throw new Error("شماره موبایل معتبر نیست.");}
 
-async function loadPatients(search=""){try{setFormStatus(E.statusMessage,"در حال دریافت اطلاعات...",false);const q=new URLSearchParams();if(search.trim())q.set("search",search.trim());q.set("includeInactive",E.includeInactivePatients.checked);const r=await fetch(`/api/patients?${q}`),x=await r.json();if(!r.ok)throw new Error(getApiError(x,"خطا در دریافت بیماران."));const s=x.statistics||{};E.statTotalPatients.textContent=s.totalPatients??0;E.statActivePatients.textContent=s.activePatients??0;E.statInactivePatients.textContent=s.inactivePatients??0;E.statPatientsWithStudies.textContent=s.patientsWithStudies??0;E.patientsTableBody.innerHTML="";(x.patients||x||[]).forEach(p=>{const tr=document.createElement("tr");tr.tabIndex=0;tr.className="patient-list-row";tr.title="نمایش پرونده و مطالعات بیمار";tr.append(createCell(p.firstName),createCell(p.lastName),createCell(p.nationalCode),createCell(p.mobile));const td=document.createElement("td"),b=document.createElement("button");b.textContent="انتخاب";td.appendChild(b);tr.appendChild(td);const select=async()=>{try{await openPatientInline(p.patientID,tr);}catch(e){showToast(e.message||"پرونده بیمار دریافت نشد.","error");}};tr.onclick=e=>{if(e.target.closest("button")){e.stopPropagation();}select();};tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select();}};E.patientsTableBody.appendChild(tr);});setFormStatus(E.statusMessage,"",false);}catch(e){setFormStatus(E.statusMessage,e.message,true);}}
+function createPatientIdentityCell(patient){
+ const td=document.createElement("td");td.className="patient-identity-cell";
+ const avatar=document.createElement("span");avatar.className="patient-row-avatar";
+ const img=document.createElement("img");img.alt=`تصویر ${patient.firstName||""} ${patient.lastName||""}`;img.loading="lazy";img.src=`/api/patients/${patient.patientID}/photo`;
+ img.onerror=()=>{img.remove();avatar.classList.add("patient-row-avatar-empty");avatar.textContent="👤";};
+ avatar.appendChild(img);
+ const text=document.createElement("span");text.className="patient-row-name";
+ const name=document.createElement("strong");name.textContent=`${patient.firstName||""} ${patient.lastName||""}`.trim()||"-";
+ const code=document.createElement("small");code.textContent=formatPatientCode(patient.patientID);
+ text.append(name,code);td.append(avatar,text);return td;
+}
+function createPatientStatusCell(patient){
+ const td=document.createElement("td"),badge=document.createElement("span");
+ badge.className=`status-badge ${patient.isActive?"active":"inactive"}`;badge.textContent=patient.isActive?"فعال":"غیرفعال";td.appendChild(badge);return td;
+}
+async function loadPatients(search=""){
+ try{
+  setFormStatus(E.statusMessage,"در حال دریافت اطلاعات...",false);
+  const q=new URLSearchParams();if(search.trim())q.set("search",search.trim());q.set("includeInactive",E.includeInactivePatients.checked);
+  const r=await fetch(`/api/patients?${q}`),x=await r.json();if(!r.ok)throw new Error(getApiError(x,"خطا در دریافت بیماران."));
+  const s=x.statistics||{};E.statTotalPatients.textContent=s.totalPatients??0;E.statActivePatients.textContent=s.activePatients??0;E.statInactivePatients.textContent=s.inactivePatients??0;E.statPatientsWithStudies.textContent=s.patientsWithStudies??0;
+  E.patientsTableBody.replaceChildren();
+  (x.patients||x||[]).forEach(p=>{
+   const tr=document.createElement("tr");tr.tabIndex=0;tr.className="patient-list-row";tr.title="نمایش پرونده و مطالعات بیمار";
+   tr.append(
+    createPatientIdentityCell(p),
+    createCell(formatPatientCode(p.patientID)),
+    createCell(formatPatientGender(p.gender)),
+    createCell(formatPersianDate(p.birthDate)),
+    createCell(p.nationalCode||"-"),
+    createCell(p.mobile||"-"),
+    createCell(p.studyCount??0),
+    createCell(formatPersianDate(p.lastStudyDate)),
+    createPatientStatusCell(p)
+   );
+   const td=document.createElement("td"),b=document.createElement("button");b.type="button";b.className="patient-open-button";b.textContent="باز کردن پرونده";td.appendChild(b);tr.appendChild(td);
+   const select=async()=>{try{await openPatientInline(p.patientID,tr);}catch(e){showToast(e.message||"پرونده بیمار دریافت نشد.","error");}};
+   tr.onclick=e=>{if(e.target.closest("button"))e.stopPropagation();select();};tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select();}};
+   E.patientsTableBody.appendChild(tr);
+  });
+  setFormStatus(E.statusMessage,"",false);
+ }catch(e){setFormStatus(E.statusMessage,e.message,true);}
+}
 async function openPatientInline(id,row){
  selectedPatientID=id;
  document.querySelectorAll(".patient-list-row.selected").forEach(x=>x.classList.remove("selected"));

@@ -30,3 +30,9 @@ assert.match(app, /function\s+printPatientInformation\s*\(/, "Patient print acti
 assert.match(app, /P-\$\{String\(id\)\.padStart\(3,["']0["']\)\}/, "Display patient code must use the Design D P-001 format.");
 
 console.log("Design D patient workspace contract: passed");
+
+
+assert.match(html, /<th>بیمار<\/th>/, "Design D patient identity column is missing.");
+assert.match(html, /<th>مطالعات<\/th>/, "Design D study summary column is missing.");
+assert.match(app, /function\s+createPatientIdentityCell\s*\(/, "Patient row photo renderer is missing.");
+assert.match(app, /\/api\/patients\/\\\$\{patient\.patientID\}\/photo/, "Patient row photo endpoint is not wired.");

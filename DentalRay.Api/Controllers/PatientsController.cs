@@ -54,7 +54,14 @@ namespace DentalRay.Api.Controllers
                 {
                     p.PatientID, p.NationalCode, p.FirstName, p.LastName,
                     p.BirthDate, p.Gender, p.Mobile, p.IsActive,
-                    p.CreatedDate, p.ModifiedDate
+                    p.CreatedDate, p.ModifiedDate,
+                    // Design D patient list summary. These correlated aggregates are
+                    // translated by EF Core and avoid one query per patient.
+                    StudyCount = _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID),
+                    LastStudyDate = _context.RadiologyStudies
+                        .Where(s => s.PatientID == p.PatientID)
+                        .Select(s => (DateTime?)s.StudyDate)
+                        .Max()
                 })
                 .ToListAsync();
 
