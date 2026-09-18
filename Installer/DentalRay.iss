@@ -269,7 +269,7 @@ begin
         '  },' + CRLF +
         '  "SuperAdmin": {' + CRLF +
         '    "UserName": "admin",' + CRLF +
-        '    "PasswordHash": "AQAAAAEAAYagAAAAEK3Pciij9rE+yE0BUHfWjd2daZqT6hdgfJKmhV7ijJiEK8cnV5+uKOdNyf5fyfFyvA=="' + CRLF +
+        '    "PasswordHash": "AQAAAAEAAYagAAAAIAAAABCBjVBbt5kzIlUWwazqjum6h32FjeQJ8lzyaWYuvoCNapKTJBoz7+V4uCMrjo1QLPs="' + CRLF +
         '  },' + CRLF +
         '  "Urls": "http://0.0.0.0:5202",' + CRLF +
         '  "RemoteAccess": {' + CRLF +
