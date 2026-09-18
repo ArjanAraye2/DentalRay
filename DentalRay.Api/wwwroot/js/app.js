@@ -49,7 +49,7 @@ function renderStudiesSafe(studies){
   const card=document.createElement("div");card.className="study-card";card.dataset.studyId=String(study.studyID);
   const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||("Study "+study.studyID);
   const meta=document.createElement("div");meta.className="study-meta";
-  const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+(study.studyDate||"-");
+  const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+formatPersianDateTime(study.studyDate);
   const areaLine=document.createElement("div");areaLine.textContent="ناحیه: "+(study.bodyPart||"-");
   const descriptionLine=document.createElement("div");descriptionLine.textContent="توضیحات: "+(study.description||"-");
   const reportLine=document.createElement("div");reportLine.textContent="گزارش: "+(study.report||"-");
