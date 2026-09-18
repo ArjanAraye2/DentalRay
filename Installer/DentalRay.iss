@@ -179,8 +179,34 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var ResultCode: Integer;
 begin
     Result := '';
-    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'stop DentalRay', '', ResultCode) then begin Result := 'امکان توقف سرویس قبلی DentalRay وجود ندارد.'; Exit; end;
-    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'delete DentalRay', '', ResultCode) then begin Result := 'امکان حذف ثبت سرویس قبلی DentalRay وجود ندارد.'; Exit; end;
+
+    { اگر سرویس وجود نداشته باشد یا از قبل متوقف باشد، ادامه نصب مجاز است. }
+    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'stop DentalRay', '', ResultCode) then
+    begin
+        Result := 'امکان بررسی سرویس قبلی DentalRay وجود ندارد.';
+        Exit;
+    end;
+
+    if (ResultCode <> 0) and (ResultCode <> 1060) and (ResultCode <> 1062) then
+    begin
+        Result := 'امکان توقف سرویس قبلی DentalRay وجود ندارد.' + CRLF +
+            'Exit Code: ' + IntToStr(ResultCode);
+        Exit;
+    end;
+
+    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'delete DentalRay', '', ResultCode) then
+    begin
+        Result := 'امکان بررسی ثبت سرویس قبلی DentalRay وجود ندارد.';
+        Exit;
+    end;
+
+    { خطای 1060 یعنی سرویس وجود ندارد؛ این حالت برای نصب جدید طبیعی است. }
+    if (ResultCode <> 0) and (ResultCode <> 1060) then
+    begin
+        Result := 'امکان حذف ثبت سرویس قبلی DentalRay وجود ندارد.' + CRLF +
+            'Exit Code: ' + IntToStr(ResultCode);
+        Exit;
+    end;
 end;
 
 procedure ConfigureDentalRay;
