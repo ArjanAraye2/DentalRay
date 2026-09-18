@@ -199,7 +199,7 @@ begin
     // ظاهر کلی فرم‌های نصب: فونت فارسی، راست‌چین و پس‌زمینه روشن و شاد.
     WizardForm.Font.Name := 'Segoe UI';
     WizardForm.Font.Size := 9;
-    WizardForm.BiDiMode := bdRightToLeft;
+    // راست‌چین بودن رابط از طریق persian.RightToLeft در [LangOptions] تنظیم می‌شود.
 
     WizardForm.Color := $00FBFDFF;
     WizardForm.WelcomeLabel1.Font.Name := 'Segoe UI';
