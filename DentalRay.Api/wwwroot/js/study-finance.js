@@ -20,7 +20,7 @@
  }
  function createPaymentBox(root){
   const box=document.createElement("section");box.className="study-finance-box";box.innerHTML="<h6>دریافت‌های Study</h6>";
-  const form=document.createElement("div");form.className="study-finance-form payment";const date=field("تاریخ شمسی"),amount=field("مبلغ دریافت","number"),desc=field("شرح دریافت"),add=button("+ دریافت");date.dataset.jalaliDatetime="";date.value=window.toEnglishJalaliInput?.(new Date(),true)||"";window.DentalRayJalali?.enhanceAll(date);form.append(date,amount,desc,add);
+  const form=document.createElement("div");form.className="study-finance-form payment";const date=field("تاریخ شمسی"),amount=field("مبلغ دریافت","number"),desc=field("شرح دریافت"),add=button("+ دریافت");date.dataset.jalaliDatetime="";date.value=window.toEnglishJalaliInput?.(new Date(),true)||"";form.append(date,amount,desc,add);window.DentalRayJalali?.enhanceAll(date);
   const list=document.createElement("div");list.className="study-finance-list";list.dataset.list="payments";box.append(form,list);
   add.onclick=()=>{let paymentDate;try{paymentDate=window.parsePersianDateForBackend(date.value,true);}catch(e){setStatus(root,e.message,true);return;}savePayment(root,{paymentDate,amount:Number(amount.value),description:desc.value},()=>{amount.value="";desc.value="";});};return box;
  }
