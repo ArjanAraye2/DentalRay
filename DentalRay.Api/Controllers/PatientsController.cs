@@ -250,6 +250,12 @@ namespace DentalRay.Api.Controllers
 
             Console.WriteLine($"[DentalRay PatientDetails] RETURN PatientID={patientID} Studies={studyList.Count} Images={totalImageCount}");
 
+            // Diagnostic headers make the endpoint stage visible in the browser's
+            // Network tab without relying on Console.WriteLine/Visual Studio Output.
+            Response.Headers["X-DentalRay-PatientDetails"] = "completed";
+            Response.Headers["X-DentalRay-PatientID"] = patientID.ToString();
+            Response.Headers["X-DentalRay-StudyCount"] = studyList.Count.ToString();
+
             return Ok(new
             {
                 success = true,
