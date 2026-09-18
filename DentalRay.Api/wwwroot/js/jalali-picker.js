@@ -3,7 +3,14 @@
  const norm=v=>String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
  const fmt=new Intl.DateTimeFormat("en-US-u-ca-persian",{year:"numeric",month:"numeric",day:"numeric"});
  const parts=d=>{const p=fmt.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;return [g("year"),g("month"),g("day")];};
- function greg(jy,jm,jd){const target=jy*10000+jm*100+jd,start=new Date(jy+621,2,1);for(let i=0;i<370;i++){const d=new Date(start);d.setDate(start.getDate()+i);const [y,m,day]=parts(d);if(y*10000+m*100+day===target)return d;}return null;}
+ function greg(jy,jm,jd){
+   // Search from the Gregorian year in which the requested Jalali year starts.
+   // The previous March-1 starting point was too late for Esfand: e.g. 1342/12
+   // begins in February 1964, so days 15..29 could never be found.
+   const target=jy*10000+jm*100+jd,start=new Date(jy+621,0,1);
+   for(let i=0;i<500;i++){const d=new Date(start);d.setDate(start.getDate()+i);const [y,m,day]=parts(d);if(y*10000+m*100+day===target)return d;}
+   return null;
+ }
  function enhance(input,withTime=false){if(!input||input.dataset.jalaliPicker)return;input.dataset.jalaliPicker="1";input.type="text";input.inputMode="numeric";input.dir="ltr";input.maxLength=withTime?16:10;
    const wrap=document.createElement("div");wrap.className="jalali-input-wrap";input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);
    const b=document.createElement("button");b.type="button";b.className="jalali-calendar-button";b.textContent="📅";b.title="انتخاب از تقویم شمسی";wrap.appendChild(b);
