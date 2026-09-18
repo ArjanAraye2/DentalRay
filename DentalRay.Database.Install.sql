@@ -160,12 +160,23 @@ BEGIN
 
     ;WITH x AS
     (
-        SELECT ImageID, ROW_NUMBER() OVER(PARTITION BY PatientID ORDER BY CreatedDate,ImageID) AS rn
+        SELECT ImageID,
+               PatientID,
+               ROW_NUMBER() OVER(PARTITION BY PatientID ORDER BY CreatedDate,ImageID) AS rn
         FROM dbo.tblRadiologyImages
         WHERE SerialNumber IS NULL
+    ),
+    m AS
+    (
+        SELECT PatientID, ISNULL(MAX(SerialNumber),0) AS MaxSerialNumber
+        FROM dbo.tblRadiologyImages
+        GROUP BY PatientID
     )
-    UPDATE i SET SerialNumber=x.rn
-      FROM dbo.tblRadiologyImages i JOIN x ON x.ImageID=i.ImageID;
+    UPDATE i
+       SET SerialNumber = m.MaxSerialNumber + x.rn
+      FROM dbo.tblRadiologyImages i
+      JOIN x ON x.ImageID=i.ImageID
+      JOIN m ON m.PatientID=x.PatientID;
 END;
 GO
 
