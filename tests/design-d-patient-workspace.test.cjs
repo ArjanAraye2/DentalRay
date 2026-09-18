@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/app.js"), "utf8");
 const navigation = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/navigation.js"), "utf8");
+const dashboardController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/DashboardController.cs"), "utf8");
 
 for (const id of [
     "newStudyButton",
@@ -55,3 +56,8 @@ assert.match(controller, /RadiologyStudies[\s\S]*AnyAsync\(s => s\.PatientID == 
 assert.match(html, /\/js\/navigation\.js/, "Shell navigation script is not loaded.");
 assert.match(navigation, /settingsAdminActions/, "Administrative actions must be moved to Settings.");
 assert.match(navigation, /data-nav/, "Right sidebar navigation is not wired.");
+assert.doesNotMatch(navigation, /dashboard-shortcuts/, "Dashboard must not contain operational shortcuts.");
+assert.match(navigation, /dashboardPatientsToday/, "Today's patient metric is missing.");
+assert.match(navigation, /dashboardRecentStudies/, "Recent Studies panel is missing.");
+assert.match(dashboardController, /patientsToday/, "Dashboard API must calculate today's distinct patients.");
+assert.match(dashboardController, /recentImages/, "Dashboard API must return recent images.");

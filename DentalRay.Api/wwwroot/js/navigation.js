@@ -14,12 +14,26 @@
     dashboard.className = "card hidden shell-page";
     dashboard.innerHTML = `
       <div class="section-header"><div><h2>داشبورد</h2><p>نمای کلی سامانه DentalRay</p></div></div>
-      <div class="dashboard-summary-grid">
-        <div class="dashboard-summary-card"><strong id="dashboardTotalPatients">-</strong><span>کل بیماران</span></div>
-        <div class="dashboard-summary-card"><strong id="dashboardActivePatients">-</strong><span>بیماران فعال</span></div>
-        <div class="dashboard-summary-card"><strong id="dashboardPatientsWithStudies">-</strong><span>بیماران دارای مطالعه</span></div>
+      <h3 class="dashboard-group-title">آمار کلی</h3>
+      <div class="dashboard-summary-grid dashboard-overall-grid">
+        <div class="dashboard-summary-card metric-blue"><span class="dashboard-metric-icon">👥</span><strong id="dashboardTotalPatients">-</strong><span>کل بیماران</span></div>
+        <div class="dashboard-summary-card metric-green"><span class="dashboard-metric-icon">✓</span><strong id="dashboardActivePatients">-</strong><span>بیماران فعال</span></div>
+        <div class="dashboard-summary-card metric-gray"><span class="dashboard-metric-icon">○</span><strong id="dashboardInactivePatients">-</strong><span>بیماران غیرفعال</span></div>
+        <div class="dashboard-summary-card metric-purple"><span class="dashboard-metric-icon">▣</span><strong id="dashboardTotalStudies">-</strong><span>کل مطالعات</span></div>
+        <div class="dashboard-summary-card metric-cyan"><span class="dashboard-metric-icon">▧</span><strong id="dashboardTotalImages">-</strong><span>کل تصاویر</span></div>
       </div>
-      <div class="dashboard-shortcuts"><button type="button" data-open-nav="patients">مدیریت بیماران</button><button type="button" data-open-nav="studies" class="secondary-button">مطالعات</button><button type="button" data-open-nav="images" class="secondary-button">تصاویر</button></div>`;
+      <h3 class="dashboard-group-title">امروز</h3>
+      <div class="dashboard-summary-grid dashboard-today-grid">
+        <div class="dashboard-summary-card today-patients"><strong id="dashboardPatientsToday">-</strong><span>بیماران امروز</span></div>
+        <div class="dashboard-summary-card today-studies"><strong id="dashboardStudiesToday">-</strong><span>مطالعات امروز</span></div>
+        <div class="dashboard-summary-card today-images"><strong id="dashboardImagesToday">-</strong><span>تصاویر امروز</span></div>
+        <div class="dashboard-summary-card today-new"><strong id="dashboardNewPatientsToday">-</strong><span>بیماران جدید امروز</span></div>
+      </div>
+      <div class="dashboard-detail-grid">
+        <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین مطالعات</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentStudies" class="dashboard-recent-list"></div></section>
+        <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین تصاویر</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentImages" class="dashboard-recent-list"></div></section>
+      </div>
+      <section class="dashboard-system-panel"><div><strong>وضعیت سامانه</strong><span id="dashboardGeneratedAt">-</span></div><div class="dashboard-system-items"><span id="dashboardDatabaseStatus">پایگاه‌داده: در حال بررسی</span><span id="dashboardStorageStatus">فضای تصاویر: در حال بررسی</span></div></section>`;
     main.appendChild(dashboard);
 
     const settings = document.createElement("section");
@@ -58,16 +72,43 @@
     async function openDashboard() {
         hidePages(); dashboard.classList.remove("hidden"); setActive("dashboard");
         try {
-            const response = await fetch("/api/patients?includeInactive=true");
+            const response = await fetch("/api/dashboard", { cache: "no-store" });
             const result = await response.json();
-            if (!response.ok) throw new Error();
-            const statistics = result.statistics || {};
-            document.getElementById("dashboardTotalPatients").textContent = statistics.totalPatients ?? 0;
-            document.getElementById("dashboardActivePatients").textContent = statistics.activePatients ?? 0;
-            document.getElementById("dashboardPatientsWithStudies").textContent = statistics.patientsWithStudies ?? 0;
+            if (!response.ok || !result.success) throw new Error();
+            const overall = result.overall || {}, today = result.today || {};
+            const values = {
+                dashboardTotalPatients: overall.totalPatients, dashboardActivePatients: overall.activePatients,
+                dashboardInactivePatients: overall.inactivePatients, dashboardTotalStudies: overall.totalStudies,
+                dashboardTotalImages: overall.totalImages, dashboardPatientsToday: today.patientsToday,
+                dashboardStudiesToday: today.studiesToday, dashboardImagesToday: today.imagesToday,
+                dashboardNewPatientsToday: today.newPatientsToday
+            };
+            Object.entries(values).forEach(([id, value]) => document.getElementById(id).textContent = value ?? 0);
+            renderRecentStudies(result.recentStudies || []);
+            renderRecentImages(result.recentImages || []);
+            document.getElementById("dashboardGeneratedAt").textContent = `آخرین به‌روزرسانی: ${formatPersianDateTime(result.generatedAt)}`;
+            document.getElementById("dashboardDatabaseStatus").textContent = result.system?.databaseConnected ? "● پایگاه‌داده متصل است" : "● پایگاه‌داده در دسترس نیست";
+            document.getElementById("dashboardDatabaseStatus").className = result.system?.databaseConnected ? "system-ok" : "system-error";
+            const storage = result.system?.storage || {};
+            document.getElementById("dashboardStorageStatus").textContent = storage.available ? `● فضای تصاویر آماده است — ${formatBytes(storage.freeBytes)} آزاد` : `● مسیر ${storage.rootPath || "D:\\RadiologyData"} در دسترس نیست`;
+            document.getElementById("dashboardStorageStatus").className = storage.available ? "system-ok" : "system-error";
         } catch {
             dashboard.querySelectorAll(".dashboard-summary-card strong").forEach(x => x.textContent = "-");
+            document.getElementById("dashboardRecentStudies").textContent = "دریافت اطلاعات داشبورد ناموفق بود.";
+            document.getElementById("dashboardRecentImages").textContent = "دریافت اطلاعات داشبورد ناموفق بود.";
         }
+    }
+
+    const formatBytes = value => !Number.isFinite(Number(value)) ? "-" : `${(Number(value) / 1073741824).toLocaleString("fa-IR", { maximumFractionDigits: 1 })} گیگابایت`;
+    function renderRecentStudies(items) {
+        const root = document.getElementById("dashboardRecentStudies"); root.replaceChildren();
+        if (!items.length) { root.textContent = "مطالعه‌ای ثبت نشده است."; return; }
+        items.forEach(item => { const row = document.createElement("div"); row.className = "dashboard-recent-row"; row.innerHTML = `<span class="dashboard-recent-icon">▣</span><span><strong></strong><small></small></span><time></time>`; row.querySelector("strong").textContent = item.patientName; row.querySelector("small").textContent = `${item.studyTypeName}${item.bodyPart ? ` — ${item.bodyPart}` : ""}`; row.querySelector("time").textContent = formatPersianDateTime(item.studyDate); root.appendChild(row); });
+    }
+    function renderRecentImages(items) {
+        const root = document.getElementById("dashboardRecentImages"); root.replaceChildren();
+        if (!items.length) { root.textContent = "تصویری ثبت نشده است."; return; }
+        items.forEach(item => { const row = document.createElement("div"); row.className = "dashboard-recent-row"; const media = item.contentType === "application/pdf" ? document.createElement("span") : document.createElement("img"); media.className = "dashboard-image-thumb"; if (media.tagName === "IMG") { media.src = `/api/radiologyimages/${item.imageID}`; media.alt = ""; media.loading = "lazy"; } else media.textContent = "PDF"; const text = document.createElement("span"), name = document.createElement("strong"), type = document.createElement("small"), time = document.createElement("time"); name.textContent = item.patientName; type.textContent = item.imageTypeName || item.fileName; time.textContent = formatPersianDateTime(item.createdDate); text.append(name, type); row.append(media, text, time); root.appendChild(row); });
     }
 
     function openPatients() {
