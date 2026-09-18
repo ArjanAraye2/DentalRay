@@ -43,27 +43,24 @@ function renderPatientDetails(x){const p=x.patient;E.patientFullName.textContent
 function renderStudiesSafe(studies){
  E.studiesContainer.replaceChildren();
  if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز Study ثبت نشده است.";return;}
+ // Phase 1: render only static Study data. No date conversion, buttons,
+ // image containers, or event handlers are created here. This lets us
+ // identify whether the freeze is caused by Study DOM creation or by one
+ // of the interactive/date-rendering helpers.
  for(const study of studies){
   const card=document.createElement("div");card.className="study-card";card.dataset.studyId=String(study.studyID);
-  const h=document.createElement("div");h.className="study-card-header";
-  const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||`Study ${study.studyID}`;
-  const buttons=document.createElement("div");buttons.className="study-action-buttons";
-  const images=document.createElement("button");images.type="button";images.className="study-images-button";images.textContent=`تصاویر (${study.imageCount||0})`;
-  const upload=document.createElement("button");upload.type="button";upload.textContent="افزودن فایل";
-  const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="ویرایش";
-  buttons.append(images,upload,edit);h.append(title,buttons);card.appendChild(h);
+  const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||("Study "+study.studyID);
   const meta=document.createElement("div");meta.className="study-meta";
-  meta.append(createInfoLine("تاریخ",formatPersianDateTime(study.studyDate)),createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));card.appendChild(meta);
-  const sec=document.createElement("div");sec.className="study-inline-images hidden";
-  const status=document.createElement("div");status.className="status-message";
-  const grid=document.createElement("div");grid.className="images-grid";sec.append(status,grid);card.appendChild(sec);
-  // Bind only direct, local handlers after the card is fully built.
-  images.addEventListener("click",()=>toggleStudyImages(study,sec,status,grid,images));
-  upload.addEventListener("click",()=>openUploadImageForm(study));
-  edit.addEventListener("click",()=>openEditStudyForm(study));
+  const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+(study.studyDate||"-");
+  const areaLine=document.createElement("div");areaLine.textContent="ناحیه: "+(study.bodyPart||"-");
+  const descriptionLine=document.createElement("div");descriptionLine.textContent="توضیحات: "+(study.description||"-");
+  const reportLine=document.createElement("div");reportLine.textContent="گزارش: "+(study.report||"-");
+  meta.append(dateLine,areaLine,descriptionLine,reportLine);
+  card.append(title,meta);
   E.studiesContainer.appendChild(card);
  }
 }
+
 function renderStudies(studies){E.studiesContainer.innerHTML="";if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز رادیولوژی ثبت نشده است.";return;}studies.forEach(study=>{const card=document.createElement("div");card.className="study-card";card.dataset.studyId=study.studyID;const h=document.createElement("div");h.className="study-card-header";const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||study.studyType||`رادیولوژی ${study.studyID}`;const buttons=document.createElement("div");buttons.className="study-action-buttons";const images=document.createElement("button");images.className="study-images-button";images.dataset.imageCount=study.imageCount||0;images.textContent=`تصاویر (${study.imageCount||0})`;const upload=document.createElement("button");upload.textContent="افزودن فایل";upload.onclick=()=>openUploadImageForm(study);const edit=document.createElement("button");edit.textContent="ویرایش";edit.className="secondary-button";edit.onclick=()=>openEditStudyForm(study);buttons.append(images,upload,edit);h.append(title,buttons);card.appendChild(h);const meta=document.createElement("div");meta.className="study-meta";meta.append(createInfoLine("تاریخ",formatPersianDateTime(study.studyDate)),createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));card.appendChild(meta);const sec=document.createElement("div");sec.className="study-inline-images hidden";const status=document.createElement("div");status.className="status-message";const grid=document.createElement("div");grid.className="images-grid";sec.append(status,grid);card.appendChild(sec);images.onclick=()=>toggleStudyImages(study,sec,status,grid,images);E.studiesContainer.appendChild(card);});}
 async function toggleStudyImages(study,sec,status,grid,button){if(!sec.classList.contains("hidden")){sec.classList.add("hidden");return;}sec.classList.remove("hidden");status.textContent="در حال دریافت تصاویر...";const r=await fetch(`/api/radiologyimages/study/${study.studyID}`),x=await r.json();if(!r.ok||!x.success){status.textContent=getApiError(x,"خطا در دریافت تصاویر.");return;}button.dataset.imageCount=x.count;button.textContent=`تصاویر (${x.count})`;renderImagesInGrid(x.images,grid);status.textContent=x.count?`${x.count} فایل نمایش داده شد.`:"فایلی متصل نیست.";}
 function renderImagesInGrid(images,grid){grid.innerHTML="";(images||[]).forEach(image=>{const card=document.createElement("div");card.className="image-card";let media;if(image.contentType==="application/pdf"){media=document.createElement("div");media.className="pdf-thumbnail";media.textContent="PDF";}else{media=document.createElement("img");media.src=`/api/radiologyimages/${image.imageID}`;media.alt=image.fileName;media.loading="lazy";}media.onclick=()=>openLargeImage(image);const title=document.createElement("div");title.className="image-card-title";title.textContent=image.fileName;const type=document.createElement("div");type.className="field-hint";type.textContent=image.imageTypeName?`نوع تصویر: ${image.imageTypeName}`:"نوع تصویر: تعیین نشده";card.append(media,title,type);if(!image.imageTypeID&&window.dentalRayCurrentUser?.isSuperAdmin===true){const classify=document.createElement("button");classify.type="button";classify.className="secondary-button";classify.textContent="تعیین نوع تصویر";classify.onclick=async ev=>{ev.stopPropagation();try{const r=await fetch("/api/imagetypes"),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"انواع تصویر دریافت نشد."));const choices=(x.imageTypes||[]).map(t=>`${t.imageTypeID}: ${t.imageTypeName}`).join("\n");const answer=window.prompt("ImageTypeID را انتخاب کنید:\n"+choices);if(answer===null)return;const imageTypeID=Number(answer);if(!Number.isInteger(imageTypeID)||(x.imageTypes||[]).every(t=>t.imageTypeID!==imageTypeID))throw new Error("نوع تصویر معتبر انتخاب نشده است.");const u=await fetch(`/api/radiologyimages/${image.imageID}/type`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({imageTypeID})}),y=await u.json();if(!u.ok||!y.success)throw new Error(getApiError(y,"نوع تصویر ذخیره نشد."));image.imageTypeID=y.imageTypeID;image.imageTypeName=y.imageTypeName;type.textContent=`نوع تصویر: ${y.imageTypeName}`;classify.remove();showToast("نوع تصویر ذخیره شد.","success");}catch(e){showToast(e.message||"نوع تصویر ذخیره نشد.","error");}};card.appendChild(classify);}grid.appendChild(card);});}
