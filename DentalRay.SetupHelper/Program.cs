@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Win32;
 
@@ -14,20 +13,6 @@ namespace DentalRay.SetupHelper
                     return await DiscoverAsync(GetArgumentValue(args, "--output"));
 
                 string serverName = GetArgumentValue(args, "--server") ?? @".\DENTALRAY";
-                bool createDatabase = string.Equals(
-                    GetArgumentValue(args, "--create-database"),
-                    "true",
-                    StringComparison.OrdinalIgnoreCase);
-
-                string scriptPath = GetArgumentValue(args, "--script")
-                    ?? Path.Combine(AppContext.BaseDirectory, "Database", "DentalRay.Database.Install.sql");
-
-                if (!File.Exists(scriptPath))
-                {
-                    Console.Error.WriteLine("Database installation script was not found.");
-                    return 10;
-                }
-
                 string masterConnectionString = BuildMasterConnectionString(serverName);
 
                 if (!await WaitForSqlServerAsync(masterConnectionString, 30, 2))
@@ -36,19 +21,17 @@ namespace DentalRay.SetupHelper
                     return 20;
                 }
 
+                // Installer must never create or modify the DentalRay database.
                 bool databaseExists = await DatabaseExistsAsync(masterConnectionString, "DentalRay");
-
-                if (!databaseExists && !createDatabase)
+                if (!databaseExists)
                 {
-                    Console.WriteLine("DentalRay database does not exist.");
+                    Console.Error.WriteLine("DentalRay database does not exist.");
                     return 30;
                 }
 
-                string sqlScript = await File.ReadAllTextAsync(scriptPath);
-                await ExecuteSqlScriptAsync(masterConnectionString, sqlScript);
                 await ConfigureServiceDatabaseAccessAsync(masterConnectionString);
 
-                Console.WriteLine("DentalRay database is ready.");
+                Console.WriteLine("DentalRay database exists and is ready.");
                 return 0;
             }
             catch (SqlException ex)
@@ -78,7 +61,6 @@ namespace DentalRay.SetupHelper
         {
             var candidates = DiscoverSqlInstances().Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-            // اگر SQL Server به صورت Default Instance نصب شده باشد.
             if (!candidates.Contains(".", StringComparer.OrdinalIgnoreCase))
                 candidates.Add(".");
 
@@ -183,30 +165,6 @@ namespace DentalRay.SetupHelper
             }
 
             return false;
-        }
-
-        private static async Task ExecuteSqlScriptAsync(string connectionString, string script)
-        {
-            string[] batches = Regex.Split(
-                script,
-                @"^\s*GO\s*;?\s*$",
-                RegexOptions.Multiline | RegexOptions.IgnoreCase);
-
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-
-            foreach (string batch in batches)
-            {
-                string sql = batch.Trim();
-                if (string.IsNullOrWhiteSpace(sql))
-                    continue;
-
-                await using var command = new SqlCommand(sql, connection)
-                {
-                    CommandTimeout = 120
-                };
-                await command.ExecuteNonQueryAsync();
-            }
         }
 
         private static async Task ConfigureServiceDatabaseAccessAsync(string masterConnectionString)
