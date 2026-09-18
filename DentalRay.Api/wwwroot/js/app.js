@@ -49,9 +49,7 @@ function renderStudiesSafe(studies){
   const card=document.createElement("div");card.className="study-card";card.dataset.studyId=String(study.studyID);
   const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||("Study "+study.studyID);
   const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="ویرایش";edit.addEventListener("click",()=>openEditStudyForm(study));
-  const upload=document.createElement("button");upload.type="button";upload.textContent="افزودن فایل";upload.addEventListener("click",()=>openUploadImageForm(study));
-  const actions=document.createElement("div");actions.className="study-action-buttons";actions.append(upload,edit);
-  const header=document.createElement("div");header.className="study-card-header";header.append(title,actions);card.appendChild(header);
+  const header=document.createElement("div");header.className="study-card-header";header.append(title,edit);card.appendChild(header);
   const meta=document.createElement("div");meta.className="study-meta";
   const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+formatPersianDateTime(study.studyDate);
   const areaLine=document.createElement("div");areaLine.textContent="ناحیه: "+(study.bodyPart||"-");
