@@ -29,7 +29,12 @@ OutputBaseFilename=DentalRay_Setup_1.0.0
 Compression=lzma2
 SolidCompression=yes
 
-WizardStyle=modern
+WizardStyle=modern hidebevels
+DefaultDialogFontName=Segoe UI
+WizardBackColor=#F7FBFF
+WizardImageBackColor=#DDF4F5
+WizardSmallImageBackColor=#DDF4F5
+WizardSizePercent=110
 
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
@@ -37,8 +42,31 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
 
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "persian"; MessagesFile: "compiler:Languages\Persian.isl"
 
+
+
+[LangOptions]
+
+persian.LanguageName=فارسی
+persian.DialogFontName=Segoe UI
+persian.DialogFontSize=9
+persian.WelcomeFontName=Segoe UI
+persian.WelcomeFontSize=16
+persian.RightToLeft=yes
+
+
+[Messages]
+
+persian.ButtonBack=بازگشت
+persian.ButtonNext=ادامه
+persian.ButtonInstall=نصب
+persian.ButtonCancel=انصراف
+persian.ButtonFinish=پایان
+persian.WelcomeLabel2=این برنامه شما را در مراحل نصب و آماده‌سازی DentalRay راهنمایی می‌کند.
+persian.WizardReady=همه چیز برای نصب DentalRay آماده است.
+persian.FinishedHeadingLabel=نصب DentalRay با موفقیت انجام شد
+persian.FinishedLabel=DentalRay آماده استفاده است.
 
 
 [Files]
@@ -173,6 +201,17 @@ procedure InitializeWizard;
 
 begin
 
+    // ظاهر کلی فرم‌های نصب: فونت فارسی، راست‌چین و پس‌زمینه روشن و شاد.
+    WizardForm.Font.Name := 'Segoe UI';
+    WizardForm.Font.Size := 9;
+    WizardForm.BiDiMode := bdRightToLeft;
+
+    WizardForm.Color := $00FBFDFF;
+    WizardForm.WelcomeLabel1.Font.Name := 'Segoe UI';
+    WizardForm.WelcomeLabel1.Font.Size := 16;
+    WizardForm.WelcomeLabel1.Font.Style := [fsBold];
+
+
     // --------------------------------------------------------
     // SQL Server
     // --------------------------------------------------------
@@ -189,7 +228,7 @@ begin
 
 
     SqlPage.Add(
-        'SQL Server / Instance:',
+        'نام Server / Instance:',
         False
     );
 
@@ -206,16 +245,16 @@ begin
     StoragePage :=
         CreateInputDirPage(
             SqlPage.ID,
-            'Radiology Storage',
+            'محل ذخیره تصاویر',
             'محل ذخیره تصاویر رادیولوژی را مشخص کنید.',
-            'تمام تصاویر بیماران در این پوشه نگهداری خواهند شد.',
+            'تمام تصاویر بیماران در این پوشه نگهداری خواهند شد.' + CRLF + 'در صورت نیاز می‌توانید این مسیر را تغییر دهید.',
             False,
             ''
         );
 
 
     StoragePage.Add(
-        'Radiology images folder:'
+        'مسیر ذخیره تصاویر رادیولوژی:'
     );
 
 
