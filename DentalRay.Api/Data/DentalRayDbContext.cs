@@ -21,6 +21,8 @@ namespace DentalRay.Api.Data
         public DbSet<ImageType> ImageTypes { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<UserDentist> UserDentists { get; set; }
+        public DbSet<StudyAction> StudyActions { get; set; }
+        public DbSet<StudyPayment> StudyPayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,6 +40,8 @@ namespace DentalRay.Api.Data
 
             modelBuilder.Entity<RadiologyStudyTooth>().HasKey(x => new { x.StudyID, x.ToothNumber });
             modelBuilder.Entity<RadiologyStudyTooth>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<StudyAction>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<StudyPayment>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
 
             // Clinic membership is a many-to-many relationship represented by tblClinicStaff.
             modelBuilder.Entity<ClinicStaff>().HasKey(x => new { x.ClinicID, x.StaffID });

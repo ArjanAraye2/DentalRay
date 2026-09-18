@@ -51,6 +51,9 @@ namespace DentalRay.Api.Controllers
             await using var tx=await _context.Database.BeginTransactionAsync();
             try
             {
+                _context.StudyActions.RemoveRange(await _context.StudyActions.Where(x=>x.StudyID==studyID).ToListAsync());
+                _context.StudyPayments.RemoveRange(await _context.StudyPayments.Where(x=>x.StudyID==studyID).ToListAsync());
+                _context.RadiologyStudyTeeth.RemoveRange(await _context.RadiologyStudyTeeth.Where(x=>x.StudyID==studyID).ToListAsync());
                 _context.RadiologyStudyImages.RemoveRange(links);
                 _context.RadiologyImages.RemoveRange(deleteImages);
                 _context.RadiologyStudies.Remove(study);
