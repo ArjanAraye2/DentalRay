@@ -10,10 +10,7 @@ const dashboardController = fs.readFileSync(path.join(root, "DentalRay.Api/Contr
 
 for (const id of [
     "newStudyButton",
-    "editSelectedStudyButton",
-    "addStudyImageButton",
     "recentStudiesSummary",
-    "patientSummaryDentalChart",
     "lastStudyDateSummary",
     "editPatientButton",
     "printPatientButton",
@@ -46,7 +43,9 @@ assert.ok(app.includes('/api/patients/${patient.patientID}/photo'), "Patient row
 assert.doesNotMatch(app, /b\.textContent="باز کردن پرونده"/, "The obsolete open-record button must not be rendered.");
 assert.match(app, /function\s+deletePatient\s*\(/, "Patient delete action is missing.");
 assert.match(app, /method:["']DELETE["']/, "Patient delete must call the DELETE API.");
-assert.match(app, /function\s+selectStudyTab\s*\(/, "Tabbed Study selection is missing.");
+assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards must load their own details.");
+assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
+assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
 assert.match(app, /radiologyimages\/study\/\$\{study\.studyID\}/, "Selected Study images must load inline.");
 

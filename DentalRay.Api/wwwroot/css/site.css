@@ -2789,6 +2789,159 @@ textarea,
     #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width { grid-column: auto; }
 }
 
+/* Studies belong to the patient, but each dental chart belongs to one Study.
+   The overview therefore has two columns and Studies flow vertically below it. */
+#patientsSection + #patientDetailsSection .patient-overview-grid {
+    grid-template-columns: minmax(320px, 38%) minmax(480px, 62%);
+    grid-template-areas: "identity studies";
+}
+
+#patientsSection + #patientDetailsSection .study-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 11px 14px;
+}
+
+#patientsSection + #patientDetailsSection .study-list-header p {
+    margin: 3px 0 0;
+    color: #71869b;
+    font-size: 9px;
+}
+
+#patientsSection + #patientDetailsSection .studies-container {
+    display: grid;
+    gap: 14px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.study-scroll-card {
+    scroll-margin-top: 18px;
+    overflow: hidden;
+    border: 1px solid #cee1f2;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 7px 22px rgba(20, 76, 126, .07);
+}
+
+.study-scroll-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #dce9f5;
+    background: linear-gradient(135deg, #edf6ff, #f8fbff);
+}
+
+.study-scroll-header h4 {
+    margin: 0 0 3px;
+    color: #114b84;
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.study-scroll-header time {
+    color: #607d99;
+    font-size: 10px;
+}
+
+.study-scroll-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.study-scroll-body {
+    display: grid;
+    grid-template-columns: minmax(260px, 35%) minmax(430px, 65%);
+    gap: 12px;
+    padding: 12px;
+}
+
+.study-scroll-details {
+    display: grid;
+    gap: 7px;
+    align-content: start;
+}
+
+.study-scroll-details .info-line {
+    min-height: 55px;
+    padding: 9px 11px;
+    border: 1px solid #dce9f5;
+    border-radius: 9px;
+    background: #f8fbfe;
+    color: #244f78;
+}
+
+.study-scroll-chart {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #dce9f5;
+    border-radius: 10px;
+    background: #fbfdff;
+}
+
+.study-scroll-chart > strong {
+    display: block;
+    margin-bottom: 7px;
+    color: #174b80;
+    font-size: 12px;
+}
+
+.study-card-dental-chart {
+    min-height: 245px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.study-card-dental-chart .dental-chart-toolbar,
+.study-card-dental-chart .dental-chart-selected {
+    display: none;
+}
+
+.study-scroll-images {
+    padding: 0 12px 12px;
+    border-top: 1px solid #e4edf6;
+}
+
+.study-scroll-images-title {
+    padding-top: 10px;
+    color: #174b80;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.study-scroll-images .status-message {
+    min-height: 0;
+    margin: 5px 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #6c8298;
+    font-size: 9px;
+}
+
+@media (max-width: 1100px) {
+    #patientsSection + #patientDetailsSection .patient-overview-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas: "identity" "studies";
+    }
+    .study-scroll-body { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+    .study-scroll-header { align-items: flex-start; flex-direction: column; }
+    .study-scroll-actions { width: 100%; }
+    .study-scroll-actions button { flex: 1; }
+    .study-card-dental-chart { min-height: 210px; }
+}
+
 /* Global navigation and Settings hub. */
 .settings-admin-actions {
     display: grid;
