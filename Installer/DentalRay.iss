@@ -91,9 +91,13 @@ Source: "{#SourceRoot}\DentalRay\*"; \
 ;
 ; ============================================================
 
-Source: "{#SourceRoot}\DentalRay.SetupHelper\*"; \
-    DestDir: "{tmp}\DentalRay.SetupHelper"; \
-    Flags: ignoreversion recursesubdirs createallsubdirs deleteafterinstall
+Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.SetupHelper.exe"; \
+    DestDir: "{tmp}"; \
+    Flags: dontcopy
+
+Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.Database.Install.sql"; \
+    DestDir: "{tmp}"; \
+    Flags: dontcopy
 
 
 
@@ -302,7 +306,7 @@ begin
         end;
 
         // در صورت استفاده از مقدار پیش‌فرض، ابتدا Instance مناسب را پیدا می‌کنیم.
-        if Trim(SqlPage.Values[0]) = '.\\DENTALRAY' then
+        if CompareText(Trim(SqlPage.Values[0]), '.\DENTALRAY') = 0 then
         begin
             if not DiscoverDentalRaySqlServer then
             begin
@@ -544,8 +548,10 @@ var
     ResultCode: Integer;
 begin
     Result := False;
-    HelperDirectory := ExpandConstant('{tmp}\\DentalRay.SetupHelper');
-    HelperExe := HelperDirectory + '\\DentalRay.SetupHelper.exe';
+    ExtractTemporaryFile('DentalRay.SetupHelper.exe');
+    ExtractTemporaryFile('DentalRay.Database.Install.sql');
+    HelperDirectory := ExpandConstant('{tmp}');
+    HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
     OutputFile := ExpandConstant('{tmp}\\DentalRay.SqlDiscovery.txt');
 
     if not FileExists(HelperExe) then
@@ -707,9 +713,15 @@ begin
     // 1. Database Setup
     // ========================================================
 
+    if DatabasePrepared then
+        Exit;
+
+    ExtractTemporaryFile('DentalRay.SetupHelper.exe');
+    ExtractTemporaryFile('DentalRay.Database.Install.sql');
+
     HelperDirectory :=
         ExpandConstant(
-            '{tmp}\DentalRay.SetupHelper'
+            '{tmp}'
         );
 
 
