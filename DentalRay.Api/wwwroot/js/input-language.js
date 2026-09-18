@@ -13,5 +13,5 @@
    else if(persianRx.test(key)||el.tagName==="TEXTAREA"){el.lang="fa";el.dir="rtl";el.setAttribute("inputmode","text");el.setAttribute("spellcheck","true");}
  }
  function apply(root=document){if(root.matches?.("input,textarea"))applyElement(root);root.querySelectorAll?.("input,textarea").forEach(applyElement);}
- window.DentalRayInputLanguage={apply};const run=()=>apply();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();const observer=new MutationObserver(mutations=>{for(const m of mutations){for(const node of m.addedNodes){if(node.nodeType!==1)continue;apply(node);}}});observer.observe(document.documentElement,{childList:true,subtree:true});
+ window.DentalRayInputLanguage={apply};const run=()=>apply();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();
 })();
