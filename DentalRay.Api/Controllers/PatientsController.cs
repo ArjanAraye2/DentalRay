@@ -228,14 +228,33 @@ namespace DentalRay.Api.Controllers
                     .Select(g => new { StudyID = g.Key, Count = g.Count() })
                     .ToDictionaryAsync(x => x.StudyID, x => x.Count);
 
-            var accessibleImageIDs = _context.RadiologyStudyImages.AsNoTracking()
-                .Where(x => studyIDs.Contains(x.StudyID))
-                .Select(x => x.ImageID).Distinct();
+            // Count only images attached to Studies visible to the current user.
+            // For SuperAdmin, count the patient's image rows directly. Avoid composing a
+            // nested IQueryable here; materializing the accessible image IDs keeps this
+            // endpoint predictable and prevents the details request from remaining pending.
+            int totalImageCount;
+            if (StudyAccessService.IsSuperAdmin(User))
+            {
+                totalImageCount = await _context.RadiologyImages.AsNoTracking()
+                    .CountAsync(i => i.PatientID == patientID);
+            }
+            else if (studyIDs.Count == 0)
+            {
+                totalImageCount = 0;
+            }
+            else
+            {
+                var accessibleImageIDs = await _context.RadiologyStudyImages.AsNoTracking()
+                    .Where(x => studyIDs.Contains(x.StudyID))
+                    .Select(x => x.ImageID)
+                    .Distinct()
+                    .ToListAsync();
 
-            int totalImageCount = StudyAccessService.IsSuperAdmin(User)
-                ? await _context.RadiologyImages.AsNoTracking().CountAsync(i => i.PatientID == patientID)
-                : await _context.RadiologyImages.AsNoTracking()
-                    .CountAsync(i => i.PatientID == patientID && accessibleImageIDs.Contains(i.ImageID));
+                totalImageCount = accessibleImageIDs.Count == 0
+                    ? 0
+                    : await _context.RadiologyImages.AsNoTracking()
+                        .CountAsync(i => i.PatientID == patientID && accessibleImageIDs.Contains(i.ImageID));
+            }
 
             var studyList = studies.Select(s => new
             {
