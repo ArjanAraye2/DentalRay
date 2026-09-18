@@ -614,9 +614,18 @@ begin
     if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) or
        (ResultCode <> 0) then
     begin
-        MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + CRLF +
-               'کد خطا: ' + IntToStr(ResultCode) + CRLF + CRLF +
-               'نصب تا رفع مشکل ادامه نخواهد یافت.', mbError, MB_OK);
+        if ResultCode = 20 then
+            MsgBox('SQL Server روی این رایانه نصب نیست یا قابل دسترسی نیست.' + CRLF + CRLF +
+                   'لطفاً ابتدا SQL Server را نصب و سرویس آن را فعال کنید.' + CRLF + CRLF +
+                   'نصب DentalRay خاتمه یافت.', mbError, MB_OK)
+        else if ResultCode = 21 then
+            MsgBox('هیچ SQL Server قابل دسترسی پیدا نشد.' + CRLF + CRLF +
+                   'لطفاً SQL Server را نصب و سرویس آن را فعال کنید.' + CRLF + CRLF +
+                   'نصب DentalRay خاتمه یافت.', mbError, MB_OK)
+        else
+            MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + CRLF +
+                   'کد خطا: ' + IntToStr(ResultCode) + CRLF + CRLF +
+                   'نصب تا رفع مشکل ادامه نخواهد یافت.', mbError, MB_OK);
         Exit;
     end;
 
