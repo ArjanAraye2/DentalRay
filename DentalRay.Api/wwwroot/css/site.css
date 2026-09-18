@@ -2410,7 +2410,7 @@ textarea,
     background: transparent;
 }
 
-.patient-overview-studies .summary-row {
+#patientDetailsSection .patient-overview-studies .summary-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
@@ -2428,10 +2428,10 @@ textarea,
 
 #patientDetailsSection .patient-overview-studies .summary-number,
 #patientDetailsSection .patient-overview-studies .summary-label { color: inherit; }
-.summary-study { background: linear-gradient(135deg, #0878e8, #1699f3); }
-.summary-image { background: linear-gradient(135deg, #04a85d, #17c576); }
-.summary-last { background: linear-gradient(135deg, #f3a407, #ffbd28); }
-.summary-last .summary-number { font-size: 14px; white-space: nowrap; }
+#patientDetailsSection .patient-overview-studies .summary-study { background: linear-gradient(135deg, #0878e8, #1699f3); }
+#patientDetailsSection .patient-overview-studies .summary-image { background: linear-gradient(135deg, #04a85d, #17c576); }
+#patientDetailsSection .patient-overview-studies .summary-last { background: linear-gradient(135deg, #f3a407, #ffbd28); }
+#patientDetailsSection .patient-overview-studies .summary-last .summary-number { font-size: 14px; white-space: nowrap; }
 
 .recent-studies-card {
     padding: 9px;
@@ -2505,6 +2505,6 @@ textarea,
 }
 
 @media (max-width: 520px) {
-    .patient-overview-studies .summary-row { grid-template-columns: 1fr; }
+    #patientDetailsSection .patient-overview-studies .summary-row { grid-template-columns: 1fr; }
     #patientDetailsSection .patient-overview-identity .patient-info-grid { grid-template-columns: 1fr; }
 }
