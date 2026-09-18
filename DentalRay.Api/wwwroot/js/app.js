@@ -5,7 +5,7 @@ function byId(id) { return document.getElementById(id); }
 let selectedPatientID=null, selectedPatient=null, selectedStudyID=null, selectedStudy=null;
 let pendingCameraFile=null, cameraPreviewUrl=null;
 
-const ids=["patientsSection","patientSearch","searchButton","clearSearchButton","includeInactivePatients","newPatientButton","patientsTableBody","statusMessage","patientDetailsSection","studyDetailsSection","studyImagesSection","backToPatientDetailsButton","backToStudyDetailsButton","studyDetailsTitle","studyDetailsDate","studyDetailsInfo","studyDetailsUploadButton","studyDetailsEditButton","studyDetailsImagesButton","studyImagesTitle","studyDetailsImagesStatus","studyDetailsImagesGrid","backToPatientsButton","editPatientButton","newStudyButton","mergePatientButton","deactivatePatientButton","patientFullName","patientNationalCode","patientStatusBadge","detailFirstName","detailLastName","detailNationalCode","detailMobile","detailBirthDate","detailIsActive","detailAddress","detailDescription","studyCount","totalImageCount","studiesContainer","newPatientSection","newPatientForm","cancelNewPatientButton","cancelNewPatientButtonBottom","newFirstName","newLastName","newNationalCode","newMobile","newBirthDate","newGender","newAddress","newDescription","newPatientStatus","editPatientSection","editPatientForm","cancelEditPatientButton","cancelEditPatientButtonBottom","editFirstName","editLastName","editNationalCode","editMobile","editBirthDate","editGender","editAddress","editDescription","editPatientStatus","newStudySection","newStudyForm","cancelNewStudyButton","cancelNewStudyButtonBottom","newStudyType","newBodyPart","newStudyDate","newStudyDescription","newStudyReport","newStudyStatus","editStudySection","editStudyForm","cancelEditStudyButton","cancelEditStudyButtonBottom","editStudySubtitle","editStudyType","editBodyPart","editStudyDate","editStudyDescription","editStudyReport","editStudyStatus","uploadImageSection","uploadImageForm","cancelUploadImageButton","cancelUploadImageButtonBottom","uploadImageStudyInfo","uploadImageType","imageFileInput","cameraFileInput","cameraPreviewPanel","cameraPreviewImage","confirmCameraButton","retakeCameraButton","uploadImageStatus","mergePatientSection","mergePatientForm","cancelMergePatientButton","cancelMergePatientButtonBottom","mergeTargetNationalCode","mergePatientStatus","imageModal","closeImageModalButton","zoomOutImageButton","zoomInImageButton","rotateLeftImageButton","rotateRightImageButton","flipHorizontalImageButton","resetImageViewButton","largeImage","largeImageCaption","confirmModal","confirmTitle","confirmMessage","confirmYesButton","confirmNoButton","toastContainer"];
+const ids=["patientsSection","patientSearch","searchButton","clearSearchButton","includeInactivePatients","newPatientButton","patientsTableBody","statusMessage","patientDetailsSection","studyDetailsSection","studyImagesSection","backToPatientDetailsButton","backToStudyDetailsButton","studyDetailsTitle","studyDetailsDate","studyDetailsForm","studyDetailsType","studyDetailsBodyPart","studyDetailsStudyDate","studyDetailsDescription","studyDetailsReport","studyDetailsDentalChart","studyDetailsStatus","studyDetailsUploadButton","studyDetailsEditButton","studyDetailsImagesButton","studyDetailsSaveButton","studyDetailsCancelButton","studyImagesTitle","studyDetailsImagesStatus","studyDetailsImagesGrid","backToPatientsButton","editPatientButton","newStudyButton","mergePatientButton","deactivatePatientButton","patientFullName","patientNationalCode","patientStatusBadge","detailFirstName","detailLastName","detailNationalCode","detailMobile","detailBirthDate","detailIsActive","detailAddress","detailDescription","studyCount","totalImageCount","studiesContainer","newPatientSection","newPatientForm","cancelNewPatientButton","cancelNewPatientButtonBottom","newFirstName","newLastName","newNationalCode","newMobile","newBirthDate","newGender","newAddress","newDescription","newPatientStatus","editPatientSection","editPatientForm","cancelEditPatientButton","cancelEditPatientButtonBottom","editFirstName","editLastName","editNationalCode","editMobile","editBirthDate","editGender","editAddress","editDescription","editPatientStatus","newStudySection","newStudyForm","cancelNewStudyButton","cancelNewStudyButtonBottom","newStudyType","newBodyPart","newStudyDate","newStudyDescription","newStudyReport","newStudyStatus","editStudySection","editStudyForm","cancelEditStudyButton","cancelEditStudyButtonBottom","editStudySubtitle","editStudyType","editBodyPart","editStudyDate","editStudyDescription","editStudyReport","editStudyStatus","uploadImageSection","uploadImageForm","cancelUploadImageButton","cancelUploadImageButtonBottom","uploadImageStudyInfo","uploadImageType","imageFileInput","cameraFileInput","cameraPreviewPanel","cameraPreviewImage","confirmCameraButton","retakeCameraButton","uploadImageStatus","mergePatientSection","mergePatientForm","cancelMergePatientButton","cancelMergePatientButtonBottom","mergeTargetNationalCode","mergePatientStatus","imageModal","closeImageModalButton","zoomOutImageButton","zoomInImageButton","rotateLeftImageButton","rotateRightImageButton","flipHorizontalImageButton","resetImageViewButton","largeImage","largeImageCaption","confirmModal","confirmTitle","confirmMessage","confirmYesButton","confirmNoButton","toastContainer"];
 const E={}; ids.forEach(id=>E[id]=byId(id));
 
 function hideMainSections(){[E.patientsSection,E.patientDetailsSection,E.studyDetailsSection,E.studyImagesSection,E.newPatientSection,E.editPatientSection,E.newStudySection,E.editStudySection,E.uploadImageSection,E.mergePatientSection].forEach(x=>x?.classList.add("hidden"));}
@@ -47,19 +47,29 @@ async function loadStudyDetailsImages(study){
  }catch(e){setFormStatus(E.studyDetailsImagesStatus,e.message||"فایل‌های Study دریافت نشد.",true);}
 }
 function openStudyImages(study){selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyImagesSection.classList.remove("hidden");E.studyImagesTitle.textContent="تصاویر — "+(study.studyTypeName||("Study "+study.studyID));loadStudyDetailsImages(study);window.scrollTo(0,0);}
-function openStudyDetails(study){
+async function openStudyDetails(study){
  selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
  E.studyDetailsTitle.textContent=study.studyTypeName||("Study "+study.studyID);E.studyDetailsDate.textContent=formatPersianDateTime(study.studyDate);
- const field=(label,value,full=false)=>{const d=document.createElement("div");d.className="form-field"+(full?" full-width":"");const l=document.createElement("label");l.textContent=label;const v=document.createElement("div");v.className="study-readonly-value";v.textContent=value??"-";d.append(l,v);return d;};
- E.studyDetailsInfo.replaceChildren(
-  field("نوع رادیولوژی",study.studyTypeName||study.studyType||"-"),
-  field("ناحیه",study.bodyPart||"-"),
-  field("تاریخ و زمان شمسی",formatPersianDateTime(study.studyDate)),
-  field("تعداد تصاویر",String(study.imageCount||0)),
-  field("توضیحات",study.description||"-",true),
-  field("گزارش",study.report||"-",true)
- );window.scrollTo(0,0);
+ E.studyDetailsType.value=study.studyTypeID?String(study.studyTypeID):(study.studyTypeName||study.studyType||"");
+ E.studyDetailsBodyPart.value=study.bodyPart||"";E.studyDetailsStudyDate.value=formatPersianDateTimeForInput(study.studyDate);
+ E.studyDetailsDescription.value=study.description||"";E.studyDetailsReport.value=study.report||"";
+ setStudyDetailsEditing(false);setFormStatus(E.studyDetailsStatus,"",false);
+ try{const r=await fetch(`/api/radiologystudies/${study.studyID}`),x=await r.json();const teeth=x.toothNumbers||x.study?.toothNumbers||[];if(window.DentalRayDentalChart)window.DentalRayDentalChart.render(E.studyDetailsDentalChart,teeth);}catch{if(window.DentalRayDentalChart)window.DentalRayDentalChart.render(E.studyDetailsDentalChart,[]);}
+ window.scrollTo(0,0);
 }
+function setStudyDetailsEditing(editing){
+ [E.studyDetailsType,E.studyDetailsBodyPart,E.studyDetailsStudyDate,E.studyDetailsDescription,E.studyDetailsReport].forEach(x=>x.readOnly=!editing);
+ E.studyDetailsDentalChart?.classList.toggle("study-chart-readonly",!editing);
+ E.studyDetailsEditButton.classList.toggle("hidden",editing);E.studyDetailsImagesButton.classList.toggle("hidden",editing);
+ E.studyDetailsSaveButton.classList.toggle("hidden",!editing);E.studyDetailsCancelButton.classList.toggle("hidden",!editing);
+}
+async function saveStudyDetails(){
+ try{const body={studyDate:parsePersianDateForBackend(E.studyDetailsStudyDate.value,true),studyType:E.studyDetailsType.value.trim(),bodyPart:emptyToNull(E.studyDetailsBodyPart.value),description:emptyToNull(E.studyDetailsDescription.value),report:emptyToNull(E.studyDetailsReport.value),toothNumbers:window.DentalRayDentalChart?.getSelected(E.studyDetailsDentalChart)||[]};
+ const r=await fetch(`/api/radiologystudies/${selectedStudyID}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"ویرایش Study انجام نشد."));
+ const pr=await fetch(`/api/patients/${selectedPatientID}/details`),pd=await pr.json(),fresh=(pd.studies||[]).find(s=>s.studyID===selectedStudyID);if(fresh)await openStudyDetails(fresh);showToast("Study ویرایش شد.");
+ }catch(e){setFormStatus(E.studyDetailsStatus,e.message||"ویرایش Study انجام نشد.",true);}
+}
+
 function renderStudiesSafe(studies){
  E.studiesContainer.replaceChildren();
  if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز Study ثبت نشده است.";return;}
@@ -114,6 +124,9 @@ E.searchButton.onclick=()=>loadPatients(E.patientSearch.value);E.clearSearchButt
 E.backToPatientDetailsButton?.addEventListener("click",()=>openPatient(selectedPatientID));
 E.backToStudyDetailsButton?.addEventListener("click",()=>{if(selectedStudy)openStudyDetails(selectedStudy);});
 E.studyDetailsImagesButton?.addEventListener("click",()=>{if(selectedStudy)openStudyImages(selectedStudy);});
+E.studyDetailsEditButton?.addEventListener("click",()=>setStudyDetailsEditing(true));
+E.studyDetailsCancelButton?.addEventListener("click",()=>{if(selectedStudy)openStudyDetails(selectedStudy);});
+E.studyDetailsForm?.addEventListener("submit",e=>{e.preventDefault();saveStudyDetails();});
 E.studyDetailsEditButton?.addEventListener("click",()=>{if(selectedStudy)openEditStudyForm(selectedStudy);});
 E.studyDetailsUploadButton?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});E.editPatientButton.onclick=openEditPatientForm;E.deactivatePatientButton.onclick=togglePatientActiveStatus;E.newStudyButton.onclick=openNewStudyForm;E.mergePatientButton.onclick=openMergePatientForm;E.editPatientForm.onsubmit=e=>{e.preventDefault();updatePatient();};E.newStudyForm.onsubmit=e=>{e.preventDefault();createStudy();};E.editStudyForm.onsubmit=e=>{e.preventDefault();updateStudy();};E.uploadImageForm.onsubmit=e=>{e.preventDefault();uploadImage();};E.mergePatientForm.onsubmit=e=>{e.preventDefault();mergePatient();};
 [[E.cancelNewPatientButton,E.cancelNewPatientButtonBottom]].flat().forEach(b=>b.onclick=showPatientsScreen);[E.cancelEditPatientButton,E.cancelEditPatientButtonBottom,E.cancelNewStudyButton,E.cancelNewStudyButtonBottom,E.cancelMergePatientButton,E.cancelMergePatientButtonBottom].forEach(b=>b.onclick=()=>openPatient(selectedPatientID));[E.cancelEditStudyButton,E.cancelEditStudyButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyDetails(selectedStudy):openPatient(selectedPatientID));[E.cancelUploadImageButton,E.cancelUploadImageButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyImages(selectedStudy):openPatient(selectedPatientID));
