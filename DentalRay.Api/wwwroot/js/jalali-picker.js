@@ -19,6 +19,6 @@
      prev.onclick=()=>{if(--mo<1){mo=12;y--;}draw();};next.onclick=()=>{if(++mo>12){mo=1;y++;}draw();};
    };draw();modal.addEventListener("click",e=>{if(e.target===modal)modal.remove();});
  }
- window.DentalRayJalali={enhance,enhanceAll(root=document){root.querySelectorAll("[data-jalali-date]").forEach(x=>enhance(x,false));root.querySelectorAll("[data-jalali-datetime]").forEach(x=>enhance(x,true));}};
- const run=()=>window.DentalRayJalali.enhanceAll();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();const observer=new MutationObserver(mutations=>{for(const m of mutations){for(const node of m.addedNodes){if(node.nodeType!==1)continue;if(node.matches?.("[data-jalali-date],[data-jalali-datetime]"))window.DentalRayJalali.enhanceAll(node.parentElement||document);else if(node.querySelector?.("[data-jalali-date],[data-jalali-datetime]"))window.DentalRayJalali.enhanceAll(node);}}});observer.observe(document.documentElement,{childList:true,subtree:true});
+ window.DentalRayJalali={enhance,enhanceAll(root=document){if(root.matches?.("[data-jalali-date]"))enhance(root,false);else if(root.matches?.("[data-jalali-datetime]"))enhance(root,true);root.querySelectorAll?.("[data-jalali-date]").forEach(x=>enhance(x,false));root.querySelectorAll?.("[data-jalali-datetime]").forEach(x=>enhance(x,true));}};
+ const run=()=>window.DentalRayJalali.enhanceAll();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run();const observer=new MutationObserver(mutations=>{for(const m of mutations){for(const node of m.addedNodes){if(node.nodeType!==1)continue;window.DentalRayJalali.enhanceAll(node);}}});observer.observe(document.documentElement,{childList:true,subtree:true});
 })();
