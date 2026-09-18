@@ -244,7 +244,7 @@ async function togglePatientActiveStatus(){
  // Both corresponding controller actions use HttpPut; matching that verb prevents an HTTP 405 response.
  try{const action=isDeactivating?"deactivate":"activate";const r=await fetch(`/api/patients/${selectedPatientID}/${action}`,{method:"PUT"}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"عملیات انجام نشد."));await openPatient(selectedPatientID);showToast(isDeactivating?"بیمار غیرفعال شد.":"بیمار فعال شد.");}catch(e){showToast(e.message||"عملیات انجام نشد.","error");}
 }
-function openNewStudyForm(){
+async function openNewStudyForm(){
  if(!Number.isInteger(Number(selectedPatientID))||Number(selectedPatientID)<=0){
   showToast("ابتدا یک بیمار را انتخاب کنید.","error");
   return;
@@ -255,11 +255,19 @@ function openNewStudyForm(){
  hideMainSections();
  E.newStudySection.classList.remove("hidden");
  E.newStudySection.scrollIntoView({behavior:"smooth",block:"start"});
- E.newStudyType.focus();
+ E.newStudyType.innerHTML='<option value="">در حال دریافت انواع مطالعه...</option>';
+ E.newStudyType.disabled=true;
+ try{
+  const r=await fetch("/api/studytypes",{cache:"no-store"}),x=await r.json();
+  if(!r.ok||!x.success)throw new Error(getApiError(x,"انواع مطالعه دریافت نشد."));
+  E.newStudyType.innerHTML='<option value="">انتخاب نوع مطالعه</option>';
+  (x.studyTypes||[]).forEach(t=>{const o=document.createElement("option");o.value=String(t.studyTypeID);o.textContent=t.studyTypeName;E.newStudyType.appendChild(o);});
+  E.newStudyType.disabled=false;E.newStudyType.focus();
+ }catch(e){E.newStudyType.innerHTML='<option value="">دریافت انواع مطالعه ناموفق بود</option>';setFormStatus(E.newStudyStatus,e.message||"انواع مطالعه دریافت نشد.",true);}
 }
 // Public entry point keeps this primary action independent from later optional bindings.
 window.DentalRayOpenNewStudy=event=>{event?.preventDefault?.();return openNewStudyForm();};
-function studyPayload(prefix){const type=E[`${prefix}StudyType`].value.trim();if(!type)throw new Error("نوع رادیولوژی را وارد کنید.");return{studyDate:parsePersianDateForBackend(E[`${prefix}StudyDate`].value,true),studyType:type,bodyPart:emptyToNull(E[`${prefix}BodyPart`].value),description:emptyToNull(E[`${prefix}StudyDescription`].value),report:emptyToNull(E[`${prefix}StudyReport`].value)};}
+function studyPayload(prefix){const studyTypeID=Number(E[`${prefix}StudyType`].value);if(!Number.isInteger(studyTypeID)||studyTypeID<=0)throw new Error("نوع رادیولوژی را انتخاب کنید.");return{studyDate:parsePersianDateForBackend(E[`${prefix}StudyDate`].value,true),studyTypeID,bodyPart:emptyToNull(E[`${prefix}BodyPart`].value),description:emptyToNull(E[`${prefix}StudyDescription`].value),report:emptyToNull(E[`${prefix}StudyReport`].value)};}
 async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();if(!r.ok||x.success===false)throw new Error(getApiError(x,"ثبت رادیولوژی انجام نشد."));await openPatient(selectedPatientID);showToast("رادیولوژی ثبت شد.");}catch(e){setFormStatus(E.newStudyStatus,getApiError({message:e.message},"ثبت رادیولوژی انجام نشد."),true);}}
 function openEditStudyForm(s){selectedStudyID=s.studyID;selectedStudy=s;setFormStatus(E.editStudyStatus,"",false);E.editStudyType.value=s.studyTypeID?String(s.studyTypeID):(s.studyType||"");E.editBodyPart.value=s.bodyPart||"";E.editStudyDate.value=formatPersianDateTimeForInput(s.studyDate);E.editStudyDescription.value=s.description||"";E.editStudyReport.value=s.report||"";E.editStudySubtitle.textContent=`رادیولوژی شماره ${s.studyID}`;hideMainSections();E.editStudySection.classList.remove("hidden");}
 async function updateStudy(){try{const r=await fetch(`/api/radiologystudies/${selectedStudyID}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(studyPayload("edit"))}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"ویرایش رادیولوژی انجام نشد."));const patientResponse=await fetch(`/api/patients/${selectedPatientID}/details`),patientData=await patientResponse.json();if(!patientResponse.ok||!patientData.success)throw new Error(getApiError(patientData,"اطلاعات Study به‌روز نشد."));const refreshed=(patientData.studies||[]).find(s=>s.studyID===selectedStudyID);if(refreshed){selectedStudy=refreshed;openStudyDetails(refreshed);}else await openPatient(selectedPatientID);showToast("رادیولوژی ویرایش شد.");}catch(e){setFormStatus(E.editStudyStatus,getApiError({message:e.message},"ویرایش رادیولوژی انجام نشد."),true);}}
@@ -274,6 +282,8 @@ E.studyDetailsImagesButton?.addEventListener("click",()=>{if(selectedStudy)openS
 E.studyDetailsEditButton?.addEventListener("click",()=>setStudyDetailsEditing(true));
 E.studyDetailsCancelButton?.addEventListener("click",()=>{if(selectedStudy)openStudyDetails(selectedStudy);});
 E.studyDetailsForm?.addEventListener("submit",e=>{e.preventDefault();saveStudyDetails();});
+E.studyDetailsSaveButton?.addEventListener("click",e=>{e.preventDefault();saveStudyDetails();});
+E.newStudyButton?.addEventListener("click",e=>{e.preventDefault();openNewStudyForm();});
 E.studyDetailsUploadButton?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});
 E.editPatientButton?.addEventListener("click",openEditPatientForm);
 E.printPatientButton?.addEventListener("click",printPatientInformation);

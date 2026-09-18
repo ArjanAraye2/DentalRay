@@ -48,11 +48,15 @@ assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards mu
 assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
 assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
 assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']button["']/, "Study save must use an explicit non-submitting button.");
-assert.match(html, /onclick=["'][^"']*DentalRaySaveStudyDetails/, "Study Save must invoke its handler directly.");
+assert.doesNotMatch(html, /onclick=["'][^"']*DentalRaySaveStudyDetails/, "Study Save must not depend on inline JavaScript.");
 assert.match(app, /studyDetailsSaveInProgress/, "Study save must guard against duplicate submissions.");
 assert.match(app, /window\.DentalRaySaveStudyDetails=event=>/, "Study Save must expose a direct, cache-diagnostic handler.");
-assert.match(html, /onclick=["'][^"']*DentalRayOpenNewStudy/, "New Study must invoke its handler directly.");
+assert.match(app, /studyDetailsSaveButton\?\.addEventListener\(["']click["']/, "Study Save must use a standard click listener.");
+assert.doesNotMatch(html, /onclick=["'][^"']*DentalRayOpenNewStudy/, "New Study must not depend on inline JavaScript.");
 assert.match(app, /window\.DentalRayOpenNewStudy=event=>/, "New Study must expose a direct, cache-diagnostic handler.");
+assert.match(app, /newStudyButton\?\.addEventListener\(["']click["']/, "New Study must use a standard click listener.");
+assert.match(html, /<select[^>]*id=["']newStudyType["'][^>]*>\s*<option/, "New Study must use the Study Type lookup.");
+assert.match(app, /studyTypeID/, "New Study payload must use StudyTypeID.");
 assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
