@@ -43,20 +43,23 @@ function renderPatientDetails(x){const p=x.patient;E.patientFullName.textContent
 function renderStudiesSafe(studies){
  E.studiesContainer.replaceChildren();
  if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز Study ثبت نشده است.";return;}
- // Phase 1: render only static Study data. No date conversion, buttons,
- // image containers, or event handlers are created here. This lets us
- // identify whether the freeze is caused by Study DOM creation or by one
- // of the interactive/date-rendering helpers.
  for(const study of studies){
   const card=document.createElement("div");card.className="study-card";card.dataset.studyId=String(study.studyID);
+  const h=document.createElement("div");h.className="study-card-header";
   const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||("Study "+study.studyID);
+  const buttons=document.createElement("div");buttons.className="study-action-buttons";
+  const images=document.createElement("button");images.type="button";images.className="study-images-button";images.textContent="تصاویر ("+(study.imageCount||0)+")";
+  const upload=document.createElement("button");upload.type="button";upload.textContent="افزودن فایل";
+  const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="ویرایش";
+  buttons.append(images,upload,edit);h.append(title,buttons);card.appendChild(h);
   const meta=document.createElement("div");meta.className="study-meta";
-  const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+(study.studyDate||"-");
-  const areaLine=document.createElement("div");areaLine.textContent="ناحیه: "+(study.bodyPart||"-");
-  const descriptionLine=document.createElement("div");descriptionLine.textContent="توضیحات: "+(study.description||"-");
-  const reportLine=document.createElement("div");reportLine.textContent="گزارش: "+(study.report||"-");
-  meta.append(dateLine,areaLine,descriptionLine,reportLine);
-  card.append(title,meta);
+  meta.append(createInfoLine("تاریخ",formatPersianDateTime(study.studyDate)),createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));card.appendChild(meta);
+  const sec=document.createElement("div");sec.className="study-inline-images hidden";
+  const status=document.createElement("div");status.className="status-message";
+  const grid=document.createElement("div");grid.className="images-grid";sec.append(status,grid);card.appendChild(sec);
+  images.addEventListener("click",()=>toggleStudyImages(study,sec,status,grid,images));
+  upload.addEventListener("click",()=>openUploadImageForm(study));
+  edit.addEventListener("click",()=>openEditStudyForm(study));
   E.studiesContainer.appendChild(card);
  }
 }
