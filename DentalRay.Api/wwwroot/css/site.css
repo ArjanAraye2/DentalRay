@@ -1093,3 +1093,12 @@ button {
 #studyDetailsDentalChart.study-chart-readonly .dental-chart-toolbar button {
     display: none;
 }
+
+
+.jalali-weekday-name {
+    margin-top: 5px;
+    min-height: 20px;
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 13px;
+}
