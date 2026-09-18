@@ -46,6 +46,10 @@ assert.match(app, /method:["']DELETE["']/, "Patient delete must call the DELETE 
 assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards must load their own details.");
 assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
 assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
+assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']submit["']/, "Study save must use standard form submission.");
+assert.doesNotMatch(html, /DentalRaySaveStudyDetails/, "Obsolete global click interception must not handle Study saves.");
+assert.match(app, /studyDetailsSaveInProgress/, "Study save must guard against duplicate submissions.");
+assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
 assert.match(html, /class=["']patient-identity-hero["']/, "Patient identity must use the compact unified hero layout.");
 assert.match(app, /radiologyimages\/study\/\$\{study\.studyID\}/, "Selected Study images must load inline.");
