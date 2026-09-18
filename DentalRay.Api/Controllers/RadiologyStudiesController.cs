@@ -84,10 +84,14 @@ namespace DentalRay.Api.Controllers
                 if(studyID<=0)return BadRequest(new{success=false,message="StudyID must be greater than zero."});
                 if(request==null)return BadRequest(new{success=false,message="Study information is required."});
                 if(!await _studyAccess.CanAccessStudyAsync(studyID,User))return NotFound(new{success=false,message="Study not found."});
-                if(request.StudyTypeID<=0)return BadRequest(new{success=false,message="StudyTypeID is required."});
-                if(!await _context.StudyTypes.AnyAsync(t=>t.StudyTypeID==request.StudyTypeID && t.IsActive))return BadRequest(new{success=false,message="Selected Study type does not exist or is inactive."});
-                var teeth=NormalizeTeeth(request.ToothNumbers);if(teeth==null)return BadRequest(new{success=false,message="One or more FDI tooth numbers are invalid."});
                 var study=await _context.RadiologyStudies.FirstOrDefaultAsync(s=>s.StudyID==studyID);if(study==null)return NotFound(new{success=false,message="Study not found."});
+                if(request.StudyTypeID<=0)return BadRequest(new{success=false,message="StudyTypeID is required."});
+                // An existing Study may reference a type that was deactivated later.
+                // It may keep that same type while other fields are edited, but users
+                // cannot switch to another inactive/nonexistent type.
+                bool typeAllowed=await _context.StudyTypes.AnyAsync(t=>t.StudyTypeID==request.StudyTypeID&&(t.IsActive||t.StudyTypeID==study.StudyTypeID));
+                if(!typeAllowed)return BadRequest(new{success=false,message="Selected Study type does not exist or is inactive."});
+                var teeth=NormalizeTeeth(request.ToothNumbers);if(teeth==null)return BadRequest(new{success=false,message="One or more FDI tooth numbers are invalid."});
                 var body=NormalizeOptionalText(request.BodyPart);var desc=NormalizeOptionalText(request.Description);var report=NormalizeOptionalText(request.Report);
                 if(body?.Length>100)return BadRequest(new{success=false,message="BodyPart cannot be longer than 100 characters."});if(desc?.Length>1000)return BadRequest(new{success=false,message="Description cannot be longer than 1000 characters."});if(request.StudyDate==default)return BadRequest(new{success=false,message="StudyDate is required."});
                 await using var transaction=await _context.Database.BeginTransactionAsync();

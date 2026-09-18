@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/index.html")
 const app = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/app.js"), "utf8");
 const navigation = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/navigation.js"), "utf8");
 const dashboardController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/DashboardController.cs"), "utf8");
+const studiesController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/RadiologyStudiesController.cs"), "utf8");
 
 for (const id of [
     "newStudyButton",
@@ -46,9 +47,11 @@ assert.match(app, /method:["']DELETE["']/, "Patient delete must call the DELETE 
 assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards must load their own details.");
 assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
 assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
-assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']submit["']/, "Study save must use standard form submission.");
+assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']button["']/, "Study save must use an explicit non-submitting button.");
 assert.doesNotMatch(html, /DentalRaySaveStudyDetails/, "Obsolete global click interception must not handle Study saves.");
 assert.match(app, /studyDetailsSaveInProgress/, "Study save must guard against duplicate submissions.");
+assert.match(app, /studyDetailsSaveButton\?\.addEventListener\(["']click["']/, "Study Save button must be wired directly.");
+assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
 assert.match(html, /class=["']patient-identity-hero["']/, "Patient identity must use the compact unified hero layout.");
@@ -82,3 +85,4 @@ assert.match(dashboardController, /Dns\.GetHostAddresses/, "Dashboard API must d
 assert.match(dashboardController, /RemoteAccess:PublicHost/, "Dashboard API must read the configured public or static host.");
 assert.match(dashboardController, /localUrls/, "Dashboard API must return LAN access URLs.");
 assert.match(dashboardController, /serverNameUrl/, "Dashboard API must return an access URL based on the server name.");
+assert.match(studiesController, /t\.IsActive\|\|t\.StudyTypeID==study\.StudyTypeID/, "An existing Study must retain its current inactive type during unrelated edits.");
