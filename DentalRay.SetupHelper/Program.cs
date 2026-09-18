@@ -95,7 +95,7 @@ namespace DentalRay.SetupHelper
 
             string target = outputPath ?? Path.Combine(Path.GetTempPath(), "DentalRay.SqlDiscovery.txt");
             await File.WriteAllTextAsync(target,
-                $"{selected.Server}|{(selected.HasDentalRay ? "EXISTS" : "MISSING")}");
+                $"{selected.Server}{Environment.NewLine}{(selected.HasDentalRay ? "EXISTS" : "MISSING")}");
 
             Console.WriteLine(selected.Server);
             Console.WriteLine(selected.HasDentalRay ? "EXISTS" : "MISSING");
