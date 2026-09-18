@@ -176,6 +176,9 @@ var
     CreateDatabaseConfirmed:
         Boolean;
 
+    DatabasePrepared:
+        Boolean;
+
     DiscoveredDatabaseState:
         String;
 
@@ -205,6 +208,9 @@ begin
     WizardForm.WelcomeLabel1.Font.Name := 'Segoe UI';
     WizardForm.WelcomeLabel1.Font.Size := 16;
     WizardForm.WelcomeLabel1.Font.Style := [fsBold];
+
+    CreateDatabaseConfirmed := False;
+    DatabasePrepared := False;
 
 
     // --------------------------------------------------------
@@ -607,7 +613,7 @@ begin
         CreateDatabaseConfirmed := True;
     end;
 
-    Params := '--server "' + Trim(SqlPage.Values[0]) + '"';
+    Params := '--server "' + Trim(SqlPage.Values[0]) + '" --script "' + ExpandConstant('{tmp}\\DentalRay.Database.Install.sql') + '"';
     if CreateDatabaseConfirmed then
         Params := Params + ' --create-database true';
 
@@ -620,6 +626,7 @@ begin
         Exit;
     end;
 
+    DatabasePrepared := True;
     Result := True;
 end;
 
@@ -745,6 +752,8 @@ begin
         HelperExe,
         '--server "' +
         SqlServer +
+        '" --script "' +
+        ExpandConstant('{tmp}\\DentalRay.Database.Install.sql') +
         '"',
         HelperDirectory,
         ResultCode
