@@ -87,7 +87,7 @@ var
     StartPos, EndPos: Integer;
 begin
     Result := '';
-    ConfigFile := ExpandConstant('{commonappdata}\\DentalRay\\DentalRay.config.json');
+    ConfigFile := ExpandConstant('{commonappdata}\DentalRay\DentalRay.config.json');
 
     if not FileExists(ConfigFile) then
         Exit;
@@ -266,6 +266,10 @@ begin
         '  },' + CRLF +
         '  "RadiologyStorage": {' + CRLF +
         '    "RootPath": "' + JsonEscape(StoragePath) + '"' + CRLF +
+        '  },' + CRLF +
+        '  "SuperAdmin": {' + CRLF +
+        '    "UserName": "admin",' + CRLF +
+        '    "PasswordHash": "AQAAAAEAAYagAAAAEK3Pciij9rE+yE0BUHfWjd2daZqT6hdgfJKmhV7ijJiEK8cnV5+uKOdNyf5fyfFyvA=="' + CRLF +
         '  },' + CRLF +
         '  "Urls": "http://0.0.0.0:5202",' + CRLF +
         '  "RemoteAccess": {' + CRLF +
