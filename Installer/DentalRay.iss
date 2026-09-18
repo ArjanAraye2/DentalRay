@@ -95,11 +95,6 @@ Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.SetupHelper.exe"; \
     DestDir: "{tmp}"; \
     Flags: dontcopy
 
-Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.Database.Install.sql"; \
-    DestDir: "{tmp}"; \
-    Flags: dontcopy
-
-
 
 [Icons]
 
@@ -177,14 +172,9 @@ var
     StoragePage:
         TInputDirWizardPage;
 
-    CreateDatabaseConfirmed:
-        Boolean;
-
     DatabasePrepared:
         Boolean;
 
-    DiscoveredDatabaseState:
-        String;
 
 
 
@@ -213,7 +203,6 @@ begin
     WizardForm.WelcomeLabel1.Font.Size := 16;
     WizardForm.WelcomeLabel1.Font.Style := [fsBold];
 
-    CreateDatabaseConfirmed := False;
     DatabasePrepared := False;
 
 
@@ -305,17 +294,14 @@ begin
             Exit;
         end;
 
-        // در صورت استفاده از مقدار پیش‌فرض، ابتدا Instance مناسب را پیدا می‌کنیم.
-        if CompareText(Trim(SqlPage.Values[0]), '.\DENTALRAY') = 0 then
+        // ابتدا Instance مناسب را پیدا می‌کنیم.
+        if not DiscoverDentalRaySqlServer then
         begin
-            if not DiscoverDentalRaySqlServer then
-            begin
-                Result := False;
-                Exit;
-            end;
+            Result := False;
+            Exit;
         end;
 
-        // بررسی نهایی دیتابیس؛ در صورت نبودن آن، ایجاد فقط با تأیید صریح کاربر.
+        // دیتابیس باید از قبل وجود داشته باشد؛ Installer هرگز آن را ایجاد نمی‌کند.
         if not PrepareDentalRayDatabase then
         begin
             Result := False;
@@ -549,7 +535,6 @@ var
 begin
     Result := False;
     ExtractTemporaryFile('DentalRay.SetupHelper.exe');
-    ExtractTemporaryFile('DentalRay.Database.Install.sql');
     HelperDirectory := ExpandConstant('{tmp}');
     HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
     OutputFile := ExpandConstant('{tmp}\\DentalRay.SqlDiscovery.txt');
@@ -583,7 +568,6 @@ begin
     else
         SqlPage.Values[0] := Trim(StateText);
 
-    DiscoveredDatabaseState := StateText;
     Result := True;
 end;
 
@@ -603,32 +587,25 @@ begin
     HelperDirectory := ExpandConstant('{tmp}\\DentalRay.SetupHelper');
     HelperExe := HelperDirectory + '\\DentalRay.SetupHelper.exe';
 
-    Exists := Pos('EXISTS', UpperCase(DiscoveredDatabaseState)) > 0;
-
-    if not Exists then
+    // فقط بررسی می‌کنیم که دیتابیس DentalRay از قبل وجود داشته باشد.
+    // هیچ CREATE DATABASE و هیچ اجرای SQL migration در Installer انجام نمی‌شود.
+    if Pos('EXISTS', UpperCase(DiscoveredDatabaseState)) = 0 then
     begin
-        if MsgBox(
-            'دیتابیس DentalRay در SQL Server انتخاب‌شده پیدا نشد.' + CRLF + CRLF +
-            'آیا می‌خواهید دیتابیس DentalRay ایجاد و آماده‌سازی شود؟',
-            mbConfirmation, MB_YESNO) <> IDYES then
-        begin
-            MsgBox('نصب توسط کاربر لغو شد.', mbInformation, MB_OK);
-            Exit;
-        end;
-
-        CreateDatabaseConfirmed := True;
+        MsgBox('دیتابیس DentalRay در SQL Server انتخاب‌شده وجود ندارد.' + CRLF + CRLF +
+               'ابتدا SQL Server و دیتابیس DentalRay را نصب و آماده کنید.' + CRLF +
+               'این Setup دیتابیس را ایجاد یا نصب نمی‌کند.' + CRLF + CRLF +
+               'نصب متوقف شد.', mbError, MB_OK);
+        Exit;
     end;
 
-    Params := '--server "' + Trim(SqlPage.Values[0]) + '" --script "' + ExpandConstant('{tmp}\\DentalRay.Database.Install.sql') + '"';
-    if CreateDatabaseConfirmed then
-        Params := Params + ' --create-database true';
+    Params := '--server "' + Trim(SqlPage.Values[0]) + '"';
 
     if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) or
        (ResultCode <> 0) then
     begin
-        MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + CRLF +
+        MsgBox('اتصال به دیتابیس DentalRay تأیید نشد.' + CRLF + CRLF +
                'کد خطا: ' + IntToStr(ResultCode) + CRLF + CRLF +
-               'نصب تا رفع مشکل ادامه نخواهد یافت.', mbError, MB_OK);
+               'نصب متوقف شد.', mbError, MB_OK);
         Exit;
     end;
 
@@ -710,94 +687,13 @@ begin
 
 
     // ========================================================
-    // 1. Database Setup
+    // 1. Database Validation
     // ========================================================
+    // دیتابیس در مرحله قبل بررسی شده است.
+    // Installer هرگز SQL Script را اجرا نمی‌کند.
 
-    if DatabasePrepared then
-        Exit;
-
-    ExtractTemporaryFile('DentalRay.SetupHelper.exe');
-    ExtractTemporaryFile('DentalRay.Database.Install.sql');
-
-    HelperDirectory :=
-        ExpandConstant(
-            '{tmp}'
-        );
-
-
-    HelperExe :=
-        HelperDirectory +
-        '\DentalRay.SetupHelper.exe';
-
-
-
-    // --------------------------------------------------------
-    // Check SetupHelper
-    // --------------------------------------------------------
-
-    if not FileExists(
-        HelperExe
-    ) then
-    begin
-
-        RaiseException(
-            'DentalRay SetupHelper پیدا نشد.'
-        );
-
-    end;
-
-
-
-    // --------------------------------------------------------
-    // Run SetupHelper
-    //
-    // SetupHelper:
-    //
-    // - به SQL Server وصل می‌شود.
-    // - Database را ایجاد / آماده می‌کند.
-    // - Database Script را اجرا می‌کند.
-    // - دسترسی NT AUTHORITY\SYSTEM را تنظیم می‌کند.
-    //
-    // --------------------------------------------------------
-
-    if not RunHiddenAndWait(
-        HelperExe,
-        '--server "' +
-        SqlServer +
-        '" --script "' +
-        ExpandConstant('{tmp}\\DentalRay.Database.Install.sql') +
-        '"',
-        HelperDirectory,
-        ResultCode
-    ) then
-    begin
-
-        RaiseException(
-            'SetupHelper اجرا نشد.'
-        );
-
-    end;
-
-
-
-    // --------------------------------------------------------
-    // Check SetupHelper Exit Code
-    // --------------------------------------------------------
-
-    if ResultCode <> 0 then
-    begin
-
-        RaiseException(
-            'آماده‌سازی دیتابیس انجام نشد.' +
-            CRLF +
-            'SetupHelper Exit Code: ' +
-            IntToStr(
-                ResultCode
-            )
-        );
-
-    end;
-
+    if not DatabasePrepared then
+        RaiseException('دیتابیس DentalRay قبل از نصب تأیید نشده است.');
 
 
     // ========================================================
