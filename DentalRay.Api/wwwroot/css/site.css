@@ -1778,3 +1778,70 @@ table button {
     [class*="admin-section"] .table-container { overflow-x:auto; }
     .confirm-dialog { padding:18px; }
 }
+
+
+/* ==========================================================
+   Design D - Patients as a Form-style Workspace
+   Keep the existing patient table/behavior, but align its layout
+   with DentalRay's data-entry forms.
+   ========================================================== */
+#patientsSection {
+    max-width:1120px;
+    margin-inline:auto;
+}
+#patientsSection .section-header {
+    margin-bottom:12px;
+    padding:18px 20px;
+    background:linear-gradient(135deg,#fff,#eef7ff);
+}
+#patientsSection .search-panel {
+    padding:20px;
+    margin-bottom:12px;
+    background:#fff;
+    border:1px solid #d9e8f5;
+    border-radius:15px;
+    box-shadow:0 7px 24px rgba(22,91,150,.06);
+}
+#patientsSection .search-container {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    gap:10px;
+    align-items:center;
+}
+#patientsSection #patientSearch {
+    min-height:44px;
+    padding:10px 13px;
+    background:#f8fbff;
+    border-color:#cfe0ef;
+    border-radius:10px;
+}
+#patientsSection .checkbox-row {
+    margin-top:13px;
+    padding:8px 11px;
+    background:#f8fbff;
+    border:1px solid #e1edf7;
+    border-radius:9px;
+}
+#patientsSection #statusMessage {
+    margin:0 0 10px;
+    padding:0 4px;
+}
+#patientsSection .table-container {
+    padding:12px;
+    border-radius:15px;
+}
+#patientsSection .patient-table {
+    overflow:hidden;
+    border:1px solid #e1edf7;
+    border-radius:11px;
+}
+#patientsSection .patient-table th:first-child { border-radius:0 9px 0 0; }
+#patientsSection .patient-table th:last-child { border-radius:9px 0 0 0; }
+
+@media(max-width:700px){
+    #patientsSection .search-panel { padding:10px; }
+    #patientsSection .search-container { display:grid; grid-template-columns:1fr; }
+    #patientsSection .search-container input,
+    #patientsSection .search-container button { width:100%; margin:0; }
+    #patientsSection .table-container { padding:6px; }
+}
