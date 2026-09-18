@@ -11,16 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Database\DentalRay.Database.Install.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Database\DentalRay.Database.Install.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.6" />
   </ItemGroup>
 
