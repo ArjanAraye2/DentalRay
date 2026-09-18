@@ -99,6 +99,8 @@ begin
     ServerAnsi := '';
     if not LoadStringFromFile(OutputFile, ServerAnsi) then begin MsgBox('نام SQL Server دریافت نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
     ServerText := Trim(String(ServerAnsi));
+    if Pos('|', ServerText) > 0 then
+        ServerText := Trim(Copy(ServerText, 1, Pos('|', ServerText) - 1));
     if ServerText = '' then begin MsgBox('نمونه SQL Server شناسایی نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
     SqlPage.Values[0] := ServerText;
     Result := True;
