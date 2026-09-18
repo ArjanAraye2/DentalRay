@@ -79,6 +79,44 @@ begin
     Result := Exec(FileName, Parameters, WorkingDirectory, SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
+function GetExistingStoragePath: String;
+var
+    ConfigFile, ConfigText: String;
+    ConfigAnsi: AnsiString;
+    Marker, ValueText: String;
+    StartPos, EndPos: Integer;
+begin
+    Result := '';
+    ConfigFile := ExpandConstant('{commonappdata}\\DentalRay\\DentalRay.config.json');
+
+    if not FileExists(ConfigFile) then
+        Exit;
+
+    ConfigAnsi := '';
+    if not LoadStringFromFile(ConfigFile, ConfigAnsi) then
+        Exit;
+
+    ConfigText := String(ConfigAnsi);
+    Marker := '"RootPath": "';
+    StartPos := Pos(Marker, ConfigText);
+    if StartPos = 0 then
+        Exit;
+
+    StartPos := StartPos + Length(Marker);
+    EndPos := StartPos;
+
+    while (EndPos <= Length(ConfigText)) and (ConfigText[EndPos] <> '"') do
+        Inc(EndPos);
+
+    if EndPos <= Length(ConfigText) then
+    begin
+        ValueText := Copy(ConfigText, StartPos, EndPos - StartPos);
+        StringChangeEx(ValueText, '\\', '\', True);
+        StringChangeEx(ValueText, '"', '"', True);
+        Result := Trim(ValueText);
+    end;
+end;
+
 function DiscoverDentalRaySqlServer: Boolean;
 var
     HelperExe, HelperDirectory, OutputFile, Params, ServerText: String;
@@ -162,7 +200,9 @@ begin
 
     StoragePage := CreateInputDirPage(SqlPage.ID, 'محل ذخیره تصاویر رادیولوژی', 'پوشه ذخیره تصاویر را انتخاب کنید', 'مسیر ذخیره تصاویر DentalRay را مشخص کنید. در صورت نیاز این پوشه ساخته می‌شود.', False, 'RadiologyData');
     StoragePage.Add('');
-    StoragePage.Values[0] := 'D:\RadiologyData';
+    StoragePage.Values[0] := GetExistingStoragePath;
+    if StoragePage.Values[0] = '' then
+        StoragePage.Values[0] := 'D:\RadiologyData';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
