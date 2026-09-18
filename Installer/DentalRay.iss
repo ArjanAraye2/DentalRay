@@ -87,139 +87,39 @@ var
 
 function RunHiddenAndWait(FileName: String; Parameters: String; WorkingDirectory: String; var ResultCode: Integer): Boolean; forward;
 function DiscoverDentalRaySqlServer: Boolean; forward;
-function PrepareDentalRayDatabase: Boolean; forward;
-
-procedure InitializeWizard;
-begin
-    WizardForm.Font.Name := 'Segoe UI';
-    WizardForm.Font.Size := 9;
-    WizardForm.Color := $00FBFDFF;
-    WizardForm.WelcomeLabel1.Font.Name := 'Segoe UI';
-    WizardForm.WelcomeLabel1.Font.Size := 16;
-    WizardForm.WelcomeLabel1.Font.Style := [fsBold];
-
-    SqlPage := CreateInputQueryPage(wpSelectDir, 'SQL Server', 'SQL Server مورد استفاده DentalRay را مشخص کنید.', 'نام Server و Instance را وارد کنید.' + CRLF + 'مثال: .\DENTALRAY');
-    SqlPage.Add('نام Server / Instance:', False);
-    SqlPage.Values[0] := '.\DENTALRAY';
-
-    StoragePage := CreateInputDirPage(SqlPage.ID, 'محل ذخیره تصاویر', 'محل ذخیره تصاویر رادیولوژی را مشخص کنید.', 'تمام تصاویر بیماران در این پوشه نگهداری خواهند شد.' + CRLF + 'در صورت نیاز می‌توانید این مسیر را تغییر دهید.', False, '');
-    StoragePage.Add('مسیر ذخیره تصاویر رادیولوژی:');
-    StoragePage.Values[0] := 'D:\RadiologyData';
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-    Result := True;
-
-    if CurPageID = SqlPage.ID then
-    begin
-        if Trim(SqlPage.Values[0]) = '' then
-        begin
-            MsgBox('لطفاً نام SQL Server را وارد کنید.', mbError, MB_OK);
-            Result := False;
-            Exit;
-        end;
-
-        if Trim(SqlPage.Values[0]) = '.\\DENTALRAY' then
-        begin
-            if not DiscoverDentalRaySqlServer then
-            begin
-                Result := False;
-                Exit;
-            end;
-        end;
-
-        if not PrepareDentalRayDatabase then
-        begin
-            Result := False;
-            Exit;
-        end;
-    end;
-
-    if CurPageID = StoragePage.ID then
-    begin
-        if Trim(StoragePage.Values[0]) = '' then
-        begin
-            MsgBox('لطفاً مسیر ذخیره تصاویر را مشخص کنید.', mbError, MB_OK);
-            Result := False;
-            Exit;
-        end;
-    end;
-end;
-
-function JsonEscape(S: String): String;
-var I: Integer; C: Char;
-begin
-    Result := '';
-    for I := 1 to Length(S) do
-    begin
-        C := S[I];
-        if C = '\\' then Result := Result + '\\\\'
-        else if C = '"' then Result := Result + '\\"'
-        else Result := Result + C;
-    end;
-end;
-
-function RunHiddenAndWait(FileName: String; Parameters: String; WorkingDirectory: String; var ResultCode: Integer): Boolean;
-begin
-    Result := Exec(FileName, Parameters, WorkingDirectory, SW_HIDE, ewWaitUntilTerminated, ResultCode);
-end;
-
-function PrepareToInstall(var NeedsRestart: Boolean): String;
-var ResultCode: Integer;
-begin
-    Result := '';
-    RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'stop DentalRay', '', ResultCode);
-    Sleep(1000);
-    RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'delete DentalRay', '', ResultCode);
-    Sleep(1000);
-end;
-
-function DiscoverDentalRaySqlServer: Boolean;
-var HelperExe, HelperDirectory, OutputFile, StateText: String; ResultCode: Integer;
-begin
-    Result := False;
-    HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
-    HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
-    OutputFile := ExpandConstant('{tmp}\DentalRay.SqlDiscovery.txt');
-
-    if not FileExists(HelperExe) then
-    begin
-        MsgBox('ابزار بررسی SQL Server پیدا نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
-        Exit;
-    end;
-
-    if not RunHiddenAndWait(HelperExe, '--discover --output "' + OutputFile + '"', HelperDirectory, ResultCode) or (ResultCode <> 0) then
-    begin
-        MsgBox('هیچ SQL Server قابل دسترسی پیدا نشد.' + CRLF + 'لطفاً SQL Server را بررسی کنید و دوباره تلاش کنید.' + CRLF + CRLF + 'نصب تا رفع مشکل ادامه نخواهد یافت.', mbError, MB_OK);
-        Exit;
-    end;
-
-    if not LoadStringFromFile(OutputFile, StateText) then
-    begin
-        MsgBox('نتیجه بررسی SQL Server دریافت نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
-        Exit;
-    end;
-
-    if Pos(#10, StateText) > 0 then
-        SqlPage.Values[0] := Trim(Copy(StateText, 1, Pos(#10, StateText) - 1))
-    else
-        SqlPage.Values[0] := Trim(StateText);
-
-    DiscoveredDatabaseState := StateText;
-    Result := True;
-end;
-
 function PrepareDentalRayDatabase: Boolean;
-var HelperExe, HelperDirectory: String; ResultCode: Integer; Exists: Boolean; Params: String;
+var HelperExe, HelperDirectory, ScriptPath, CheckFile, StateText: String; ResultCode: Integer; Params: String;
 begin
     Result := False;
     HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
     HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
+    ScriptPath := HelperDirectory + '\Database\DentalRay.Database.Install.sql';
+    CheckFile := ExpandConstant('{tmp}\DentalRay.DatabaseState.txt');
+    CreateDatabaseConfirmed := False;
 
-    Exists := Pos('EXISTS', UpperCase(DiscoveredDatabaseState)) > 0;
+    Params := '--server "' + Trim(SqlPage.Values[0]) + '" --check-database --output "' + CheckFile + '"';
+    if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) then
+    begin
+        MsgBox('بررسی دیتابیس DentalRay با خطا مواجه شد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
+        Exit;
+    end;
 
-    if not Exists then
+    if ResultCode = 20 then
+    begin
+        MsgBox('SQL Server روی این رایانه نصب نیست یا قابل دسترسی نیست.' + CRLF + CRLF + 'نصب DentalRay خاتمه یافت.', mbError, MB_OK);
+        Exit;
+    end;
+
+    if ResultCode <> 0 then
+    begin
+        MsgBox('بررسی SQL Server موفق نبود.' + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
+        Exit;
+    end;
+
+    StateText := '';
+    LoadStringFromFile(CheckFile, StateText);
+
+    if Pos('MISSING', UpperCase(StateText)) > 0 then
     begin
         if MsgBox('دیتابیس DentalRay در SQL Server انتخاب‌شده پیدا نشد.' + CRLF + CRLF + 'آیا می‌خواهید دیتابیس DentalRay ایجاد و آماده‌سازی شود؟', mbConfirmation, MB_YESNO) <> IDYES then
         begin
@@ -229,17 +129,18 @@ begin
         CreateDatabaseConfirmed := True;
     end;
 
-    Params := '--server "' + Trim(SqlPage.Values[0]) + '"';
-    if CreateDatabaseConfirmed then Params := Params + ' --create-database true';
+    Params := '--server "' + Trim(SqlPage.Values[0]) + '" --script "' + ScriptPath + '"';
+    if CreateDatabaseConfirmed then
+        Params := Params + ' --create-database true';
 
     if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) or (ResultCode <> 0) then
     begin
         if ResultCode = 20 then
-            MsgBox('SQL Server روی این رایانه نصب نیست یا قابل دسترسی نیست.' + CRLF + CRLF + 'لطفاً ابتدا SQL Server را نصب و سرویس آن را فعال کنید.' + CRLF + CRLF + 'نصب DentalRay خاتمه یافت.', mbError, MB_OK)
-        else if ResultCode = 21 then
-            MsgBox('هیچ SQL Server قابل دسترسی پیدا نشد.' + CRLF + CRLF + 'لطفاً SQL Server را نصب و سرویس آن را فعال کنید.' + CRLF + CRLF + 'نصب DentalRay خاتمه یافت.', mbError, MB_OK)
+            MsgBox('SQL Server قابل دسترسی نیست.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
+        else if ResultCode = 30 then
+            MsgBox('دیتابیس DentalRay وجود ندارد و ایجاد آن تأیید نشده است.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
         else
-            MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + CRLF + 'نصب تا رفع مشکل ادامه نخواهد یافت.', mbError, MB_OK);
+            MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
         Exit;
     end;
 
