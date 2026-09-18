@@ -1080,3 +1080,16 @@ button {
     line-height: 1.7;
     white-space: pre-wrap;
 }
+
+
+#studyDetailsForm input[readonly],
+#studyDetailsForm textarea[readonly] {
+    background: #f8fafc;
+    cursor: default;
+}
+#studyDetailsDentalChart.study-chart-readonly {
+    pointer-events: none;
+}
+#studyDetailsDentalChart.study-chart-readonly .dental-chart-toolbar button {
+    display: none;
+}
