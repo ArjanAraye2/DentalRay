@@ -24,7 +24,6 @@ jobs:
       - name: Publish Setup Helper
         run: |
           dotnet publish DentalRay.SetupHelper/DentalRay.SetupHelper.csproj -c Release -r win-x64 --self-contained true -o publish/DentalRay.SetupHelper
-          Copy-Item DentalRay.SetupHelper/DentalRay.Database.Install.sql publish/DentalRay.SetupHelper/DentalRay.Database.Install.sql -Force
 
       - name: Install Inno Setup
         shell: powershell
