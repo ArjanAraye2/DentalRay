@@ -145,4 +145,5 @@
     // Moving those same nodes preserves every original click handler.
     moveAdministrativeButtons();
     window.DentalRayNavigation = { navigate, moveAdministrativeButtons };
+    navigate("dashboard");
 })();

@@ -63,5 +63,7 @@ assert.doesNotMatch(html, /data-nav=["']images["']/, "Images must remain inside 
 assert.doesNotMatch(navigation, /dashboard-shortcuts/, "Dashboard must not contain operational shortcuts.");
 assert.match(navigation, /dashboardPatientsToday/, "Today's patient metric is missing.");
 assert.match(navigation, /dashboardRecentStudies/, "Recent Studies panel is missing.");
+assert.match(navigation, /navigate\(["']dashboard["']\);\s*\}\)\(\);/, "Dashboard must be the default landing page.");
+assert.match(html, /sidebar-link active["'] data-nav=["']dashboard["']/, "Dashboard must be active in the initial navigation markup.");
 assert.match(dashboardController, /patientsToday/, "Dashboard API must calculate today's distinct patients.");
 assert.match(dashboardController, /recentImages/, "Dashboard API must return recent images.");
