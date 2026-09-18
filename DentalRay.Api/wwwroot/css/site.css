@@ -1056,8 +1056,16 @@ button {
 
 .study-header {
     position: relative;
+    display: block;
 }
-.study-header #studyDetailsEditButton {
-    align-self: flex-start;
+.study-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.study-header-title #studyDetailsEditButton {
     flex: 0 0 auto;
+}
+.study-header > p {
+    margin-top: 7px;
 }
