@@ -4,20 +4,17 @@
  const fmt=new Intl.DateTimeFormat("en-US-u-ca-persian",{year:"numeric",month:"numeric",day:"numeric"});
  const parts=d=>{const p=fmt.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;return [g("year"),g("month"),g("day")];};
  function greg(jy,jm,jd){
-   // Convert Jalali to Gregorian with the arithmetic Jalaali algorithm.
-   // This avoids browser Intl search-range edge cases, especially Esfand.
-   const div=(a,b)=>Math.trunc(a/b),mod=(a,b)=>a-Math.trunc(a/b)*b;
-   const breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
-   let gy=jy+621,leapJ=-14,jp=breaks[0],jump=0;
-   for(let i=1;i<breaks.length;i++){const jm2=breaks[i];jump=jm2-jp;if(jy<jm2)break;leapJ+=div(jump,33)*8+div(mod(jump,33),4);jp=jm2;}
-   let n=jy-jp;leapJ+=div(n,33)*8+div(mod(n,33)+3,4);if(mod(jump,33)===4&&jump-n===4)leapJ++;
-   const leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;
-   const march=20+leapJ-leapG;
-   if(jump-n<6)n=n-jump+div(jump+4,33)*33;
-   let leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4;
-   const g0=new Date(gy,2,march);
-   const dayOfYear=(jm-1)*31-Math.max(0,jm-7)*(jm-7)+(jd-1);
-   const d=new Date(g0);d.setDate(g0.getDate()+dayOfYear);return d;
+   // Resolve a Jalali date through Intl using a deliberately wide Gregorian
+   // window. This keeps the browser's Persian-calendar rules as the authority
+   // and avoids the old Esfand truncation caused by too short a search window.
+   const target=jy*10000+jm*100+jd;
+   const start=new Date(jy+620,0,1);
+   for(let i=0;i<1100;i++){
+     const d=new Date(start);d.setDate(start.getDate()+i);
+     const [y,m,day]=parts(d);
+     if(y*10000+m*100+day===target)return d;
+   }
+   return null;
  }
  function enhance(input,withTime=false){if(!input||input.dataset.jalaliPicker)return;input.dataset.jalaliPicker="1";input.type="text";input.inputMode="numeric";input.dir="ltr";input.maxLength=withTime?16:10;
    const wrap=document.createElement("div");wrap.className="jalali-input-wrap";input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);
