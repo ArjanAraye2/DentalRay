@@ -16,11 +16,8 @@ namespace DentalRay.Api.Services
             if (nationalCode.Length != 10 || nationalCode.Any(c => c < '0' || c > '9'))
                 return false;
 
-            // Values made from one repeated digit (0000000000 ... 9999999999)
-            // are not accepted as valid National Codes.
-            if (nationalCode.All(c => c == nationalCode[0]))
-                return false;
-
+            // Repeated digits are not rejected by themselves. DentalRay follows
+            // the requested rule: exactly 10 digits plus a valid check digit.
             int sum = 0;
             for (int i = 0; i < 9; i++)
                 sum += (nationalCode[i] - '0') * (10 - i);
