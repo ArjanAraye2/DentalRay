@@ -1393,3 +1393,134 @@ button {
     #patientDetailsSection .summary-row { grid-template-columns:1fr; }
     #patientDetailsSection .summary-box { max-width:none; }
 }
+
+
+/* ==========================================================
+   Design D - Study Details & Study Images
+   Presentation only. Existing controls and JS contracts remain intact.
+   ========================================================== */
+#studyDetailsSection,
+#studyImagesSection {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+#studyDetailsSection .details-toolbar,
+#studyImagesSection .details-toolbar {
+    position: sticky;
+    top: 88px;
+    z-index: 20;
+    padding: 11px 14px;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #d9e8f5;
+    border-radius: 14px;
+    box-shadow: 0 7px 24px rgba(22,91,150,.08);
+    backdrop-filter: blur(8px);
+}
+#studyDetailsSection .section-header,
+#studyImagesSection .section-header {
+    padding: 17px 20px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg,#ffffff,#f1f8ff);
+    border: 1px solid #d9e8f5;
+    border-radius: 15px;
+    box-shadow: 0 7px 24px rgba(22,91,150,.06);
+}
+#studyDetailsSection .section-header h2,
+#studyImagesSection .section-header h2 {
+    color: #123f78;
+    font-size: 24px;
+}
+#studyDetailsForm {
+    padding: 18px;
+    background: #fff;
+    border: 1px solid #d9e8f5;
+    border-radius: 15px;
+    box-shadow: 0 7px 24px rgba(22,91,150,.06);
+}
+#studyDetailsForm .form-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 13px 16px;
+}
+#studyDetailsForm .form-field {
+    padding: 12px;
+    margin: 0;
+    background: #f8fbff;
+    border: 1px solid #e1edf7;
+    border-radius: 12px;
+}
+#studyDetailsForm .form-field.full-width { grid-column: 1 / -1; }
+#studyDetailsForm .form-field label { color:#174b84; }
+#studyDetailsForm input,
+#studyDetailsForm select,
+#studyDetailsForm textarea {
+    border-color:#cfe0ef;
+    background:#fff;
+}
+#studyDetailsForm input[readonly],
+#studyDetailsForm textarea[readonly],
+#studyDetailsForm select:disabled {
+    color:#26384b;
+    background:#f1f6fb;
+    border-color:#dbe7f1;
+    opacity:1;
+}
+#studyDetailsDentalChart {
+    padding: 14px;
+    min-height: 170px;
+    background:#fff;
+    border:1px solid #d8e8f6;
+    border-radius:12px;
+}
+#studyDetailsStatus {
+    margin: 12px 0 0;
+    padding: 0 4px;
+}
+#studyImagesSection #studyDetailsImagesStatus {
+    padding: 0 4px;
+}
+#studyImagesSection #studyDetailsImagesGrid {
+    padding: 15px;
+    background:#fff;
+    border:1px solid #d9e8f5;
+    border-radius:15px;
+    box-shadow:0 7px 24px rgba(22,91,150,.06);
+    grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+}
+#studyImagesSection .image-card {
+    border-color:#d7e6f3;
+    border-radius:12px;
+    background:linear-gradient(180deg,#fff,#f8fbff);
+}
+#studyImagesSection .image-card:hover {
+    border-color:#8dc4f5;
+    box-shadow:0 10px 25px rgba(22,91,150,.12);
+}
+#studyImagesSection .image-card img {
+    height:210px;
+    border-radius:9px;
+    background:#071728;
+}
+#studyImagesSection .image-card-title {
+    color:#174b84;
+    font-weight:700;
+}
+#studyDetailsEditButton { background:#eaf4ff; color:#1265bc; }
+#studyDetailsImagesButton,
+#studyDetailsUploadButton { background:linear-gradient(135deg,#1685ff,#1769e8); }
+#studyDetailsSaveButton { background:linear-gradient(135deg,#18a86b,#0e8e57); }
+#studyDetailsCancelButton { background:#eef2f6; color:#334155; }
+
+@media(max-width:1100px){
+    #studyDetailsForm .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:700px){
+    #studyDetailsSection .details-toolbar,
+    #studyImagesSection .details-toolbar { position:static; }
+    #studyDetailsForm { padding:10px; }
+    #studyDetailsForm .form-grid { grid-template-columns:1fr; }
+    #studyDetailsForm .form-field.full-width { grid-column:auto; }
+    #studyImagesSection #studyDetailsImagesGrid { grid-template-columns:1fr; padding:10px; }
+}
