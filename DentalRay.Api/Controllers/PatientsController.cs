@@ -198,6 +198,7 @@ namespace DentalRay.Api.Controllers
         [HttpGet("{patientID:int}/details")]
         public async Task<IActionResult> GetPatientDetails(int patientID)
         {
+            Console.WriteLine($"[DentalRay PatientDetails] START PatientID={patientID}");
             if (patientID <= 0)
                 return BadRequest(new { success = false, message = "PatientID must be greater than zero." });
 
@@ -213,6 +214,8 @@ namespace DentalRay.Api.Controllers
             var accessibleStudies = _studyAccess.ApplyAccess(
                 _context.RadiologyStudies.AsNoTracking().Where(s => s.PatientID == patientID), User);
 
+            Console.WriteLine($"[DentalRay PatientDetails] PATIENT loaded PatientID={patientID}");
+
             var studies = await (
                 from s in accessibleStudies
                 join st in _context.StudyTypes.AsNoTracking() on s.StudyTypeID equals st.StudyTypeID
@@ -224,6 +227,7 @@ namespace DentalRay.Api.Controllers
                     s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate
                 }).ToListAsync();
 
+            Console.WriteLine($"[DentalRay PatientDetails] STUDIES loaded Count={studies.Count}");
             var studyIDs = studies.Select(s => s.StudyID).ToList();
             var imageCounts = studyIDs.Count == 0
                 ? new Dictionary<int, int>()
@@ -233,6 +237,8 @@ namespace DentalRay.Api.Controllers
                     .Select(g => new { StudyID = g.Key, Count = g.Count() })
                     .ToDictionaryAsync(x => x.StudyID, x => x.Count);
 
+            Console.WriteLine($"[DentalRay PatientDetails] IMAGE COUNTS loaded Count={imageCounts.Count}");
+
             var studyList = studies.Select(s => new
             {
                 s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID, s.StudyTypeName,
@@ -241,6 +247,8 @@ namespace DentalRay.Api.Controllers
             }).ToList();
 
             int totalImageCount = studyList.Sum(s => s.imageCount);
+
+            Console.WriteLine($"[DentalRay PatientDetails] RETURN PatientID={patientID} Studies={studyList.Count} Images={totalImageCount}");
 
             return Ok(new
             {
