@@ -731,19 +731,22 @@ button {
         touch-action: none;
         transform-origin: center center;
         user-select: none;
+        position: relative;
+        z-index: 1;
     }
 
 .image-viewer-toolbar {
     position: fixed;
     top: 18px;
     left: 50%;
-    z-index: 1010;
+    z-index: 100000;
     display: flex;
     gap: 6px;
     padding: 7px;
     transform: translateX(-50%);
-    background: rgba( 17, 24, 39, 0.82 );
+    background: rgba( 17, 24, 39, 0.94 );
     border-radius: 10px;
+    pointer-events: auto;
 }
 
 .image-viewer-toolbar button {
