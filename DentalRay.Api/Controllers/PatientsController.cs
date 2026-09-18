@@ -26,6 +26,14 @@ namespace DentalRay.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPatients(string? search = null, bool includeInactive = false)
         {
+            // Statistics describe the complete patient population, while the list below
+            // still respects the current search/include-inactive filters.
+            var totalPatients = await _context.Patients.AsNoTracking().CountAsync();
+            var activePatients = await _context.Patients.AsNoTracking().CountAsync(p => p.IsActive);
+            var inactivePatients = totalPatients - activePatients;
+            var patientsWithStudies = await _context.RadiologyStudies.AsNoTracking()
+                .Select(s => s.PatientID).Distinct().CountAsync();
+
             var query = _context.Patients.AsNoTracking().AsQueryable();
             if (!includeInactive) query = query.Where(p => p.IsActive);
 
@@ -50,7 +58,13 @@ namespace DentalRay.Api.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new { success = true, count = patients.Count, patients });
+            return Ok(new
+            {
+                success = true,
+                count = patients.Count,
+                statistics = new { totalPatients, activePatients, inactivePatients, patientsWithStudies },
+                patients
+            });
         }
 
         [HttpGet("{nationalCode}")]
