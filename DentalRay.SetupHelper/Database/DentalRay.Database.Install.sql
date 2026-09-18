@@ -115,7 +115,8 @@ GO
 DECLARE @ImageTypes TABLE (ImageTypeName NVARCHAR(150));
 INSERT INTO @ImageTypes(ImageTypeName)
 VALUES (N'CBCT'),(N'اکلوزال'),(N'بایت‌وینگ'),(N'پانورامیک'),
-       (N'پری‌اپیکال'),(N'سفالومتری'),(N'عکس داخل دهانی'),(N'عکس دندان');
+       (N'پری‌اپیکال'),(N'سفالومتری'),(N'عکس داخل دهانی'),(N'عکس دندان'),
+       (N'کارت بایگانی');
 INSERT INTO dbo.tblImageTypes(ImageTypeName,IsActive)
 SELECT s.ImageTypeName,1 FROM @ImageTypes s
 WHERE NOT EXISTS(SELECT 1 FROM dbo.tblImageTypes t WHERE t.ImageTypeName=s.ImageTypeName);
