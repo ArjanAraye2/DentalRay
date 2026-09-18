@@ -59,12 +59,14 @@ function renderStudiesSafe(studies){
  for(const study of studies){
   const card=document.createElement("div");card.className="study-card";card.dataset.studyId=String(study.studyID);
   const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||("Study "+study.studyID);
+  const edit=document.createElement("button");edit.type="button";edit.className="secondary-button study-card-edit-button";edit.textContent="ویرایش Study";edit.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();openEditStudyForm(study);});
+  const header=document.createElement("div");header.className="study-card-header";header.append(title,edit);
   const meta=document.createElement("div");meta.className="study-meta";
   const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+formatPersianDateTime(study.studyDate);
   const areaLine=document.createElement("div");areaLine.textContent="ناحیه: "+(study.bodyPart||"-");
   const descriptionLine=document.createElement("div");descriptionLine.textContent="توضیحات: "+(study.description||"-");
   const reportLine=document.createElement("div");reportLine.textContent="گزارش: "+(study.report||"-");
-  meta.append(dateLine,areaLine,descriptionLine,reportLine);card.append(title,meta);card.tabIndex=0;card.setAttribute("role","button");card.title="باز کردن Study";card.addEventListener("click",()=>openStudyDetails(study));card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openStudyDetails(study);}});E.studiesContainer.appendChild(card);
+  meta.append(dateLine,areaLine,descriptionLine,reportLine);card.append(header,meta);card.tabIndex=0;card.setAttribute("role","button");card.title="باز کردن Study";card.addEventListener("click",()=>openStudyDetails(study));card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openStudyDetails(study);}});E.studiesContainer.appendChild(card);
  }
 }
 
