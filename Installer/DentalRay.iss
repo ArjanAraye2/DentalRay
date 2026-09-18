@@ -182,30 +182,17 @@ var ResultCode: Integer;
 begin
     Result := '';
 
-    { اگر سرویس وجود نداشته باشد یا از قبل متوقف باشد، ادامه نصب مجاز است. }
+    { فقط سرویس قبلی را متوقف می‌کنیم؛ حذف ثبت Service تا بعد از کپی موفق فایل‌ها انجام نمی‌شود. }
     if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'stop DentalRay', '', ResultCode) then
     begin
         Result := 'امکان بررسی سرویس قبلی DentalRay وجود ندارد.';
         Exit;
     end;
 
+    { 1060: سرویس وجود ندارد؛ 1062: سرویس از قبل متوقف است. هر دو قابل قبول‌اند. }
     if (ResultCode <> 0) and (ResultCode <> 1060) and (ResultCode <> 1062) then
     begin
         Result := 'امکان توقف سرویس قبلی DentalRay وجود ندارد.' + CRLF +
-            'Exit Code: ' + IntToStr(ResultCode);
-        Exit;
-    end;
-
-    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'delete DentalRay', '', ResultCode) then
-    begin
-        Result := 'امکان بررسی ثبت سرویس قبلی DentalRay وجود ندارد.';
-        Exit;
-    end;
-
-    { خطای 1060 یعنی سرویس وجود ندارد؛ این حالت برای نصب جدید طبیعی است. }
-    if (ResultCode <> 0) and (ResultCode <> 1060) then
-    begin
-        Result := 'امکان حذف ثبت سرویس قبلی DentalRay وجود ندارد.' + CRLF +
             'Exit Code: ' + IntToStr(ResultCode);
         Exit;
     end;
@@ -262,8 +249,21 @@ begin
     if ResultCode <> 0 then RaiseException('تنظیم دسترسی فایل DentalRay.config.json ناموفق بود.' + CRLF + 'Exit Code: ' + IntToStr(ResultCode));
 
     DentalRayExe := ExpandConstant('{app}\DentalRay.Api.exe');
-    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'create DentalRay binPath= "' + DentalRayExe + '" start= auto DisplayName= "DentalRay"', '', ResultCode) then RaiseException('امکان اجرای دستور ایجاد Windows Service وجود ندارد.');
-    if ResultCode <> 0 then RaiseException('Windows Service DentalRay ایجاد نشد.' + CRLF + 'Exit Code: ' + IntToStr(ResultCode));
+
+    { اگر Service قبلی هنوز ثبت شده باشد، فقط مشخصات اجرایی آن را به نسخه جدید تغییر می‌دهیم. }
+    if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'config DentalRay binPath= "' + DentalRayExe + '" start= auto DisplayName= "DentalRay"', '', ResultCode) then
+        RaiseException('امکان تنظیم Windows Service وجود ندارد.');
+
+    { 1060 یعنی Service وجود ندارد؛ در نصب جدید آن را ایجاد می‌کنیم. }
+    if ResultCode = 1060 then
+    begin
+        if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'create DentalRay binPath= "' + DentalRayExe + '" start= auto DisplayName= "DentalRay"', '', ResultCode) then
+            RaiseException('امکان اجرای دستور ایجاد Windows Service وجود ندارد.');
+        if ResultCode <> 0 then
+            RaiseException('Windows Service DentalRay ایجاد نشد.' + CRLF + 'Exit Code: ' + IntToStr(ResultCode));
+    end
+    else if ResultCode <> 0 then
+        RaiseException('تنظیم Windows Service DentalRay ناموفق بود.' + CRLF + 'Exit Code: ' + IntToStr(ResultCode));
 
     if not RunHiddenAndWait(ExpandConstant('{sys}\sc.exe'), 'description DentalRay "DentalRay Dental Radiology Service"', '', ResultCode) then RaiseException('امکان تنظیم توضیحات Windows Service وجود ندارد.');
     if ResultCode <> 0 then RaiseException('توضیحات Windows Service تنظیم نشد.' + CRLF + 'Exit Code: ' + IntToStr(ResultCode));
