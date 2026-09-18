@@ -34,41 +34,38 @@
     <button id="deactivatePatientButton" type="button" class="danger-button">غیرفعال کردن</button>
     <button id="mergePatientButton" type="button" class="warning-button">ادغام بیمار</button>
   </div>
-  <div class="section-header">
-    <div>
-      <h2 id="patientFullName">پرونده بیمار</h2>
-      <p class="patient-identity-line">
-        <span id="patientDisplayCode">شناسه پرونده: -</span>
-        <span aria-hidden="true"> | </span>
-        <span id="patientNationalCode">کد ملی: -</span>
-      </p>
-    </div>
-    <span id="patientStatusBadge" class="status-badge"></span>
-  </div>
-  <div class="patient-profile-panel">
-    <div class="patient-photo-frame"><img id="patientProfilePhoto" alt="تصویر بیمار" /></div>
-    <div>
-      <strong>تصویر بیمار</strong>
-      <p>از فایل موجود یا دوربین موبایل</p>
-      <input id="patientPhotoInput" type="file" accept="image/*" capture="environment" class="hidden" />
-      <button id="patientPhotoButton" type="button">ثبت / تغییر تصویر</button>
-    </div>
-  </div>
-  <div class="patient-info-grid">
-    <div class="info-item"><span class="info-label">شناسه پرونده:</span><span id="detailPatientCode">-</span></div>
-    <div class="info-item"><span class="info-label">نام:</span><span id="detailFirstName">-</span></div>
-    <div class="info-item"><span class="info-label">نام خانوادگی:</span><span id="detailLastName">-</span></div>
-    <div class="info-item"><span class="info-label">کد ملی:</span><span id="detailNationalCode">-</span></div>
-    <div class="info-item"><span class="info-label">موبایل:</span><span id="detailMobile">-</span></div>
-    <div class="info-item"><span class="info-label">تاریخ تولد:</span><span id="detailBirthDate">-</span></div>
-    <div class="info-item"><span class="info-label">جنسیت:</span><span id="detailGender">-</span></div>
-    <div class="info-item"><span class="info-label">وضعیت:</span><span id="detailIsActive">-</span></div>
-    <div class="info-item full-width"><span class="info-label">آدرس:</span><span id="detailAddress">-</span></div>
-    <div class="info-item full-width"><span class="info-label">توضیحات:</span><span id="detailDescription">-</span></div>
-  </div>
-  <div class="summary-row">
-    <div class="summary-box"><span id="studyCount" class="summary-number">0</span><span class="summary-label">تعداد مطالعات</span></div>
-    <div class="summary-box"><span id="totalImageCount" class="summary-number">0</span><span class="summary-label">تعداد تصاویر</span></div>
+  <div class="patient-overview-grid">
+    <section class="patient-overview-column patient-overview-identity">
+      <div class="section-header">
+        <div><h2 id="patientFullName">پرونده بیمار</h2><p id="patientDisplayCode" class="patient-identity-line">شناسه پرونده: -</p></div>
+        <span id="patientStatusBadge" class="status-badge"></span>
+      </div>
+      <div class="patient-profile-panel">
+        <div class="patient-photo-frame"><img id="patientProfilePhoto" alt="تصویر بیمار" /></div>
+        <div><strong>تصویر بیمار</strong><p id="patientNationalCode">کد ملی: -</p><input id="patientPhotoInput" type="file" accept="image/*" capture="environment" class="hidden" /><button id="patientPhotoButton" type="button">ثبت / تغییر تصویر</button></div>
+      </div>
+      <div class="patient-info-grid">
+        <div class="info-item"><span class="info-label">شناسه پرونده:</span><span id="detailPatientCode">-</span></div>
+        <div class="info-item"><span class="info-label">نام:</span><span id="detailFirstName">-</span></div>
+        <div class="info-item"><span class="info-label">نام خانوادگی:</span><span id="detailLastName">-</span></div>
+        <div class="info-item"><span class="info-label">کد ملی:</span><span id="detailNationalCode">-</span></div>
+        <div class="info-item"><span class="info-label">موبایل:</span><span id="detailMobile">-</span></div>
+        <div class="info-item"><span class="info-label">تاریخ تولد:</span><span id="detailBirthDate">-</span></div>
+        <div class="info-item"><span class="info-label">جنسیت:</span><span id="detailGender">-</span></div>
+        <div class="info-item"><span class="info-label">وضعیت:</span><span id="detailIsActive">-</span></div>
+        <div class="info-item full-width"><span class="info-label">آدرس:</span><span id="detailAddress">-</span></div>
+        <div class="info-item full-width"><span class="info-label">توضیحات:</span><span id="detailDescription">-</span></div>
+      </div>
+    </section>
+    <section class="patient-overview-column patient-overview-studies">
+      <div class="summary-row">
+        <div class="summary-box summary-study"><span id="studyCount" class="summary-number">0</span><span class="summary-label">تعداد مطالعات</span></div>
+        <div class="summary-box summary-image"><span id="totalImageCount" class="summary-number">0</span><span class="summary-label">تعداد تصاویر</span></div>
+        <div class="summary-box summary-last"><span id="lastStudyDateSummary" class="summary-number">-</span><span class="summary-label">آخرین مطالعه</span></div>
+      </div>
+      <div class="recent-studies-card"><div class="recent-studies-heading"><strong>آخرین مطالعات</strong><span>نمایش سه مورد اخیر</span></div><div id="recentStudiesSummary" class="recent-studies-list"></div></div>
+    </section>
+    <section class="patient-overview-column patient-overview-chart"><div class="overview-chart-heading"><strong>نمودار دندان‌ها</strong><span>مطالعه انتخاب‌شده</span></div><div id="patientSummaryDentalChart" class="patient-summary-dental-chart"></div></section>
   </div>
   <div class="subsection-header study-tabs-header"><h3>مطالعات بیمار</h3><div class="study-tabs-actions"><button id="newStudyButton" type="button" class="primary-button">+ مطالعه جدید</button><button id="editSelectedStudyButton" type="button" class="secondary-button" disabled>ویرایش مطالعه</button><button id="addStudyImageButton" type="button" disabled>+ افزودن تصویر</button></div></div>
   <div id="studiesContainer" class="studies-container"></div>

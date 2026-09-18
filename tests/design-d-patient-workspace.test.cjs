@@ -10,6 +10,9 @@ for (const id of [
     "newStudyButton",
     "editSelectedStudyButton",
     "addStudyImageButton",
+    "recentStudiesSummary",
+    "patientSummaryDentalChart",
+    "lastStudyDateSummary",
     "editPatientButton",
     "printPatientButton",
     "deactivatePatientButton",
@@ -42,6 +45,7 @@ assert.doesNotMatch(app, /b\.textContent="باز کردن پرونده"/, "The o
 assert.match(app, /function\s+deletePatient\s*\(/, "Patient delete action is missing.");
 assert.match(app, /method:["']DELETE["']/, "Patient delete must call the DELETE API.");
 assert.match(app, /function\s+selectStudyTab\s*\(/, "Tabbed Study selection is missing.");
+assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
 assert.match(app, /radiologyimages\/study\/\$\{study\.studyID\}/, "Selected Study images must load inline.");
 
 const controller = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/PatientsController.cs"), "utf8");
