@@ -19,6 +19,8 @@ namespace DentalRay.SetupHelper
                     "true",
                     StringComparison.OrdinalIgnoreCase);
 
+                bool checkDatabase = HasFlag(args, "--check-database");
+
                 string scriptPath = GetArgumentValue(args, "--script")
                     ?? Path.Combine(AppContext.BaseDirectory, "Database", "DentalRay.Database.Install.sql");
 
@@ -37,6 +39,12 @@ namespace DentalRay.SetupHelper
                 }
 
                 bool databaseExists = await DatabaseExistsAsync(masterConnectionString, "DentalRay");
+
+                if (checkDatabase)
+                {
+                    Console.WriteLine(databaseExists ? "EXISTS" : "MISSING");
+                    return 0;
+                }
 
                 if (!databaseExists && !createDatabase)
                 {
