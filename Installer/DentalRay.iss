@@ -2,6 +2,9 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Rahim Namazi"
 #define MyAppExeName "DentalRay.Api.exe"
+#ifndef SourceRoot
+#define SourceRoot ".."
+#endif
 
 
 [Setup]
@@ -23,14 +26,13 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-OutputDir=I:\Application\WEB\Installer\Output
+OutputDir=Output
 OutputBaseFilename=DentalRay_Setup_1.0.0
 
 Compression=lzma2
 SolidCompression=yes
 
 WizardStyle=modern hidebevels
-DefaultDialogFontName=Segoe UI
 WizardBackColor=#F7FBFF
 WizardImageBackColor=#DDF4F5
 WizardSmallImageBackColor=#DDF4F5
@@ -56,19 +58,6 @@ persian.WelcomeFontSize=16
 persian.RightToLeft=yes
 
 
-[Messages]
-
-persian.ButtonBack=بازگشت
-persian.ButtonNext=ادامه
-persian.ButtonInstall=نصب
-persian.ButtonCancel=انصراف
-persian.ButtonFinish=پایان
-persian.WelcomeLabel2=این برنامه شما را در مراحل نصب و آماده‌سازی DentalRay راهنمایی می‌کند.
-persian.WizardReady=همه چیز برای نصب DentalRay آماده است.
-persian.FinishedHeadingLabel=نصب DentalRay با موفقیت انجام شد
-persian.FinishedLabel=DentalRay آماده استفاده است.
-
-
 [Files]
 
 ; ============================================================
@@ -84,7 +73,7 @@ persian.FinishedLabel=DentalRay آماده استفاده است.
 ;
 ; ============================================================
 
-Source: "I:\Application\WEB\Publish\DentalRay\*"; \
+Source: "{#SourceRoot}\DentalRay\*"; \
     DestDir: "{app}"; \
     Excludes: "appsettings.json,appsettings.Development.json"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
@@ -102,7 +91,7 @@ Source: "I:\Application\WEB\Publish\DentalRay\*"; \
 ;
 ; ============================================================
 
-Source: "I:\Application\WEB\Publish\DentalRay.SetupHelper\*"; \
+Source: "{#SourceRoot}\DentalRay.SetupHelper\*"; \
     DestDir: "{tmp}\DentalRay.SetupHelper"; \
     Flags: ignoreversion recursesubdirs createallsubdirs deleteafterinstall
 
