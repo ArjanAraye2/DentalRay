@@ -67,7 +67,14 @@ assert.doesNotMatch(html, /data-nav=["']images["']/, "Images must remain inside 
 assert.doesNotMatch(navigation, /dashboard-shortcuts/, "Dashboard must not contain operational shortcuts.");
 assert.match(navigation, /dashboardPatientsToday/, "Today's patient metric is missing.");
 assert.match(navigation, /dashboardRecentStudies/, "Recent Studies panel is missing.");
+assert.match(navigation, /dashboardLocalIp/, "Dashboard local network information is missing.");
+assert.match(navigation, /dashboardPublicIp/, "Dashboard static/public IP information is missing.");
+assert.match(navigation, /dashboardLanLinks/, "Dashboard LAN access links are missing.");
+assert.match(navigation, /navigator\.clipboard\.writeText/, "Dashboard network links must be copyable.");
 assert.match(navigation, /navigate\(["']dashboard["']\);\s*\}\)\(\);/, "Dashboard must be the default landing page.");
 assert.match(html, /sidebar-link active["'] data-nav=["']dashboard["']/, "Dashboard must be active in the initial navigation markup.");
 assert.match(dashboardController, /patientsToday/, "Dashboard API must calculate today's distinct patients.");
 assert.match(dashboardController, /recentImages/, "Dashboard API must return recent images.");
+assert.match(dashboardController, /Dns\.GetHostAddresses/, "Dashboard API must discover local IPv4 addresses.");
+assert.match(dashboardController, /RemoteAccess:PublicHost/, "Dashboard API must read the configured public or static host.");
+assert.match(dashboardController, /localUrls/, "Dashboard API must return LAN access URLs.");

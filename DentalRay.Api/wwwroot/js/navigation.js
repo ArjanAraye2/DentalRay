@@ -33,6 +33,16 @@
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین مطالعات</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentStudies" class="dashboard-recent-list"></div></section>
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین تصاویر</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentImages" class="dashboard-recent-list"></div></section>
       </div>
+      <section class="dashboard-network-panel">
+        <div class="dashboard-panel-title"><strong>دسترسی شبکه</strong><span>کامپیوترها و موبایل</span></div>
+        <div class="dashboard-network-grid">
+          <div><span>نام کامپیوتر سرور</span><strong id="dashboardServerName">-</strong></div>
+          <div><span>IP محلی</span><strong id="dashboardLocalIp">-</strong></div>
+          <div><span>IP عمومی / استاتیک</span><strong id="dashboardPublicIp">-</strong></div>
+        </div>
+        <div class="dashboard-access-links"><strong>لینک اجرای برنامه در دستگاه‌های دیگر</strong><div id="dashboardLanLinks"></div><div id="dashboardPublicLink"></div></div>
+        <p id="dashboardNetworkNote" class="dashboard-network-note"></p>
+      </section>
       <section class="dashboard-system-panel"><div><strong>وضعیت سامانه</strong><span id="dashboardGeneratedAt">-</span></div><div class="dashboard-system-items"><span id="dashboardDatabaseStatus">پایگاه‌داده: در حال بررسی</span><span id="dashboardStorageStatus">فضای تصاویر: در حال بررسی</span></div></section>`;
     main.appendChild(dashboard);
 
@@ -90,6 +100,7 @@
             const storage = result.system?.storage || {};
             document.getElementById("dashboardStorageStatus").textContent = storage.available ? `● فضای تصاویر آماده است — ${formatBytes(storage.freeBytes)} آزاد` : `● مسیر ${storage.rootPath || "D:\\RadiologyData"} در دسترس نیست`;
             document.getElementById("dashboardStorageStatus").className = storage.available ? "system-ok" : "system-error";
+            renderNetworkAccess(result.system?.network || {});
         } catch {
             dashboard.querySelectorAll(".dashboard-summary-card strong").forEach(x => x.textContent = "-");
             document.getElementById("dashboardRecentStudies").textContent = "دریافت اطلاعات داشبورد ناموفق بود.";
@@ -98,6 +109,28 @@
     }
 
     const formatBytes = value => !Number.isFinite(Number(value)) ? "-" : `${(Number(value) / 1073741824).toLocaleString("fa-IR", { maximumFractionDigits: 1 })} گیگابایت`;
+    function renderNetworkAccess(network) {
+        document.getElementById("dashboardServerName").textContent = network.hostName || "-";
+        document.getElementById("dashboardLocalIp").textContent = (network.localIps || []).join(" ، ") || "شناسایی نشد";
+        const publicIp = document.getElementById("dashboardPublicIp");
+        publicIp.textContent = network.publicConfigured ? network.publicHost : "تنظیم نشده";
+        publicIp.className = network.publicConfigured ? "network-configured" : "network-not-configured";
+        const lanRoot = document.getElementById("dashboardLanLinks"); lanRoot.replaceChildren();
+        (network.localUrls || []).forEach(url => lanRoot.appendChild(createAccessLink(url, "شبکه محلی")));
+        if (!(network.localUrls || []).length) lanRoot.textContent = "لینک شبکه محلی شناسایی نشد.";
+        const publicRoot = document.getElementById("dashboardPublicLink"); publicRoot.replaceChildren();
+        if (network.publicUrl) publicRoot.appendChild(createAccessLink(network.publicUrl, "اینترنت / IP استاتیک"));
+        else publicRoot.textContent = "برای لینک اینترنتی، PublicHost را در DentalRay.config.json تنظیم کنید.";
+        document.getElementById("dashboardNetworkNote").textContent = network.note || "";
+    }
+    function createAccessLink(url, label) {
+        const row = document.createElement("div"); row.className = "dashboard-access-row";
+        const title = document.createElement("span"); title.textContent = label;
+        const link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener"; link.textContent = url;
+        const copy = document.createElement("button"); copy.type = "button"; copy.className = "secondary-button"; copy.textContent = "کپی";
+        copy.onclick = async () => { try { await navigator.clipboard.writeText(url); copy.textContent = "کپی شد"; setTimeout(() => copy.textContent = "کپی", 1500); } catch { window.prompt("لینک را کپی کنید:", url); } };
+        row.append(title, link, copy); return row;
+    }
     function renderRecentStudies(items) {
         const root = document.getElementById("dashboardRecentStudies"); root.replaceChildren();
         if (!items.length) { root.textContent = "مطالعه‌ای ثبت نشده است."; return; }

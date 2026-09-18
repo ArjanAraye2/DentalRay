@@ -810,7 +810,28 @@ begin
         '  },' +
         CRLF +
 
-        '  "Urls": "http://localhost:5202",' +
+        '  "Urls": "http://0.0.0.0:5202",' +
+        CRLF +
+
+        '  "RemoteAccess": {' +
+        CRLF +
+
+        '    "LocalScheme": "http",' +
+        CRLF +
+
+        '    "LocalPort": 5202,' +
+        CRLF +
+
+        '    "PublicHost": "",' +
+        CRLF +
+
+        '    "PublicScheme": "http",' +
+        CRLF +
+
+        '    "PublicPort": 5202' +
+        CRLF +
+
+        '  },' +
         CRLF +
 
         '  "Logging": {' +

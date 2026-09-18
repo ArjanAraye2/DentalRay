@@ -1,6 +1,8 @@
 using DentalRay.Api.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
+using System.Net.Sockets;
 
 namespace DentalRay.Api.Controllers
 {
@@ -11,10 +13,12 @@ namespace DentalRay.Api.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly DentalRayDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public DashboardController(DentalRayDbContext context)
+        public DashboardController(DentalRayDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -81,6 +85,42 @@ namespace DentalRay.Api.Controllers
                 storage = new { available = false, rootPath = @"D:\RadiologyData", freeBytes = (long?)null, totalBytes = (long?)null };
             }
 
+            // LAN addresses are discovered locally and never require an Internet service.
+            // A public/static address cannot be guessed safely, so it is read from the
+            // optional RemoteAccess:PublicHost setting in DentalRay.config.json.
+            string scheme = _configuration["RemoteAccess:LocalScheme"]?.Trim() ?? "http";
+            int port = _configuration.GetValue<int?>("RemoteAccess:LocalPort") ?? Request.Host.Port ?? 5202;
+            string hostName = Dns.GetHostName();
+            string[] localIps;
+            try
+            {
+                localIps = Dns.GetHostAddresses(hostName)
+                    .Where(address => address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(address))
+                    .Select(address => address.ToString()).Distinct().OrderBy(address => address).ToArray();
+            }
+            catch (SocketException)
+            {
+                localIps = Array.Empty<string>();
+            }
+            var localUrls = localIps.Select(address => $"{scheme}://{address}:{port}").ToArray();
+            string? publicHost = _configuration["RemoteAccess:PublicHost"]?.Trim();
+            string publicScheme = _configuration["RemoteAccess:PublicScheme"]?.Trim() ?? "http";
+            int publicPort = _configuration.GetValue<int?>("RemoteAccess:PublicPort") ?? port;
+            string? publicUrl = string.IsNullOrWhiteSpace(publicHost)
+                ? null
+                : $"{publicScheme}://{publicHost}{((publicScheme == "http" && publicPort == 80) || (publicScheme == "https" && publicPort == 443) ? "" : $":{publicPort}")}";
+            var network = new
+            {
+                hostName,
+                localIps,
+                localUrls,
+                currentUrl = $"{Request.Scheme}://{Request.Host}",
+                publicHost,
+                publicUrl,
+                publicConfigured = !string.IsNullOrWhiteSpace(publicHost),
+                note = "برای دسترسی از دستگاه دیگر، آن دستگاه باید در همان شبکه باشد و پورت برنامه در Firewall باز باشد."
+            };
+
             return Ok(new
             {
                 success = true,
@@ -96,7 +136,7 @@ namespace DentalRay.Api.Controllers
                 today = new { patientsToday, studiesToday, imagesToday, newPatientsToday },
                 recentStudies,
                 recentImages,
-                system = new { databaseConnected = true, storage }
+                system = new { databaseConnected = true, storage, network }
             });
         }
     }
