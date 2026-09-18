@@ -2794,6 +2794,110 @@ textarea,
 #patientsSection + #patientDetailsSection .patient-overview-grid {
     grid-template-columns: minmax(320px, 38%) minmax(480px, 62%);
     grid-template-areas: "identity studies";
+    align-items: start;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-identity {
+    display: grid;
+    gap: 10px;
+    align-self: start;
+    padding: 12px;
+}
+
+#patientsSection + #patientDetailsSection .patient-identity-hero {
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr) auto;
+    grid-template-areas: "photo identity action";
+    align-items: center;
+    gap: 12px;
+    padding: 11px;
+    border: 1px solid #d6e7f5;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #edf6ff 0%, #f9fcff 100%);
+}
+
+#patientsSection + #patientDetailsSection .patient-identity-hero .patient-photo-frame {
+    grid-area: photo;
+    width: 74px;
+    height: 74px;
+    flex-basis: 74px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: #dceafa;
+    box-shadow: 0 5px 14px rgba(28, 82, 132, .15);
+}
+
+#patientsSection + #patientDetailsSection .patient-identity-copy {
+    grid-area: identity;
+    min-width: 0;
+}
+
+#patientsSection + #patientDetailsSection .patient-identity-copy h2 {
+    margin: 0 0 2px;
+    overflow: hidden;
+    color: #103f73;
+    font-size: 18px;
+    line-height: 1.55;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#patientsSection + #patientDetailsSection .patient-identity-copy .patient-identity-line {
+    margin: 0 0 7px;
+    color: #5e7d9b;
+    font-size: 10px;
+}
+
+#patientsSection + #patientDetailsSection .patient-identity-copy .status-badge {
+    display: inline-flex;
+    width: fit-content;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 850;
+}
+
+#patientsSection + #patientDetailsSection .patient-photo-action {
+    grid-area: action;
+    align-self: end;
+}
+
+#patientsSection + #patientDetailsSection .patient-photo-action p {
+    display: none;
+}
+
+#patientsSection + #patientDetailsSection .patient-photo-action button {
+    min-height: 29px;
+    padding: 5px 9px;
+    color: #1766bc;
+    border: 1px solid #bdd8f1;
+    background: #fff;
+    box-shadow: none;
+    font-size: 9px;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-identity .patient-info-grid {
+    gap: 6px;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-item {
+    min-height: 45px;
+    padding: 6px 9px;
+    background: #fbfdff;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width {
+    min-height: 43px;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-studies {
+    align-self: start;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-studies .recent-studies-card {
+    flex: 0 0 auto;
+    min-height: 0;
 }
 
 #patientsSection + #patientDetailsSection .study-list-header {
@@ -2936,6 +3040,16 @@ textarea,
 }
 
 @media (max-width: 620px) {
+    #patientsSection + #patientDetailsSection .patient-identity-hero {
+        grid-template-columns: 68px minmax(0, 1fr);
+        grid-template-areas: "photo identity" "action action";
+    }
+    #patientsSection + #patientDetailsSection .patient-identity-hero .patient-photo-frame {
+        width: 64px;
+        height: 64px;
+        flex-basis: 64px;
+    }
+    #patientsSection + #patientDetailsSection .patient-photo-action button { width: 100%; }
     .study-scroll-header { align-items: flex-start; flex-direction: column; }
     .study-scroll-actions { width: 100%; }
     .study-scroll-actions button { flex: 1; }

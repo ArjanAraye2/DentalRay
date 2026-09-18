@@ -47,6 +47,7 @@ assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards mu
 assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
 assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");
+assert.match(html, /class=["']patient-identity-hero["']/, "Patient identity must use the compact unified hero layout.");
 assert.match(app, /radiologyimages\/study\/\$\{study\.studyID\}/, "Selected Study images must load inline.");
 
 const controller = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/PatientsController.cs"), "utf8");

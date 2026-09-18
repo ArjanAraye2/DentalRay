@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DentalRay</title>
-    <link rel="stylesheet" href="/css/site.css?v=20260918.2" />
+    <link rel="stylesheet" href="/css/site.css?v=20260918.3" />
 </head>
 <body>
 <aside class="app-sidebar">
@@ -34,13 +34,10 @@
   </div>
   <div class="patient-overview-grid">
     <section class="patient-overview-column patient-overview-identity">
-      <div class="section-header">
-        <div><h2 id="patientFullName">پرونده بیمار</h2><p id="patientDisplayCode" class="patient-identity-line">شناسه پرونده: -</p></div>
-        <span id="patientStatusBadge" class="status-badge"></span>
-      </div>
-      <div class="patient-profile-panel">
+      <div class="patient-identity-hero">
         <div class="patient-photo-frame"><img id="patientProfilePhoto" alt="تصویر بیمار" /></div>
-        <div><strong>تصویر بیمار</strong><p id="patientNationalCode">کد ملی: -</p><input id="patientPhotoInput" type="file" accept="image/*" capture="environment" class="hidden" /><button id="patientPhotoButton" type="button">ثبت / تغییر تصویر</button></div>
+        <div class="patient-identity-copy"><h2 id="patientFullName">پرونده بیمار</h2><p id="patientDisplayCode" class="patient-identity-line">شناسه پرونده: -</p><span id="patientStatusBadge" class="status-badge"></span></div>
+        <div class="patient-photo-action"><p id="patientNationalCode">کد ملی: -</p><input id="patientPhotoInput" type="file" accept="image/*" capture="environment" class="hidden" /><button id="patientPhotoButton" type="button">تغییر تصویر</button></div>
       </div>
       <div class="patient-info-grid">
         <div class="info-item patient-detail-hidden"><span class="info-label">شناسه پرونده:</span><span id="detailPatientCode">-</span></div>
