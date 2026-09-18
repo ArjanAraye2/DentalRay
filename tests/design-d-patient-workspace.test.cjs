@@ -53,6 +53,8 @@ const controller = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/Pa
 assert.match(controller, /\[HttpDelete\("\{patientID:int\}"\)\]/, "Patient DELETE endpoint is missing.");
 assert.match(controller, /RadiologyStudies[\s\S]*AnyAsync\(s => s\.PatientID == patientID\)/, "Backend must block deleting patients with Studies.");
 assert.match(html, /\/js\/navigation\.js/, "Shell navigation script is not loaded.");
+assert.match(html, /\/js\/app\.js\?v=[^"']+/, "Main application script must be cache-busted after UI contract changes.");
+assert.match(html, /\/css\/site\.css\?v=[^"']+/, "Main stylesheet must be cache-busted after layout changes.");
 assert.match(navigation, /settingsAdminActions/, "Administrative actions must be moved to Settings.");
 assert.match(navigation, /data-nav/, "Right sidebar navigation is not wired.");
 assert.doesNotMatch(html, /data-nav=["']studies["']/, "Studies must remain inside the Patient workspace, not the main menu.");
