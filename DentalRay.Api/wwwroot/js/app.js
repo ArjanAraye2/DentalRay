@@ -50,7 +50,15 @@ function openStudyImages(study){selectedStudyID=study.studyID;selectedStudy=stud
 function openStudyDetails(study){
  selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
  E.studyDetailsTitle.textContent=study.studyTypeName||("Study "+study.studyID);E.studyDetailsDate.textContent=formatPersianDateTime(study.studyDate);
- E.studyDetailsInfo.replaceChildren(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"),createInfoLine("تعداد تصاویر",study.imageCount||0));window.scrollTo(0,0);
+ const field=(label,value,full=false)=>{const d=document.createElement("div");d.className="form-field"+(full?" full-width":"");const l=document.createElement("label");l.textContent=label;const v=document.createElement("div");v.className="study-readonly-value";v.textContent=value??"-";d.append(l,v);return d;};
+ E.studyDetailsInfo.replaceChildren(
+  field("نوع رادیولوژی",study.studyTypeName||study.studyType||"-"),
+  field("ناحیه",study.bodyPart||"-"),
+  field("تاریخ و زمان شمسی",formatPersianDateTime(study.studyDate)),
+  field("تعداد تصاویر",String(study.imageCount||0)),
+  field("توضیحات",study.description||"-",true),
+  field("گزارش",study.report||"-",true)
+ );window.scrollTo(0,0);
 }
 function renderStudiesSafe(studies){
  E.studiesContainer.replaceChildren();
