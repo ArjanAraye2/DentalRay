@@ -366,5 +366,51 @@ namespace DentalRay.Api.Controllers
                 catch { }
             }
         }
+        // Saves/replaces the optional Patient profile photo.
+        // capture="environment" on the frontend lets mobile devices open their camera.
+        [HttpPost("{patientID:int}/photo")]
+        public async Task<IActionResult> UploadPatientPhoto(int patientID, IFormFile file)
+        {
+            if (patientID <= 0) return BadRequest(new { success = false, message = "PatientID is invalid." });
+            if (file == null || file.Length == 0 || string.IsNullOrWhiteSpace(file.ContentType) || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { success = false, message = "لطفاً یک فایل تصویری معتبر انتخاب کنید." });
+
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientID == patientID);
+            if (patient == null) return NotFound(new { success = false, message = "Patient not found." });
+
+            var extension = Path.GetExtension(file.FileName);
+            if (string.IsNullOrWhiteSpace(extension) || extension.Length > 10) extension = ".jpg";
+            var relativePath = Path.Combine("Patients", patientID.ToString(), "Profile", $"patient-{Guid.NewGuid():N}{extension.ToLowerInvariant()}");
+            var root = @"D:\RadiologyData";
+            var fullPath = Path.Combine(root, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            await using (var stream = System.IO.File.Create(fullPath))
+                await file.CopyToAsync(stream);
+
+            if (!string.IsNullOrWhiteSpace(patient.PhotoRelativePath))
+            {
+                var oldPath = Path.Combine(root, patient.PhotoRelativePath);
+                if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+            }
+
+            patient.PhotoRelativePath = relativePath;
+            patient.ModifiedDate = DateTime.Now;
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, patient.PatientID, patient.PhotoRelativePath });
+        }
+
+        [HttpGet("{patientID:int}/photo")]
+        public async Task<IActionResult> GetPatientPhoto(int patientID)
+        {
+            var path = await _context.Patients.AsNoTracking()
+                .Where(p => p.PatientID == patientID)
+                .Select(p => p.PhotoRelativePath)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(path)) return NotFound();
+            var fullPath = Path.Combine(@"D:\RadiologyData", path);
+            if (!System.IO.File.Exists(fullPath)) return NotFound();
+            return PhysicalFile(fullPath, "image/jpeg");
+        }
+
     }
 }
