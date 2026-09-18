@@ -3,6 +3,12 @@
 
 function byId(id) { return document.getElementById(id); }
 let selectedPatientID=null, selectedPatient=null, selectedStudyID=null, selectedStudy=null;
+// A fast second click must cancel/obsolete the first patient request. Otherwise a
+// slower response for the previous row can overwrite the newly selected patient.
+let patientOpenRequestVersion=0,patientOpenAbortController=null;
+function beginPatientOpenRequest(){patientOpenAbortController?.abort();patientOpenAbortController=new AbortController();return{version:++patientOpenRequestVersion,signal:patientOpenAbortController.signal};}
+function isCurrentPatientOpenRequest(version,id){return version===patientOpenRequestVersion&&Number(selectedPatientID)===Number(id);}
+function showPatientLoadingState(){selectedPatient=null;selectedStudyID=null;selectedStudy=null;E.patientFullName.textContent="در حال دریافت پرونده...";E.patientDisplayCode.textContent="";E.patientNationalCode.textContent="";E.studiesContainer.textContent="در حال دریافت اطلاعات...";E.recentStudiesSummary.replaceChildren();E.studyCount.textContent="—";E.totalImageCount.textContent="—";E.lastStudyDateSummary.textContent="—";if(E.patientProfilePhoto){E.patientProfilePhoto.onerror=null;E.patientProfilePhoto.removeAttribute("src");E.patientProfilePhoto.classList.add("empty");}}
 let pendingCameraFile=null, cameraPreviewUrl=null;
 let studyDetailsSaveInProgress=false;
 
@@ -83,7 +89,7 @@ async function loadPatients(search=""){
    const edit=document.createElement("button");edit.type="button";edit.className="patient-edit-button secondary-button";edit.textContent="ویرایش";
    const remove=document.createElement("button");remove.type="button";remove.className="patient-delete-button danger-button";remove.textContent="حذف";
    const hasStudies=Number(p.studyCount||0)>0;remove.disabled=hasStudies;remove.title=hasStudies?"بیمار دارای مطالعه قابل حذف نیست.":"حذف دائمی بیمار";
-   edit.addEventListener("click",async e=>{e.stopPropagation();try{await openPatientInline(p.patientID,tr);openEditPatientForm();}catch(err){showToast(err.message||"پرونده بیمار دریافت نشد.","error");}});
+   edit.addEventListener("click",async e=>{e.stopPropagation();try{if(await openPatientInline(p.patientID,tr))openEditPatientForm();}catch(err){showToast(err.message||"پرونده بیمار دریافت نشد.","error");}});
    remove.addEventListener("click",async e=>{e.stopPropagation();if(!remove.disabled)await deletePatient(p);});
    td.append(edit,remove);tr.appendChild(td);
    const select=async()=>{try{await openPatientInline(p.patientID,tr);}catch(e){showToast(e.message||"پرونده بیمار دریافت نشد.","error");}};
@@ -103,22 +109,25 @@ async function deletePatient(patient){
 }
 async function openPatientInline(id,row){
  selectedPatientID=id;
+ const request=beginPatientOpenRequest();
  document.querySelectorAll(".patient-list-row.selected").forEach(x=>x.classList.remove("selected"));
  row?.classList.add("selected");
  E.patientDetailsSection.classList.remove("hidden");
- E.patientFullName.textContent="در حال دریافت پرونده...";
- E.studiesContainer.textContent="در حال دریافت اطلاعات...";
+ showPatientLoadingState();
  try{
-  const r=await fetch(`/api/patients/${id}/details`,{cache:"no-store"});let x={};try{x=await r.json();}catch{}
+  const r=await fetch(`/api/patients/${id}/details`,{cache:"no-store",signal:request.signal});let x={};try{x=await r.json();}catch{}
+  if(!isCurrentPatientOpenRequest(request.version,id))return false;
   if(!r.ok||!x.success)throw new Error(getApiError(x,`پرونده بیمار دریافت نشد. (HTTP ${r.status})`));
   selectedPatient=x.patient;renderPatientDetails(x);
   E.patientDetailsSection.scrollIntoView({behavior:"smooth",block:"start"});
+  return true;
  }catch(err){
+  if(err?.name==="AbortError"||!isCurrentPatientOpenRequest(request.version,id))return false;
   console.error("Patient inline record error:",err);E.patientFullName.textContent="خطا در دریافت پرونده";
   E.studiesContainer.textContent=err.message||"پرونده بیمار دریافت نشد.";throw err;
  }
 }
-async function openPatient(id){selectedPatientID=id;hideMainSections();E.patientDetailsSection.classList.remove("hidden");E.patientFullName.textContent="در حال دریافت پرونده...";E.studiesContainer.textContent="در حال دریافت اطلاعات...";window.scrollTo(0,0);try{const r=await fetch(`/api/patients/${id}/details`,{cache:"no-store"});let x={};try{x=await r.json();}catch{}if(!r.ok||!x.success)throw new Error(getApiError(x,`پرونده بیمار دریافت نشد. (HTTP ${r.status})`));selectedPatient=x.patient;renderPatientDetails(x);}catch(err){console.error("Patient record error:",err);E.patientFullName.textContent="خطا در دریافت پرونده";E.studiesContainer.textContent=err.message||"پرونده بیمار دریافت نشد.";showToast(err.message||"پرونده بیمار دریافت نشد.","error");}}
+async function openPatient(id){selectedPatientID=id;const request=beginPatientOpenRequest();hideMainSections();E.patientDetailsSection.classList.remove("hidden");showPatientLoadingState();window.scrollTo(0,0);try{const r=await fetch(`/api/patients/${id}/details`,{cache:"no-store",signal:request.signal});let x={};try{x=await r.json();}catch{}if(!isCurrentPatientOpenRequest(request.version,id))return false;if(!r.ok||!x.success)throw new Error(getApiError(x,`پرونده بیمار دریافت نشد. (HTTP ${r.status})`));selectedPatient=x.patient;renderPatientDetails(x);return true;}catch(err){if(err?.name==="AbortError"||!isCurrentPatientOpenRequest(request.version,id))return false;console.error("Patient record error:",err);E.patientFullName.textContent="خطا در دریافت پرونده";E.studiesContainer.textContent=err.message||"پرونده بیمار دریافت نشد.";showToast(err.message||"پرونده بیمار دریافت نشد.","error");return false;}}
 function renderPatientDetails(x){const p=x.patient,patientCode=formatPatientCode(p.patientID),studies=x.studies||[];E.patientFullName.textContent=`${p.firstName} ${p.lastName}`;E.patientDisplayCode.textContent=`شناسه پرونده: ${patientCode}`;E.patientNationalCode.textContent=`کد ملی: ${p.nationalCode}`;E.detailPatientCode.textContent=patientCode;E.detailFirstName.textContent=p.firstName||"-";E.detailLastName.textContent=p.lastName||"-";E.detailNationalCode.textContent=p.nationalCode||"-";E.detailMobile.textContent=p.mobile||"-";E.detailBirthDate.textContent=formatPersianDate(p.birthDate);E.detailGender.textContent=formatPatientGender(p.gender);E.detailIsActive.textContent=p.isActive?"فعال":"غیرفعال";E.detailAddress.textContent=p.address||"-";E.detailDescription.textContent=p.description||"-";E.studyCount.textContent=x.studyCount;E.totalImageCount.textContent=x.totalImageCount;E.lastStudyDateSummary.textContent=studies.length?formatPersianDate(studies[0].studyDate):"-";E.patientStatusBadge.textContent=p.isActive?"فعال":"غیرفعال";E.patientStatusBadge.className=`status-badge ${p.isActive?"active":"inactive"}`;E.deactivatePatientButton.textContent=p.isActive?"غیرفعال کردن":"فعال کردن";if(E.patientProfilePhoto){E.patientProfilePhoto.src=`/api/patients/${p.patientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.onerror=()=>{E.patientProfilePhoto.removeAttribute("src");E.patientProfilePhoto.classList.add("empty");};E.patientProfilePhoto.classList.remove("empty");}renderRecentStudiesSummary(studies);renderStudiesSafe(studies);}
 
 async function renderRecentStudiesSummary(studies){
