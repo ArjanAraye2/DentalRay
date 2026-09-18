@@ -8,6 +8,8 @@ const app = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/app.js"), 
 
 for (const id of [
     "newStudyButton",
+    "editSelectedStudyButton",
+    "addStudyImageButton",
     "editPatientButton",
     "printPatientButton",
     "deactivatePatientButton",
@@ -35,4 +37,13 @@ console.log("Design D patient workspace contract: passed");
 assert.match(html, /<th>بیمار<\/th>/, "Design D patient identity column is missing.");
 assert.match(html, /<th>مطالعات<\/th>/, "Design D study summary column is missing.");
 assert.match(app, /function\s+createPatientIdentityCell\s*\(/, "Patient row photo renderer is missing.");
-assert.match(app, /\/api\/patients\/\\\$\{patient\.patientID\}\/photo/, "Patient row photo endpoint is not wired.");
+assert.ok(app.includes('/api/patients/${patient.patientID}/photo'), "Patient row photo endpoint is not wired.");
+assert.doesNotMatch(app, /b\.textContent="باز کردن پرونده"/, "The obsolete open-record button must not be rendered.");
+assert.match(app, /function\s+deletePatient\s*\(/, "Patient delete action is missing.");
+assert.match(app, /method:["']DELETE["']/, "Patient delete must call the DELETE API.");
+assert.match(app, /function\s+selectStudyTab\s*\(/, "Tabbed Study selection is missing.");
+assert.match(app, /radiologyimages\/study\/\$\{study\.studyID\}/, "Selected Study images must load inline.");
+
+const controller = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/PatientsController.cs"), "utf8");
+assert.match(controller, /\[HttpDelete\("\{patientID:int\}"\)\]/, "Patient DELETE endpoint is missing.");
+assert.match(controller, /RadiologyStudies[\s\S]*AnyAsync\(s => s\.PatientID == patientID\)/, "Backend must block deleting patients with Studies.");

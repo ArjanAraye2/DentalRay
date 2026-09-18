@@ -387,6 +387,38 @@ namespace DentalRay.Api.Controllers
                 catch { }
             }
         }
+
+        [HttpDelete("{patientID:int}")]
+        public async Task<IActionResult> DeletePatient(int patientID)
+        {
+            if (patientID <= 0)
+                return BadRequest(new { success = false, message = "PatientID is invalid." });
+
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.PatientID == patientID);
+            if (patient == null)
+                return NotFound(new { success = false, message = "Patient not found." });
+
+            if (await _context.RadiologyStudies.AsNoTracking().AnyAsync(s => s.PatientID == patientID))
+                return Conflict(new { success = false, message = "بیماری که دارای مطالعه است قابل حذف نیست." });
+
+            // Images normally belong to a Study, but this second guard also protects
+            // legacy/orphan rows from causing an FK failure during patient deletion.
+            if (await _context.RadiologyImages.AsNoTracking().AnyAsync(i => i.PatientID == patientID))
+                return Conflict(new { success = false, message = "بیمار دارای تصویر ثبت‌شده است و قابل حذف نیست." });
+
+            string? photoRelativePath = patient.PhotoRelativePath;
+            _context.Patients.Remove(patient);
+            await _context.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(photoRelativePath))
+            {
+                var photoPath = Path.Combine(@"D:\RadiologyData", photoRelativePath);
+                if (System.IO.File.Exists(photoPath)) System.IO.File.Delete(photoPath);
+            }
+
+            return Ok(new { success = true, patientID, message = "Patient deleted successfully." });
+        }
+
         // Saves/replaces the optional Patient profile photo.
         // capture="environment" on the frontend lets mobile devices open their camera.
         [HttpPost("{patientID:int}/photo")]
