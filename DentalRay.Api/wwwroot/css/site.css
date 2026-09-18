@@ -2880,33 +2880,34 @@ textarea,
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .patient-info-grid {
     grid-template-columns: 1fr;
-    gap: 7px;
+    gap: 3px;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    min-height: 47px;
-    padding: 8px 13px;
+    gap: 14px;
+    min-height: 39px;
+    padding: 5px 11px;
     border-color: transparent;
-    color: #173f68;
-    font-size: 12.5px;
-    font-weight: 750;
-    box-shadow: inset 0 0 0 1px rgba(74, 126, 177, .11);
+    color: #102f52;
+    font-size: 13px;
+    font-weight: 850;
+    line-height: 1.45;
+    box-shadow: inset 0 0 0 1px rgba(52, 106, 158, .16);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width {
     grid-column: auto;
-    min-height: 47px;
+    min-height: 39px;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-label {
     flex: 0 0 auto;
     margin: 0;
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 10.5px;
+    font-weight: 900;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item > span:last-child {
@@ -2916,51 +2917,51 @@ textarea,
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(4) {
-    background: #edf6ff;
+    background: linear-gradient(90deg, #e1f1ff, #f1f8ff);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(4) .info-label {
-    color: #1875cf;
+    color: #0867bd;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(5) {
-    background: #edfbf5;
+    background: linear-gradient(90deg, #dcf8ea, #effcf6);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(5) .info-label {
-    color: #078b55;
+    color: #027a49;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(6) {
-    background: #fff7e7;
+    background: linear-gradient(90deg, #fff0cd, #fff9e9);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(6) .info-label {
-    color: #b56c00;
+    color: #9e5b00;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(7) {
-    background: #f4efff;
+    background: linear-gradient(90deg, #ece4ff, #f8f4ff);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(7) .info-label {
-    color: #7452c7;
+    color: #6741bd;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(9) {
-    background: #fff1f5;
+    background: linear-gradient(90deg, #ffe5ed, #fff5f8);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(9) .info-label {
-    color: #bd486c;
+    color: #ad3158;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(10) {
-    background: #eef9fb;
+    background: linear-gradient(90deg, #ddf5f8, #f1fbfc);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(10) .info-label {
-    color: #188092;
+    color: #087486;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-studies {
