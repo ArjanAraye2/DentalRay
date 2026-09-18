@@ -47,10 +47,13 @@ async function loadStudyDetailsImages(study){
  }catch(e){setFormStatus(E.studyDetailsImagesStatus,e.message||"فایل‌های Study دریافت نشد.",true);}
 }
 function openStudyImages(study){selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyImagesSection.classList.remove("hidden");E.studyImagesTitle.textContent="تصاویر — "+(study.studyTypeName||("Study "+study.studyID));loadStudyDetailsImages(study);window.scrollTo(0,0);}
+async function ensureStudyDetailsTypes(selectedID){
+ try{const r=await fetch("/api/studytypes"),x=await r.json();if(!r.ok||!x.success)throw new Error();E.studyDetailsType.replaceChildren();(x.studyTypes||[]).forEach(t=>{const o=document.createElement("option");o.value=String(t.studyTypeID);o.textContent=t.studyTypeName;E.studyDetailsType.appendChild(o);});E.studyDetailsType.value=String(selectedID||"");}catch{E.studyDetailsType.replaceChildren();const o=document.createElement("option");o.value=String(selectedID||"");o.textContent=selectedStudy?.studyTypeName||"تعیین نشده";E.studyDetailsType.appendChild(o);}
+}
 async function openStudyDetails(study){
  selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
  E.studyDetailsTitle.textContent=study.studyTypeName||("Study "+study.studyID);E.studyDetailsDate.textContent=formatPersianDateTime(study.studyDate);
- E.studyDetailsType.value=study.studyTypeID?String(study.studyTypeID):(study.studyTypeName||study.studyType||"");
+ await ensureStudyDetailsTypes(study.studyTypeID);
  E.studyDetailsBodyPart.value=study.bodyPart||"";E.studyDetailsStudyDate.value=formatPersianDateTimeForInput(study.studyDate);
  E.studyDetailsDescription.value=study.description||"";E.studyDetailsReport.value=study.report||"";
  setStudyDetailsEditing(false);setFormStatus(E.studyDetailsStatus,"",false);
@@ -58,13 +61,13 @@ async function openStudyDetails(study){
  window.scrollTo(0,0);
 }
 function setStudyDetailsEditing(editing){
- [E.studyDetailsType,E.studyDetailsBodyPart,E.studyDetailsStudyDate,E.studyDetailsDescription,E.studyDetailsReport].forEach(x=>x.readOnly=!editing);
+ [E.studyDetailsBodyPart,E.studyDetailsStudyDate,E.studyDetailsDescription,E.studyDetailsReport].forEach(x=>x.readOnly=!editing);E.studyDetailsType.disabled=!editing;
  E.studyDetailsDentalChart?.classList.toggle("study-chart-readonly",!editing);
  E.studyDetailsEditButton.classList.toggle("hidden",editing);E.studyDetailsImagesButton.classList.toggle("hidden",editing);
  E.studyDetailsSaveButton.classList.toggle("hidden",!editing);E.studyDetailsCancelButton.classList.toggle("hidden",!editing);
 }
 async function saveStudyDetails(){
- try{const body={studyDate:parsePersianDateForBackend(E.studyDetailsStudyDate.value,true),studyType:E.studyDetailsType.value.trim(),bodyPart:emptyToNull(E.studyDetailsBodyPart.value),description:emptyToNull(E.studyDetailsDescription.value),report:emptyToNull(E.studyDetailsReport.value),toothNumbers:window.DentalRayDentalChart?.getSelected(E.studyDetailsDentalChart)||[]};
+ try{const body={studyDate:parsePersianDateForBackend(E.studyDetailsStudyDate.value,true),studyTypeID:Number(E.studyDetailsType.value),bodyPart:emptyToNull(E.studyDetailsBodyPart.value),description:emptyToNull(E.studyDetailsDescription.value),report:emptyToNull(E.studyDetailsReport.value),toothNumbers:window.DentalRayDentalChart?.getSelected(E.studyDetailsDentalChart)||[]};
  const r=await fetch(`/api/radiologystudies/${selectedStudyID}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"ویرایش Study انجام نشد."));
  const pr=await fetch(`/api/patients/${selectedPatientID}/details`),pd=await pr.json(),fresh=(pd.studies||[]).find(s=>s.studyID===selectedStudyID);if(fresh)await openStudyDetails(fresh);showToast("Study ویرایش شد.");
  }catch(e){setFormStatus(E.studyDetailsStatus,e.message||"ویرایش Study انجام نشد.",true);}
