@@ -175,7 +175,7 @@ begin
     end;
 end;
 
-function PrepareToInstall(var NeedsRestart: String): String;
+function PrepareToInstall(var NeedsRestart: Boolean): String;
 var ResultCode: Integer;
 begin
     Result := '';
