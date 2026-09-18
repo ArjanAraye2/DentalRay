@@ -67,10 +67,10 @@ function PrepareDentalRayDatabase: Boolean; forward;
 
 function JsonEscape(Value: String): String;
 begin
-    StringChangeEx(Value, '\\', '\\\\', True);
-    StringChangeEx(Value, '"', '\\"', True);
-    StringChangeEx(Value, #13, '\\r', True);
-    StringChangeEx(Value, #10, '\\n', True);
+    StringChangeEx(Value, '\', '\\', True);
+    StringChangeEx(Value, '"', '\"', True);
+    StringChangeEx(Value, #13, '\r', True);
+    StringChangeEx(Value, #10, '\n', True);
     Result := Value;
 end;
 
