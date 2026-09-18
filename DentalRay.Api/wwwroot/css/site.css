@@ -1524,3 +1524,135 @@ button {
     #studyDetailsForm .form-field.full-width { grid-column:auto; }
     #studyImagesSection #studyDetailsImagesGrid { grid-template-columns:1fr; padding:10px; }
 }
+
+
+/* ==========================================================
+   Design D - Data Entry Forms
+   Shared visual language; existing IDs and submit behavior preserved.
+   ========================================================== */
+#newPatientSection,#editPatientSection,#newStudySection,#editStudySection,
+#uploadImageSection,#mergePatientSection {
+    max-width: 1120px;
+    margin-inline: auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+#newPatientSection .details-toolbar,#editPatientSection .details-toolbar,
+#newStudySection .details-toolbar,#editStudySection .details-toolbar,
+#uploadImageSection .details-toolbar,#mergePatientSection .details-toolbar {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid #d9e8f5;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(22,91,150,.05);
+}
+#newPatientSection .section-header,#editPatientSection .section-header,
+#newStudySection .section-header,#editStudySection .section-header,
+#uploadImageSection .section-header,#mergePatientSection .section-header {
+    margin-bottom: 12px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg,#fff,#eef7ff);
+    border: 1px solid #d9e8f5;
+    border-radius: 15px;
+    box-shadow: 0 7px 24px rgba(22,91,150,.06);
+}
+#newPatientSection .section-header h2,#editPatientSection .section-header h2,
+#newStudySection .section-header h2,#editStudySection .section-header h2,
+#uploadImageSection .section-header h2,#mergePatientSection .section-header h2 {
+    color:#123f78;
+    font-size:24px;
+}
+#newPatientForm,#editPatientForm,#newStudyForm,#editStudyForm,
+#uploadImageForm,#mergePatientForm {
+    padding: 20px;
+    background:#fff;
+    border:1px solid #d9e8f5;
+    border-radius:15px;
+    box-shadow:0 7px 24px rgba(22,91,150,.06);
+}
+#newPatientForm .form-grid,#editPatientForm .form-grid,
+#newStudyForm .form-grid,#editStudyForm .form-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px 18px;
+}
+#newPatientForm .form-field,#editPatientForm .form-field,
+#newStudyForm .form-field,#editStudyForm .form-field,
+#uploadImageForm .form-field,#mergePatientForm .form-field {
+    margin-bottom:0;
+    padding:12px;
+    background:#f8fbff;
+    border:1px solid #e1edf7;
+    border-radius:12px;
+}
+#newPatientForm label,#editPatientForm label,#newStudyForm label,
+#editStudyForm label,#uploadImageForm label,#mergePatientForm label {
+    color:#174b84;
+}
+#newPatientForm input,#newPatientForm select,#newPatientForm textarea,
+#editPatientForm input,#editPatientForm select,#editPatientForm textarea,
+#newStudyForm input,#newStudyForm select,#newStudyForm textarea,
+#editStudyForm input,#editStudyForm select,#editStudyForm textarea,
+#uploadImageForm input,#uploadImageForm select,#mergePatientForm input {
+    border-color:#cfe0ef;
+    background:#fff;
+}
+#newPatientForm .form-actions,#editPatientForm .form-actions,
+#newStudyForm .form-actions,#editStudyForm .form-actions,
+#uploadImageForm .form-actions,#mergePatientForm .form-actions {
+    padding-top:16px;
+    margin-top:16px;
+    border-top:1px solid #e7eff6;
+}
+#newPatientForm .form-actions button[type=submit],
+#editPatientForm .form-actions button[type=submit],
+#newStudyForm .form-actions button[type=submit],
+#editStudyForm .form-actions button[type=submit],
+#uploadImageForm .form-actions button[type=submit] {
+    min-width:150px;
+    background:linear-gradient(135deg,#18a86b,#0e8e57);
+}
+#uploadImageForm {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+}
+#uploadImageForm > .form-field:first-child { grid-column:1 / -1; }
+#uploadImageForm > .status-message,
+#uploadImageForm > .form-actions,
+#cameraPreviewPanel { grid-column:1 / -1; }
+#cameraPreviewPanel {
+    padding:14px;
+    text-align:center;
+    background:#f4f9ff;
+    border:1px dashed #9fc9ef;
+    border-radius:12px;
+}
+#cameraPreviewImage {
+    max-width:100%;
+    max-height:420px;
+    object-fit:contain;
+    border-radius:10px;
+    background:#071728;
+}
+#mergePatientSection .warning-box {
+    margin-bottom:12px;
+    border-color:#f5cf79;
+    border-radius:13px;
+    box-shadow:0 5px 16px rgba(154,103,0,.06);
+}
+#mergePatientForm { max-width:720px; }
+#mergePatientForm .warning-button { background:linear-gradient(135deg,#d89a16,#a66d00); }
+
+@media(max-width:700px){
+    #newPatientForm,#editPatientForm,#newStudyForm,#editStudyForm,
+    #uploadImageForm,#mergePatientForm { padding:10px; }
+    #newPatientForm .form-grid,#editPatientForm .form-grid,
+    #newStudyForm .form-grid,#editStudyForm .form-grid,
+    #uploadImageForm { grid-template-columns:1fr; }
+    #uploadImageForm > .form-field:first-child,
+    #uploadImageForm > .status-message,#uploadImageForm > .form-actions,
+    #cameraPreviewPanel { grid-column:auto; }
+}
