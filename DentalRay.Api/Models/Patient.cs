@@ -74,6 +74,12 @@ namespace DentalRay.Api.Models
         public string? Description { get; set; }
 
 
+        // مسیر نسبی عکس پروفایل بیمار در فضای ذخیره‌سازی DentalRay.
+        // عکس اختیاری است و می‌تواند از فایل موجود یا دوربین موبایل دریافت شود.
+        [MaxLength(500)]
+        public string? PhotoRelativePath { get; set; }
+
+
         // تاریخ ایجاد رکورد بیمار
         //
         // این مقدار هنگام ثبت بیمار توسط برنامه تعیین می‌شود.
