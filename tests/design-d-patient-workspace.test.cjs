@@ -8,6 +8,7 @@ const app = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/app.js"), 
 const navigation = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/navigation.js"), "utf8");
 const dashboardController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/DashboardController.cs"), "utf8");
 const studiesController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/RadiologyStudiesController.cs"), "utf8");
+const studyTypeLookup = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/study-type-lookup.js"), "utf8");
 
 for (const id of [
     "newStudyButton",
@@ -58,6 +59,7 @@ assert.match(app, /newStudyButton\?\.addEventListener\(["']click["']/, "New Stud
 assert.match(html, /<select[^>]*id=["']newStudyType["'][^>]*>\s*<option/, "New Study must use the Study Type lookup.");
 assert.match(app, /studyTypeID/, "New Study payload must use StudyTypeID.");
 assert.match(app, /toothNumbers:window\.DentalRayDentalChart\?\.getSelected\(chart\)\|\|\[\]/, "New Study payload must include selected tooth numbers.");
+assert.match(studyTypeLookup, /Number\.isInteger\(Number\(body\.studyTypeID\)\)/, "The legacy Study Type bridge must preserve modern StudyTypeID requests.");
 assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
 assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent Study summary is missing.");

@@ -75,7 +75,7 @@ app.Use(async (context, next) =>
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
             const string featureScripts =
                 "<script src=\"/js/mobile-camera-loader.js\"></script>\n" +
-                "<script src=\"/js/study-type-lookup.js\"></script>\n" +
+                "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
                 "<script src=\"/js/login-ui.js\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);

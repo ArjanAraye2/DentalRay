@@ -62,8 +62,9 @@
             return;
         }
 
-        // Existing app.js still builds Study requests. Intercept only those requests
-        // and translate the old StudyType payload into the new StudyTypeID contract.
+        // Compatibility is needed only for an older caller that still sends the
+        // removed free-text StudyType field. Modern app.js already supplies a valid
+        // StudyTypeID and must pass through unchanged (including Study Details PUT).
         const originalFetch = window.fetch.bind(window);
         window.fetch = async function (input, init) {
             try {
@@ -71,6 +72,8 @@
                 const method = String(init?.method || 'GET').toUpperCase();
                 if (/\/api\/radiologystudies(?:\/\d+)?$/i.test(url) && (method === 'POST' || method === 'PUT') && typeof init?.body === 'string') {
                     const body = JSON.parse(init.body);
+                    if (Number.isInteger(Number(body.studyTypeID)) && Number(body.studyTypeID) > 0)
+                        return originalFetch(input, init);
                     const select = method === 'POST' ? document.getElementById('newStudyType') : document.getElementById('editStudyType');
                     body.studyTypeID = studyTypeId(select);
                     delete body.studyType;
