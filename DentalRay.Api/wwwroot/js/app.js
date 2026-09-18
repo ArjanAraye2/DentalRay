@@ -67,7 +67,7 @@ function renderStudiesSafe(studies){
  // Study actions are intentionally not created on this screen.
  for(const study of studies){
   const card=document.createElement("div");card.className="study-card";card.dataset.studyId=String(study.studyID);
-  const title=document.createElement("div");title.className="study-title";title.textContent=study.studyTypeName||("Study "+study.studyID);
+  const title=document.createElement("div");title.className="study-title";title.textContent=`تاریخ: ${formatPersianDateTime(study.studyDate)} | تعداد تصاویر: ${study.imageCount||0}`;
   const header=document.createElement("div");header.className="study-card-header";header.append(title);
   const meta=document.createElement("div");meta.className="study-meta";
   const dateLine=document.createElement("div");dateLine.textContent="تاریخ: "+formatPersianDateTime(study.studyDate);
