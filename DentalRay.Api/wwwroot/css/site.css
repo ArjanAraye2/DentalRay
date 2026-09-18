@@ -1904,3 +1904,97 @@ table button {
 @media(max-width:700px){
     .patient-statistics { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* ==========================================================
+   Patient workspace - one form, one Design D visual language
+   The list, statistics, selected patient and Studies read as
+   consecutive parts of the same form rather than separate screens.
+   ========================================================== */
+#patientsSection,
+#patientsSection + #patientDetailsSection:not(.hidden) {
+    width:min(1120px,calc(100% - 32px));
+    max-width:1120px;
+    margin-inline:auto;
+    font-family:inherit;
+}
+#patientsSection {
+    padding:18px;
+    background:#fff;
+    border:1px solid #d9e8f5;
+    border-radius:16px 16px 0 0;
+    box-shadow:0 7px 24px rgba(22,91,150,.06);
+}
+#patientsSection + #patientDetailsSection:not(.hidden) {
+    margin-top:0;
+    padding:18px;
+    background:#fff;
+    border:1px solid #d9e8f5;
+    border-top:1px dashed #bcd5e9;
+    border-radius:0 0 16px 16px;
+    box-shadow:0 12px 28px rgba(22,91,150,.07);
+}
+#patientsSection .section-header,
+#patientsSection .search-panel,
+#patientsSection .table-container,
+#patientsSection + #patientDetailsSection .details-toolbar,
+#patientsSection + #patientDetailsSection .section-header,
+#patientsSection + #patientDetailsSection .patient-profile-panel,
+#patientsSection + #patientDetailsSection .patient-info-grid,
+#patientsSection + #patientDetailsSection .studies-container {
+    box-shadow:none;
+}
+#patientsSection .section-header,
+#patientsSection + #patientDetailsSection .section-header {
+    border-radius:12px;
+}
+#patientsSection .patient-statistics {
+    margin:12px 0;
+}
+#patientsSection .patient-statistics > div,
+#patientsSection .search-panel,
+#patientsSection .table-container,
+#patientsSection + #patientDetailsSection .patient-profile-panel,
+#patientsSection + #patientDetailsSection .patient-info-grid,
+#patientsSection + #patientDetailsSection .summary-box,
+#patientsSection + #patientDetailsSection .studies-container {
+    background:#f8fbff;
+    border-color:#dce9f5;
+}
+#patientsSection + #patientDetailsSection .subsection-header {
+    margin-top:14px;
+    background:#edf6ff;
+    border-color:#dce9f5;
+}
+#patientsSection button,
+#patientsSection input,
+#patientsSection select,
+#patientsSection + #patientDetailsSection button,
+#patientsSection + #patientDetailsSection input,
+#patientsSection + #patientDetailsSection select,
+#patientsSection + #patientDetailsSection textarea {
+    font-family:inherit;
+}
+#patientsSection .patient-table,
+#patientsSection .patient-table th,
+#patientsSection .patient-table td,
+#patientsSection + #patientDetailsSection .info-item,
+#patientsSection + #patientDetailsSection .study-card {
+    font-family:inherit;
+}
+#patientsSection + #patientDetailsSection .details-toolbar {
+    position:static;
+    padding:0 0 12px;
+    border:0;
+    background:transparent;
+}
+#patientsSection + #patientDetailsSection .patient-profile-panel {
+    margin-top:0;
+}
+@media(max-width:700px){
+    #patientsSection,
+    #patientsSection + #patientDetailsSection:not(.hidden) {
+        width:calc(100% - 16px);
+        padding:10px;
+    }
+}
