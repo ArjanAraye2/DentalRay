@@ -1867,3 +1867,40 @@ table button {
     .patient-profile-panel { align-items:flex-start; }
     .patient-photo-frame { width:82px; height:82px; flex-basis:82px; }
 }
+
+
+/* Patient list statistics + same-page master/detail */
+.patient-statistics {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+    margin-bottom:12px;
+}
+.patient-statistics > div {
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:linear-gradient(135deg,#fff,#eef8ff);
+    border:1px solid #d9e8f5;
+    border-radius:13px;
+    box-shadow:0 5px 18px rgba(22,91,150,.05);
+}
+.patient-statistics strong { color:#0878e8; font-size:24px; }
+.patient-statistics span { color:#52677c; font-size:12px; }
+.patient-list-row { cursor:pointer; transition:background .15s ease,box-shadow .15s ease; }
+.patient-list-row.selected {
+    background:#e7f4ff !important;
+    box-shadow:inset -4px 0 #1685ff;
+}
+#patientsSection + #patientDetailsSection:not(.hidden) {
+    max-width:1120px;
+    margin:14px auto 0;
+}
+#patientsSection + #patientDetailsSection:not(.hidden) #backToPatientsButton {
+    display:none;
+}
+@media(max-width:700px){
+    .patient-statistics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
