@@ -25,8 +25,24 @@
     function injectDentalCharts(){if(!window.DentalRayDentalChart)return;const newGrid=document.querySelector("#newStudyForm .form-grid");if(newGrid&&!document.getElementById("newStudyDentalChart")){const f=createDentalChartField("newStudyDentalChart");newGrid.appendChild(f);window.DentalRayDentalChart.render(f.querySelector("#newStudyDentalChart"),[]);}const editGrid=document.querySelector("#editStudyForm .form-grid");if(editGrid&&!document.getElementById("editStudyDentalChart")){const f=createDentalChartField("editStudyDentalChart");editGrid.appendChild(f);window.DentalRayDentalChart.render(f.querySelector("#editStudyDentalChart"),[]);}}
     async function loadStudyTeeth(studyID){try{const r=await fetch(`/api/radiologystudies/${studyID}`),x=await r.json();if(!r.ok)return[];return x.toothNumbers||x.study?.toothNumbers||[];}catch{return[];}}
 
-    const originalFetch=window.fetch.bind(window);
-    window.fetch=async function(input,init){try{const url=typeof input==="string"?input:(input?.url||"");const method=(init?.method||"GET").toUpperCase();if(/^\/api\/radiologystudies(?:\/\d+)?$/.test(url)&&(method==="POST"||method==="PUT")&&typeof init?.body==="string"){const data=JSON.parse(init.body);const chart=document.getElementById(method==="POST"?"newStudyDentalChart":"editStudyDentalChart");data.toothNumbers=window.DentalRayDentalChart?.getSelected(chart)||[];init={...init,body:JSON.stringify(data)};}}catch(e){console.error("DentalRay: could not add tooth selections to Study request.",e);}return originalFetch(input,init);};
+    // Do not replace window.fetch globally. A global fetch wrapper makes every
+    // request in DentalRay appear to originate from this file and can interfere
+    // with unrelated responses such as Patient Details. Tooth selections are
+    // added only to the two Study forms immediately before their own request.
+    function addTeethToStudyRequestBody(body, formKind) {
+        if (typeof body !== "string") return body;
+        try {
+            const data = JSON.parse(body);
+            const chart = document.getElementById(formKind === "new" ? "newStudyDentalChart" : "editStudyDentalChart");
+            data.toothNumbers = window.DentalRayDentalChart?.getSelected(chart) || [];
+            return JSON.stringify(data);
+        } catch (e) {
+            console.error("DentalRay: could not add tooth selections to Study request.", e);
+            return body;
+        }
+    }
+
+    window.dentalRayAddStudyTeeth = addTeethToStudyRequestBody;
 
     // A closed Study shows only its date/title. All action buttons, including
     // Images and Add file, live inside the collapsible body and therefore become
