@@ -2806,11 +2806,11 @@ textarea,
 
 #patientsSection + #patientDetailsSection .patient-identity-hero {
     display: grid;
-    grid-template-columns: 104px minmax(0, 1fr) auto;
+    grid-template-columns: 132px minmax(0, 1fr) auto;
     grid-template-areas: "photo identity action";
     align-items: center;
     gap: 12px;
-    padding: 13px;
+    padding: 15px;
     border: 1px solid #c9e2f7;
     border-radius: 14px;
     background: linear-gradient(135deg, #eaf5ff 0%, #f2efff 52%, #effbf6 100%);
@@ -2818,13 +2818,13 @@ textarea,
 
 #patientsSection + #patientDetailsSection .patient-identity-hero .patient-photo-frame {
     grid-area: photo;
-    width: 100px;
-    height: 100px;
-    flex-basis: 100px;
-    border: 4px solid #fff;
+    width: 126px;
+    height: 126px;
+    flex-basis: 126px;
+    border: 5px solid #fff;
     border-radius: 50%;
     background: #dceafa;
-    box-shadow: 0 7px 20px rgba(47, 91, 150, .22);
+    box-shadow: 0 9px 24px rgba(47, 91, 150, .24);
 }
 
 #patientsSection + #patientDetailsSection .patient-identity-copy {
@@ -2836,7 +2836,7 @@ textarea,
     margin: 0 0 2px;
     overflow: hidden;
     color: #123f79;
-    font-size: 20px;
+    font-size: 24px;
     line-height: 1.55;
     font-weight: 900;
     text-overflow: ellipsis;
@@ -2846,7 +2846,7 @@ textarea,
 #patientsSection + #patientDetailsSection .patient-identity-copy .patient-identity-line {
     margin: 0 0 7px;
     color: #617b9a;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 #patientsSection + #patientDetailsSection .patient-identity-copy .status-badge {
@@ -2879,26 +2879,40 @@ textarea,
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .patient-info-grid {
-    gap: 6px;
+    grid-template-columns: 1fr;
+    gap: 7px;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item {
-    min-height: 50px;
-    padding: 7px 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 47px;
+    padding: 8px 13px;
     border-color: transparent;
     color: #173f68;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 750;
     box-shadow: inset 0 0 0 1px rgba(74, 126, 177, .11);
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width {
+    grid-column: auto;
     min-height: 47px;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-label {
+    flex: 0 0 auto;
+    margin: 0;
     font-size: 10px;
     font-weight: 800;
+}
+
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-item > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(4) {
@@ -3099,13 +3113,13 @@ textarea,
 
 @media (max-width: 620px) {
     #patientsSection + #patientDetailsSection .patient-identity-hero {
-        grid-template-columns: 84px minmax(0, 1fr);
+        grid-template-columns: 98px minmax(0, 1fr);
         grid-template-areas: "photo identity" "action action";
     }
     #patientsSection + #patientDetailsSection .patient-identity-hero .patient-photo-frame {
-        width: 80px;
-        height: 80px;
-        flex-basis: 80px;
+        width: 94px;
+        height: 94px;
+        flex-basis: 94px;
     }
     #patientsSection + #patientDetailsSection .patient-photo-action button { width: 100%; }
     .study-scroll-header { align-items: flex-start; flex-direction: column; }
