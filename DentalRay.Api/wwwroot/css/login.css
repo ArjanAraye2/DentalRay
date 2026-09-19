@@ -60,7 +60,7 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   display:flex;
   flex-direction:column;
   align-items:center;
-  padding:52px 58px 28px;
+  padding:46px 48px 26px;
   color:#123e61;
   background:#eaf5fa;
   overflow:hidden;
@@ -119,20 +119,24 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   line-height:1.9;
 }
 .login-clinic-art{
-  width:calc(100% + 35px);
-  max-width:560px;
+  width:calc(100% + 96px);
+  max-width:none;
+  height:410px;
   margin-top:28px;
-  border-radius:22px;
+  object-fit:cover;
+  object-position:center center;
+  border-radius:0;
   display:block;
   position:relative;
   z-index:2;
-  box-shadow:0 18px 45px rgba(29,91,113,.10);
+  box-shadow:none;
+  filter:saturate(.92) brightness(1.04);
 }
 .login-brand-footer{
   width:100%;
   margin-top:auto;
   display:flex;
-  justify-content:flex-end;
+  justify-content:flex-start;
   align-items:center;
   gap:10px;
   position:relative;
@@ -310,14 +314,14 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   .login-brand-panel{order:1;min-height:360px;padding:30px 24px 22px}
   .login-brand-copy{margin-top:24px}
   .login-brand-copy h1{font-size:22px}
-  .login-clinic-art{margin-top:18px;max-width:430px}
+  .login-clinic-art{margin-top:18px;max-width:none;height:300px}
   .login-brand-footer{margin-top:18px}
   .login-form-logo{margin-bottom:30px}
 }
 @media(max-width:420px){
   .login-form-panel{padding:28px 18px 22px}
   .login-brand-panel{min-height:310px}
-  .login-clinic-art{display:none}
+  .login-clinic-art{display:block;height:250px;width:calc(100% + 36px)}
   .login-form-logo .login-logo-name strong{font-size:29px}
   .login-form-heading h2{font-size:23px}
 }
