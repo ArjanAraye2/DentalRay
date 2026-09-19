@@ -203,18 +203,28 @@ GO
 IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'StudyTypeID') IS NULL
     ALTER TABLE dbo.tblRadiologyStudies ADD StudyTypeID INT NULL;
 GO
-/* Legacy StudyType text, if present, is intentionally retained. */
+/* Legacy StudyType text, if present, is intentionally retained.
+   The whole migration is dynamic because an IF/CASE does not prevent SQL Server
+   from binding a missing column name during compilation. */
 IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'StudyType') IS NOT NULL
 BEGIN
-    INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
-    SELECT DISTINCT LTRIM(RTRIM(s.StudyType)),1
-    FROM dbo.tblRadiologyStudies s
-    WHERE NULLIF(LTRIM(RTRIM(s.StudyType)),N'') IS NOT NULL
-      AND NOT EXISTS(SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=LTRIM(RTRIM(s.StudyType)));
-    UPDATE s SET StudyTypeID=t.StudyTypeID
-    FROM dbo.tblRadiologyStudies s
-    JOIN dbo.tblStudyTypes t ON t.StudyTypeName=LTRIM(RTRIM(s.StudyType))
-    WHERE s.StudyTypeID IS NULL;
+    EXEC(N'
+        INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
+        SELECT DISTINCT LTRIM(RTRIM(s.StudyType)),1
+        FROM dbo.tblRadiologyStudies s
+        WHERE NULLIF(LTRIM(RTRIM(s.StudyType)),N'''') IS NOT NULL
+          AND NOT EXISTS(
+              SELECT 1 FROM dbo.tblStudyTypes t
+              WHERE t.StudyTypeName=LTRIM(RTRIM(s.StudyType))
+          );
+
+        UPDATE s
+        SET StudyTypeID=t.StudyTypeID
+        FROM dbo.tblRadiologyStudies s
+        JOIN dbo.tblStudyTypes t
+          ON t.StudyTypeName=LTRIM(RTRIM(s.StudyType))
+        WHERE s.StudyTypeID IS NULL;
+    ');
 END;
 GO
 IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'ClinicID') IS NULL
