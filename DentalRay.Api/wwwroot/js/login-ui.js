@@ -105,7 +105,7 @@
             <h1>تصویر واضح‌تر، تصمیم‌های بهتر</h1>
             <p>مدیریت هوشمند تصاویر و پرونده‌های دندانپزشکی</p>
           </div>
-          <img class="login-clinic-art" src="/images/login-clinic.svg?v=20260919.2" alt="محیط تصویربرداری دندانپزشکی" />
+          <img class="login-clinic-art" src="/images/login-reference-right.jpg?v=20260920.1" alt="محیط تصویربرداری دندانپزشکی" />
           <div class="login-brand-footer">
             <span class="login-logo-name"><strong>Dental<span style="color:#1ba7c0">Ray</span></strong><small>Dental Imaging System</small></span>
             <span class="login-logo-tooth">${toothSvg()}</span>
