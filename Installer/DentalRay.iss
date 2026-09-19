@@ -96,8 +96,10 @@ begin
     end;
 
     try
-        ExtractTemporaryFiles(HelperDirectory + '\*');
-        ExtractTemporaryFiles(HelperDirectory + '\Database\*');
+        { dontcopy files are extracted from the embedded installer payload into
+          the DestDir declared in [Files]. The argument is a component filter,
+          not a filesystem wildcard. }
+        ExtractTemporaryFiles('');
         Result := FileExists(HelperExe) and FileExists(ScriptPath);
     except
         Result := False;
