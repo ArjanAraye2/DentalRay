@@ -27,5 +27,9 @@ namespace DentalRay.Api.Models
 
         // Optional account expiration date. After this date the account cannot sign in.
         public DateTime? EndDate { get; set; }
+
+        // Verified mobile used only for account recovery and security notifications.
+        [MaxLength(30)]
+        public string? RecoveryMobile { get; set; }
     }
 }
