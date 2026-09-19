@@ -106,6 +106,13 @@ BEGIN
 END;
 GO
 
+/* Account recovery mobile: safe upgrade for existing installations. */
+IF COL_LENGTH(N'dbo.tblUsers',N'RecoveryMobile') IS NULL
+BEGIN
+    ALTER TABLE dbo.tblUsers ADD RecoveryMobile NVARCHAR(30) NULL;
+END;
+GO
+
 IF OBJECT_ID(N'dbo.tblUserDentists',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblUserDentists(
