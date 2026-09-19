@@ -73,6 +73,7 @@
     }
 
     window.dentalRayLogout=async function(){try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}finally{window.dentalRayCurrentUser=null;window.dispatchEvent(new CustomEvent('dentalray-auth-changed'));createLogin();}};
-    async function initialize(){const authenticated=await restoreSession();if(!authenticated)createLogin();}
+    function loadCommunicationUi(){if(document.getElementById('communicationUiScript'))return;const s=document.createElement('script');s.id='communicationUiScript';s.src='/js/communication-ui.js';document.body.appendChild(s);}
+    async function initialize(){loadCommunicationUi();const authenticated=await restoreSession();if(!authenticated)createLogin();}
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize);else initialize();
 })();
