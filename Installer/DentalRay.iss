@@ -84,7 +84,6 @@ end;
 function EnsureSetupHelperExtracted: Boolean;
 var
     HelperExe, ScriptPath: String;
-    ExtractedCount: Integer;
 begin
     Result := False;
     HelperExe := ExpandConstant('{tmp}\DentalRay.SetupHelper.exe');
@@ -99,11 +98,11 @@ begin
     try
         { The helper is published as a single-file executable, so only two
           temporary payload files are needed. ExtractTemporaryFile writes them
-          directly under {tmp}. }
+          directly under the installer temporary directory. }
         if not FileExists(HelperExe) then
-            ExtractedCount := ExtractTemporaryFiles('{tmp}\DentalRay.SetupHelper.exe');
+            ExtractTemporaryFile('DentalRay.SetupHelper.exe');
         if not FileExists(ScriptPath) then
-            ExtractedCount := ExtractTemporaryFiles('{tmp}\DentalRay.Database.Install.sql');
+            ExtractTemporaryFile('DentalRay.Database.Install.sql');
 
         Result := FileExists(HelperExe) and FileExists(ScriptPath);
     except
