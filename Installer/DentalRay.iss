@@ -83,6 +83,7 @@ end;
 function EnsureSetupHelperExtracted: Boolean;
 var
     HelperDirectory, HelperExe, ScriptPath: String;
+    ExtractedCount: Integer;
 begin
     Result := False;
     HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
@@ -96,12 +97,12 @@ begin
     end;
 
     try
-        { Extract the two required payload files explicitly. ExtractTemporaryFiles
-          matches the destination pattern from [Files], so using exact paths avoids
-          ambiguity with recursive wildcard entries and solid compression. }
-        ExtractTemporaryFiles(HelperDirectory + '\DentalRay.SetupHelper.exe');
-        ExtractTemporaryFiles(ScriptPath);
-        Result := FileExists(HelperExe) and FileExists(ScriptPath);
+        { Match the destination paths declared in [Files]. Use wildcards for
+          both the helper root and its Database subdirectory. }
+        ExtractedCount := 0;
+        ExtractedCount := ExtractedCount + ExtractTemporaryFiles(HelperDirectory + '\*');
+        ExtractedCount := ExtractedCount + ExtractTemporaryFiles(HelperDirectory + '\Database\*');
+        Result := (ExtractedCount > 0) and FileExists(HelperExe) and FileExists(ScriptPath);
     except
         Result := False;
     end;
