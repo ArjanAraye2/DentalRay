@@ -72,8 +72,14 @@
             event.preventDefault(); status.className = 'login-status'; status.textContent = 'در حال بررسی اطلاعات...'; submit.disabled = true;
             try {
                 const response = await fetch('/api/auth/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userName: userName.value.trim(), password: password.value }) });
-                const result = await response.json();
-                if (!response.ok || !result.success) throw new Error('نام کاربری یا رمز عبور صحیح نیست.');
+                const responseText = await response.text();
+                let result;
+                try {
+                    result = responseText ? JSON.parse(responseText) : null;
+                } catch (_) {
+                    throw new Error('پاسخ نامعتبر از سرویس DentalRay دریافت شد.');
+                }
+                if (!response.ok || !result || !result.success) throw new Error(result?.message || 'نام کاربری یا رمز عبور صحیح نیست.');
                 password.value = ''; showApplication(result.user);
             } catch (error) { password.value = ''; password.focus(); status.textContent = error.message || 'ورود انجام نشد.'; status.className = 'login-status error'; }
             finally { submit.disabled = false; }
