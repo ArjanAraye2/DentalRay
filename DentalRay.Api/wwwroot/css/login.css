@@ -137,3 +137,6 @@
     .login-form-panel { padding: 36px 26px 28px; }
     .login-form-heading { margin-bottom: 26px; }
 }
+
+.login-recovery-link{display:block;width:100%;margin-top:14px;border:0;background:transparent;color:#246b7d;cursor:pointer;font:inherit;font-size:13px;text-align:center;box-shadow:none}
+.login-recovery-link:hover{transform:none;box-shadow:none;text-decoration:underline}
