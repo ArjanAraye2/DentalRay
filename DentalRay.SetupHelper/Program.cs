@@ -25,12 +25,6 @@ namespace DentalRay.SetupHelper
                 string scriptPath = GetArgumentValue(args, "--script")
                     ?? Path.Combine(AppContext.BaseDirectory, "Database", "DentalRay.Database.Install.sql");
 
-                if (!File.Exists(scriptPath))
-                {
-                    Console.Error.WriteLine("Database installation script was not found.");
-                    return 10;
-                }
-
                 string masterConnectionString = BuildMasterConnectionString(serverName);
 
                 if (!await WaitForSqlServerAsync(masterConnectionString, 30, 2))
@@ -48,6 +42,12 @@ namespace DentalRay.SetupHelper
                         await File.WriteAllTextAsync(checkOutput, state);
                     Console.WriteLine(state);
                     return 0;
+                }
+
+                if (!File.Exists(scriptPath))
+                {
+                    Console.Error.WriteLine("Database installation script was not found.");
+                    return 10;
                 }
 
                 if (!databaseExists && !createDatabase)
