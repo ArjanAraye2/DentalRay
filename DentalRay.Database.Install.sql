@@ -33,6 +33,28 @@ BEGIN
 END;
 GO
 
+/* Base dental specialties from the verified DentalRay reference data.
+   Existing rows are preserved; only missing specialties are inserted. */
+DECLARE @DentalSpecialties TABLE(SpecialtyName NVARCHAR(150), IsActive BIT);
+INSERT INTO @DentalSpecialties VALUES
+(N'دندانپزشک عمومی',1),
+(N'ارتودنسی',1),
+(N'اندودانتیکس (درمان ریشه)',1),
+(N'پریودانتیکس (بیماری‌های لثه)',1),
+(N'پروتزهای دندانی',1),
+(N'دندانپزشکی کودکان',1),
+(N'جراحی دهان، فک و صورت',1),
+(N'بیماری‌های دهان، فک و صورت',1),
+(N'رادیولوژی دهان، فک و صورت',1);
+INSERT INTO dbo.tblDentalSpecialties(SpecialtyName,IsActive)
+SELECT d.SpecialtyName,d.IsActive
+FROM @DentalSpecialties d
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.tblDentalSpecialties s
+    WHERE s.SpecialtyName=d.SpecialtyName
+);
+GO
+
 IF OBJECT_ID(N'dbo.tblStaff',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblStaff(
