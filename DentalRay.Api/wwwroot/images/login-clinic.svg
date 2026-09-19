@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="DentalRay dental clinic illustration">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eef9fb"/><stop offset="1" stop-color="#d7eef3"/></linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".9"/><stop offset="1" stop-color="#cfeaf0" stop-opacity=".45"/></linearGradient>
+  <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#143f55"/><stop offset="1" stop-color="#2b8ca2"/></linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#18556a" flood-opacity=".18"/></filter>
+</defs>
+<rect width="900" height="700" rx="34" fill="url(#bg)"/>
+<circle cx="770" cy="90" r="190" fill="#fff" opacity=".38"/>
+<path d="M0 585 C180 520 330 565 470 525 S760 500 900 550 V700 H0Z" fill="#c6e5ea" opacity=".72"/>
+<rect x="54" y="62" width="792" height="420" rx="28" fill="url(#glass)" stroke="#fff" stroke-width="5"/>
+<path d="M86 110h250M86 145h190" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".75"/>
+<path d="M720 72v400M770 72v400" stroke="#b8dfe6" stroke-width="3" opacity=".6"/>
+<g filter="url(#shadow)">
+  <rect x="258" y="255" width="410" height="235" rx="18" fill="#edf5f7" stroke="#aecbd3" stroke-width="6"/>
+  <rect x="282" y="278" width="362" height="178" rx="10" fill="url(#screen)" stroke="#7daab6" stroke-width="4"/>
+  <ellipse cx="465" cy="366" rx="125" ry="67" fill="#e9f2f2" opacity=".96"/>
+  <path d="M380 356c28-34 61-39 87-10 27-29 60-24 88 10-17 47-54 68-88 70-34-2-71-23-87-70Z" fill="#d7e5e7"/>
+  <path d="M403 345c17 28 29 43 62 53 33-10 45-25 62-53" fill="none" stroke="#8eaeb5" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="602" cy="300" r="8" fill="#67c3d2"/>
+  <rect x="438" y="492" width="48" height="76" rx="8" fill="#9abfc8"/>
+  <path d="M398 572h128" stroke="#709aa5" stroke-width="14" stroke-linecap="round"/>
+</g>
+<g opacity=".9">
+  <path d="M112 520c18-82 66-119 119-94 30 14 49 50 43 89-7 47-38 74-75 74-46 0-76-27-87-69Z" fill="#fff" stroke="#b8cdd2" stroke-width="6"/>
+  <path d="M183 436c-2 33-3 73 10 108 13-35 15-75 10-108" fill="#dcecef"/>
+  <circle cx="224" cy="418" r="9" fill="#7db4c0"/>
+</g>
+<path d="M688 530c37-68 87-78 132-37 27 25 29 66 7 95-26 35-79 38-116 12-25-18-35-43-23-70Z" fill="#fff" opacity=".86"/>
+<path d="M713 540c29 4 60 4 90-4" stroke="#b4d8de" stroke-width="8" stroke-linecap="round"/>
+</svg>
