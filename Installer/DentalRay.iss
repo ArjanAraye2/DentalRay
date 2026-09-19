@@ -96,10 +96,11 @@ begin
     end;
 
     try
-        { dontcopy files are extracted from the embedded installer payload into
-          the DestDir declared in [Files]. The argument is a component filter,
-          not a filesystem wildcard. }
-        ExtractTemporaryFiles('');
+        { Extract the two required payload files explicitly. ExtractTemporaryFiles
+          matches the destination pattern from [Files], so using exact paths avoids
+          ambiguity with recursive wildcard entries and solid compression. }
+        ExtractTemporaryFiles(HelperDirectory + '\DentalRay.SetupHelper.exe');
+        ExtractTemporaryFiles(ScriptPath);
         Result := FileExists(HelperExe) and FileExists(ScriptPath);
     except
         Result := False;
