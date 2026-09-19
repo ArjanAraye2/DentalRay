@@ -97,40 +97,21 @@ body.dentalray-login-active .app-sidebar{display:none!important}
 .login-logo-name strong{color:#123e61;font-size:27px;letter-spacing:-.7px}
 .login-logo-name strong::first-letter{ }
 .login-logo-name small{color:#8aa6bd;font-size:9px;letter-spacing:.2px;margin-top:5px}
-.login-brand-copy{
-  position:relative;
-  z-index:3;
-  margin-top:38px;
-  width:100%;
-  text-align:right;
-}
-.login-brand-copy h1{
-  margin:0 0 10px;
-  color:#103d60;
-  font-size:28px;
-  line-height:1.45;
-  font-weight:850;
-  letter-spacing:-.6px;
-}
-.login-brand-copy p{
-  margin:0;
-  color:#6d8ca5;
-  font-size:12px;
-  line-height:1.9;
-}
 .login-clinic-art{
   width:calc(100% + 96px);
   max-width:none;
-  height:410px;
-  margin-top:28px;
+  height:470px;
+  margin-top:22px;
   object-fit:cover;
-  object-position:center center;
+  object-position:center bottom;
   border-radius:0;
   display:block;
   position:relative;
   z-index:2;
   box-shadow:none;
-  filter:saturate(.92) brightness(1.04);
+  filter:saturate(.94) brightness(1.04);
+  transform:translateY(28px) scale(1.06);
+  transform-origin:center bottom;
 }
 .login-brand-footer{
   width:100%;
@@ -312,16 +293,14 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   .login-shell{grid-template-columns:1fr;min-height:auto;border-radius:20px}
   .login-form-panel{order:2;padding:34px 24px 26px}
   .login-brand-panel{order:1;min-height:360px;padding:30px 24px 22px}
-  .login-brand-copy{margin-top:24px}
-  .login-brand-copy h1{font-size:22px}
-  .login-clinic-art{margin-top:18px;max-width:none;height:300px}
+  .login-clinic-art{margin-top:8px;max-width:none;height:360px;transform:translateY(18px) scale(1.05)
   .login-brand-footer{margin-top:18px}
   .login-form-logo{margin-bottom:30px}
 }
 @media(max-width:420px){
   .login-form-panel{padding:28px 18px 22px}
   .login-brand-panel{min-height:310px}
-  .login-clinic-art{display:block;height:250px;width:calc(100% + 36px)}
+  .login-clinic-art{display:block;height:300px;width:calc(100% + 36px);transform:translateY(14px) scale(1.03)}
   .login-form-logo .login-logo-name strong{font-size:29px}
   .login-form-heading h2{font-size:23px}
 }
