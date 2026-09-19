@@ -100,9 +100,9 @@ begin
           temporary payload files are needed. ExtractTemporaryFile writes them
           directly under {tmp}. }
         if not FileExists(HelperExe) then
-            ExtractTemporaryFile('DentalRay.SetupHelper.exe');
+            ExtractTemporaryFiles('{tmp}\DentalRay.SetupHelper.exe');
         if not FileExists(ScriptPath) then
-            ExtractTemporaryFile('DentalRay.Database.Install.sql');
+            ExtractTemporaryFiles('{tmp}\DentalRay.Database.Install.sql');
 
         Result := FileExists(HelperExe) and FileExists(ScriptPath);
     except
