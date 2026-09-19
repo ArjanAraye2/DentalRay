@@ -63,6 +63,12 @@ builder.Services.AddDbContext<DentalRayDbContext>(options => options.UseSqlServe
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DentalRayDbContext>();
+    try { await db.Database.ExecuteSqlRawAsync("IF COL_LENGTH('tblUsers', 'RecoveryMobile') IS NULL ALTER TABLE tblUsers ADD RecoveryMobile nvarchar(30) NULL"); } catch { }
+}
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
 app.Use(async (context, next) =>
