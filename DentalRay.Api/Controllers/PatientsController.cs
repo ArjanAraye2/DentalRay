@@ -412,7 +412,7 @@ namespace DentalRay.Api.Controllers
 
             if (!string.IsNullOrWhiteSpace(photoRelativePath))
             {
-                var photoPath = Path.Combine(@"D:\RadiologyData", photoRelativePath);
+                var photoPath = Path.Combine(_storageService.GetRootPath(), photoRelativePath);
                 if (System.IO.File.Exists(photoPath)) System.IO.File.Delete(photoPath);
             }
 
@@ -434,7 +434,8 @@ namespace DentalRay.Api.Controllers
             var extension = Path.GetExtension(file.FileName);
             if (string.IsNullOrWhiteSpace(extension) || extension.Length > 10) extension = ".jpg";
             var relativePath = Path.Combine("Patients", patientID.ToString(), "Profile", $"patient-{Guid.NewGuid():N}{extension.ToLowerInvariant()}");
-            var root = @"D:\RadiologyData";
+            // The storage root is configured through RadiologyStorage:RootPath.
+            var root = _storageService.GetRootPath();
             var fullPath = Path.Combine(root, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
             await using (var stream = System.IO.File.Create(fullPath))
@@ -460,7 +461,7 @@ namespace DentalRay.Api.Controllers
                 .Select(p => p.PhotoRelativePath)
                 .FirstOrDefaultAsync();
             if (string.IsNullOrWhiteSpace(path)) return NotFound();
-            var fullPath = Path.Combine(@"D:\RadiologyData", path);
+            var fullPath = Path.Combine(_storageService.GetRootPath(), path);
             if (!System.IO.File.Exists(fullPath)) return NotFound();
             return PhysicalFile(fullPath, "image/jpeg");
         }
