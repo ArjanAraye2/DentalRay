@@ -43,7 +43,7 @@ persian.RightToLeft=yes
 [Files]
 ; SetupHelper is used before the normal file-copy stage, so keep it embedded and extract it on demand.
 Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.SetupHelper.exe"; Flags: dontcopy noencryption
-Source: "{#SourceRoot}\DentalRay.SetupHelper\Database\DentalRay.Database.Install.sql"; Flags: dontcopy noencryption
+Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.Database.Install.sql"; Flags: dontcopy noencryption
 Source: "{#SourceRoot}\DentalRay\*"; DestDir: "{app}"; Excludes: "appsettings.json,appsettings.Development.json"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
