@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
@@ -17,7 +18,9 @@ namespace DentalRay.Api.Controllers
         private readonly DentalRayDbContext _context;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IConfiguration _configuration;
-        public AuthController(DentalRayDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration) { _context = context; _passwordHasher = passwordHasher; _configuration = configuration; }
+        private readonly ICommunicationService _communication;
+        private static readonly ConcurrentDictionary<string, ResetCode> ResetCodes = new(StringComparer.OrdinalIgnoreCase);
+        public AuthController(DentalRayDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration, ICommunicationService communication) { _context = context; _passwordHasher = passwordHasher; _configuration = configuration; _communication = communication; }
 
         public sealed class LoginRequest { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
 
@@ -65,6 +68,44 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success = true, user = normalIdentity });
         }
 
+        public sealed class ForgotPasswordRequest { public string NationalCode { get; set; } = string.Empty; }
+        public sealed class VerifyResetRequest { public string NationalCode { get; set; } = string.Empty; public string Code { get; set; } = string.Empty; public string NewPassword { get; set; } = string.Empty; }
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+        {
+            var nationalCode = (request.NationalCode ?? string.Empty).Trim();
+            var generic = new { success = true, message = "اگر حسابی با این مشخصات و شماره بازیابی معتبر وجود داشته باشد، کد بازیابی ارسال می‌شود." };
+            if (nationalCode.Length == 0) return Ok(generic);
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == nationalCode && x.IsActive);
+            if (user == null || string.IsNullOrWhiteSpace(user.RecoveryMobile)) return Ok(generic);
+            var code = Random.Shared.Next(100000, 999999).ToString();
+            ResetCodes[nationalCode] = new ResetCode(code, DateTimeOffset.UtcNow.AddMinutes(5), 0);
+            var result = await _communication.SendSmsAsync(user.RecoveryMobile, $"کد بازیابی رمز عبور DentalRay: {code}\nاعتبار: ۵ دقیقه");
+            if (!result.Success) ResetCodes.TryRemove(nationalCode, out _);
+            return Ok(generic);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(VerifyResetRequest request)
+        {
+            var nationalCode = (request.NationalCode ?? string.Empty).Trim();
+            if (!ResetCodes.TryGetValue(nationalCode, out var reset) || reset.ExpiresAt < DateTimeOffset.UtcNow || reset.Attempts >= 5 || reset.Code != (request.Code ?? string.Empty).Trim())
+            {
+                if (ResetCodes.TryGetValue(nationalCode, out var current)) ResetCodes[nationalCode] = current with { Attempts = current.Attempts + 1 };
+                return BadRequest(new { success = false, message = "کد بازیابی معتبر نیست یا منقضی شده است." });
+            }
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8) return BadRequest(new { success = false, message = "رمز عبور جدید باید حداقل ۸ نویسه باشد." });
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == nationalCode && x.IsActive);
+            if (user == null) return BadRequest(new { success = false, message = "عملیات بازیابی انجام نشد." });
+            user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
+            await _context.SaveChangesAsync();
+            ResetCodes.TryRemove(nationalCode, out _);
+            return Ok(new { success = true, message = "رمز عبور با موفقیت تغییر کرد." });
+        }
+
         // Used by the browser on page reload. The password is never needed again;
         // the server validates the protected HttpOnly cookie.
         [Authorize]
@@ -107,5 +148,6 @@ namespace DentalRay.Api.Controllers
         }
 
         public sealed record LoginIdentity(int UserID, string UserName, int StaffID, string FirstName, string LastName, byte StaffType, bool IsSuperAdmin);
+        private sealed record ResetCode(string Code, DateTimeOffset ExpiresAt, int Attempts);
     }
 }
