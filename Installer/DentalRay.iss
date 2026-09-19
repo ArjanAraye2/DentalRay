@@ -181,6 +181,7 @@ end;
 function PrepareDentalRayDatabase: Boolean;
 var
     HelperExe, HelperDirectory, ScriptPath, CheckFile, ErrorFile, StateText, Params, ErrorText: String;
+    ErrorAnsi: AnsiString;
     StateAnsi: AnsiString;
     ResultCode: Integer;
 begin
@@ -219,7 +220,8 @@ begin
         else if ResultCode = 30 then MsgBox('دیتابیس DentalRay وجود ندارد و ایجاد آن تأیید نشده است.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
         else begin
             ErrorText := '';
-            if FileExists(ErrorFile) then LoadStringFromFile(ErrorFile, AnsiString(ErrorText));
+            ErrorAnsi := '';
+            if FileExists(ErrorFile) and LoadStringFromFile(ErrorFile, ErrorAnsi) then ErrorText := String(ErrorAnsi);
             if Trim(ErrorText) <> '' then
                 MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + CRLF + ErrorText + CRLF + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
             else
