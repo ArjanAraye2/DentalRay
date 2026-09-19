@@ -42,7 +42,8 @@ persian.RightToLeft=yes
 
 [Files]
 ; SetupHelper is used before the normal file-copy stage, so keep it embedded and extract it on demand.
-Source: "{#SourceRoot}\DentalRay.SetupHelper\*"; DestDir: "{tmp}\DentalRay.SetupHelper"; Flags: dontcopy noencryption recursesubdirs createallsubdirs
+Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.SetupHelper.exe"; Flags: dontcopy noencryption
+Source: "{#SourceRoot}\DentalRay.SetupHelper\Database\DentalRay.Database.Install.sql"; Flags: dontcopy noencryption
 Source: "{#SourceRoot}\DentalRay\*"; DestDir: "{app}"; Excludes: "appsettings.json,appsettings.Development.json"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -82,13 +83,11 @@ end;
 
 function EnsureSetupHelperExtracted: Boolean;
 var
-    HelperDirectory, HelperExe, ScriptPath: String;
-    ExtractedCount: Integer;
+    HelperExe, ScriptPath: String;
 begin
     Result := False;
-    HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
-    HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
-    ScriptPath := HelperDirectory + '\Database\DentalRay.Database.Install.sql';
+    HelperExe := ExpandConstant('{tmp}\DentalRay.SetupHelper.exe');
+    ScriptPath := ExpandConstant('{tmp}\DentalRay.Database.Install.sql');
 
     if FileExists(HelperExe) and FileExists(ScriptPath) then
     begin
@@ -97,12 +96,15 @@ begin
     end;
 
     try
-        { Match the destination paths declared in [Files]. Use wildcards for
-          both the helper root and its Database subdirectory. }
-        ExtractedCount := 0;
-        ExtractedCount := ExtractedCount + ExtractTemporaryFiles(HelperDirectory + '\*');
-        ExtractedCount := ExtractedCount + ExtractTemporaryFiles(HelperDirectory + '\Database\*');
-        Result := (ExtractedCount > 0) and FileExists(HelperExe) and FileExists(ScriptPath);
+        { The helper is published as a single-file executable, so only two
+          temporary payload files are needed. ExtractTemporaryFile writes them
+          directly under {tmp}. }
+        if not FileExists(HelperExe) then
+            ExtractTemporaryFile('DentalRay.SetupHelper.exe');
+        if not FileExists(ScriptPath) then
+            ExtractTemporaryFile('DentalRay.Database.Install.sql');
+
+        Result := FileExists(HelperExe) and FileExists(ScriptPath);
     except
         Result := False;
     end;
@@ -156,7 +158,7 @@ var
     ResultCode: Integer;
 begin
     Result := False;
-    HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
+    HelperDirectory := ExpandConstant('{tmp}');
     HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
     OutputFile := ExpandConstant('{tmp}\DentalRay.SqlDiscovery.txt');
 
@@ -183,9 +185,9 @@ var
     ResultCode: Integer;
 begin
     Result := False;
-    HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
+    HelperDirectory := ExpandConstant('{tmp}');
     HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
-    ScriptPath := HelperDirectory + '\Database\DentalRay.Database.Install.sql';
+    ScriptPath := ExpandConstant('{tmp}\DentalRay.Database.Install.sql');
     CheckFile := ExpandConstant('{tmp}\DentalRay.DatabaseState.txt');
     CreateDatabaseConfirmed := False;
 
@@ -278,7 +280,7 @@ var
 begin
     SqlServer := Trim(SqlPage.Values[0]);
     StoragePath := Trim(StoragePage.Values[0]);
-    HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
+    HelperDirectory := ExpandConstant('{tmp}');
     HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
 
     if not EnsureSetupHelperExtracted then RaiseException('فایل‌های لازم برای آماده‌سازی DentalRay از بسته نصب استخراج نشدند.');
