@@ -26,15 +26,15 @@
     if(!control){
       control=document.createElement('div');
       control.id='dentalRayUserControl';
-      control.style.cssText='display:flex;align-items:center;gap:10px;margin-right:auto;';
-      control.innerHTML='<span id="dentalRayCurrentUserName" style="font-size:13px;color:#64748b"></span><button id="dentalRayLogoutButton" type="button" class="secondary-button" style="white-space:nowrap">خروج</button>';
+      control.className='header-user-control';
+      control.innerHTML='<span id="dentalRayCurrentUserName" class="header-user-name"></span><button id="dentalRayLogoutButton" type="button" class="secondary-button header-logout-button">خروج</button>';
       const headerContent=header.querySelector('.header-content')||header;
-      headerContent.style.display='flex';headerContent.style.alignItems='center';headerContent.style.gap='16px';headerContent.appendChild(control);
+      headerContent.appendChild(control);
       document.getElementById('dentalRayLogoutButton').addEventListener('click',window.dentalRayLogout);
     }
     const name=document.getElementById('dentalRayCurrentUserName');
     if(name)name.textContent=user.isSuperAdmin?'مدیر سیستم':`${user.firstName||''} ${user.lastName||''}`.trim();
-    control.style.display='flex';
+    control.classList.remove('hidden');
   }
 
   function showApplication(user){
@@ -59,7 +59,7 @@
   function createLogin(){
     if(document.getElementById('dentalRayLoginScreen'))return;
     setLoginMode(true);
-    const control=document.getElementById('dentalRayUserControl'); if(control)control.style.display='none';
+    const control=document.getElementById('dentalRayUserControl'); if(control)control.classList.add('hidden');
 
     const screen=document.createElement('div');
     screen.id='dentalRayLoginScreen';

@@ -80,14 +80,14 @@ app.Use(async (context, next) =>
         {
             string html = await File.ReadAllTextAsync(indexPath);
             const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css?v=20260920.4\" />";
-            const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20260919.2\" />";
+            const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20260920.1\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}{cardExtractionStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
             const string featureScripts =
-                "<script src=\"/js/mobile-camera-loader.js\"></script>\n" +
+                "<script src=\"/js/mobile-camera-loader.js?v=20260920.1\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
                 "<script src=\"/js/card-extraction.js?v=20260919.2\"></script>\n" +
-                "<script src=\"/js/login-ui.js?v=20260920.3\"></script>";
+                "<script src=\"/js/login-ui.js?v=20260920.4\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             await context.Response.WriteAsync(html);

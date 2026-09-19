@@ -13,7 +13,8 @@ function applyMobileUi(){
     const mobile=isMobileDevice();
     const camera= document.getElementById('cameraFileInput');
     const cameraField=camera?.closest('.form-field');
-    if(cameraField)cameraField.style.display=mobile?'':'none';
+    // Desktop has no camera capture; hide that field with a class instead of inline styles.
+    if(cameraField)cameraField.classList.toggle('hidden',!mobile);
 
     // On mobile the action describes both supported sources clearly.
     document.querySelectorAll('button').forEach(button=>{

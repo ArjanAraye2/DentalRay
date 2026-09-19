@@ -88,6 +88,34 @@ textarea:focus-visible,
 
 
 /* ==========================================================
+   Header user control (current user + logout)
+   Built by login-ui.js as real DOM, styled here instead of inline.
+   ========================================================== */
+
+.header-user-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: auto;
+}
+
+.header-user-name {
+    color: var( --muted );
+    font-size: 13px;
+}
+
+.header-logout-button {
+    white-space: nowrap;
+}
+
+/* The application header is a flex row; keep the injected control aligned. */
+.header-content {
+    align-items: center;
+    gap: 16px;
+}
+
+
+/* ==========================================================
    Header
    ========================================================== */
 
