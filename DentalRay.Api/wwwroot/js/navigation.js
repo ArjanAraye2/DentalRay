@@ -94,6 +94,7 @@
             const result = await response.json();
             if (!response.ok || !result.success) throw new Error();
             const overall = result.overall || {}, today = result.today || {};
+            const connected = result.system?.databaseConnected !== false;
             const values = {
                 dashboardTotalPatients: overall.totalPatients, dashboardActivePatients: overall.activePatients,
                 dashboardInactivePatients: overall.inactivePatients, dashboardTotalStudies: overall.totalStudies,
@@ -101,14 +102,18 @@
                 dashboardStudiesToday: today.studiesToday, dashboardImagesToday: today.imagesToday,
                 dashboardNewPatientsToday: today.newPatientsToday
             };
-            Object.entries(values).forEach(([id, value]) => document.getElementById(id).textContent = value ?? 0);
-            renderRecentStudies(result.recentStudies || []);
-            renderRecentImages(result.recentImages || []);
+            // Show a dash instead of a misleading 0 when the database is unreachable.
+            Object.entries(values).forEach(([id, value]) =>
+                document.getElementById(id).textContent = connected ? (value ?? 0) : "—");
+            renderRecentStudies(connected ? (result.recentStudies || []) : []);
+            renderRecentImages(connected ? (result.recentImages || []) : []);
             document.getElementById("dashboardGeneratedAt").textContent = `آخرین به‌روزرسانی: ${formatPersianDateTime(result.generatedAt)}`;
-            document.getElementById("dashboardDatabaseStatus").textContent = result.system?.databaseConnected ? "● پایگاه‌داده متصل است" : "● پایگاه‌داده در دسترس نیست";
-            document.getElementById("dashboardDatabaseStatus").className = result.system?.databaseConnected ? "system-ok" : "system-error";
+            document.getElementById("dashboardDatabaseStatus").textContent = connected ? "● پایگاه‌داده متصل است" : "● پایگاه‌داده در دسترس نیست";
+            document.getElementById("dashboardDatabaseStatus").className = connected ? "system-ok" : "system-error";
             const storage = result.system?.storage || {};
-            document.getElementById("dashboardStorageStatus").textContent = storage.available ? `● فضای تصاویر آماده است — ${formatBytes(storage.freeBytes)} آزاد` : `● مسیر ${storage.rootPath || "D:\\RadiologyData"} در دسترس نیست`;
+            document.getElementById("dashboardStorageStatus").textContent = storage.available
+                ? `● فضای تصاویر آماده است — ${formatBytes(storage.freeBytes)} آزاد`
+                : `● مسیر ${storage.rootPath || "تنظیم‌نشده"} در دسترس نیست`;
             document.getElementById("dashboardStorageStatus").className = storage.available ? "system-ok" : "system-error";
             renderNetworkAccess(result.system?.network || {});
             renderSettingsNetworkLinks(result.system?.network || {});

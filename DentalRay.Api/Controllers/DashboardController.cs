@@ -1,6 +1,8 @@
 using DentalRay.Api.Data;
+using DentalRay.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Sockets;
 
@@ -14,11 +16,13 @@ namespace DentalRay.Api.Controllers
     {
         private readonly DentalRayDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly RadiologyStorageOptions _storageOptions;
 
-        public DashboardController(DentalRayDbContext context, IConfiguration configuration)
+        public DashboardController(DentalRayDbContext context, IConfiguration configuration, IOptions<RadiologyStorageOptions> storageOptions)
         {
             _context = context;
             _configuration = configuration;
+            _storageOptions = storageOptions.Value;
         }
 
         [HttpGet]
@@ -27,62 +31,102 @@ namespace DentalRay.Api.Controllers
             DateTime today = DateTime.Today;
             DateTime tomorrow = today.AddDays(1);
 
-            int totalPatients = await _context.Patients.AsNoTracking().CountAsync();
-            int activePatients = await _context.Patients.AsNoTracking().CountAsync(p => p.IsActive);
-            int totalStudies = await _context.RadiologyStudies.AsNoTracking().CountAsync();
-            int totalImages = await _context.RadiologyImages.AsNoTracking().CountAsync();
-
-            int newPatientsToday = await _context.Patients.AsNoTracking()
-                .CountAsync(p => p.CreatedDate >= today && p.CreatedDate < tomorrow);
-            int studiesToday = await _context.RadiologyStudies.AsNoTracking()
-                .CountAsync(s => s.StudyDate >= today && s.StudyDate < tomorrow);
-            int patientsToday = await _context.RadiologyStudies.AsNoTracking()
-                .Where(s => s.StudyDate >= today && s.StudyDate < tomorrow)
-                .Select(s => s.PatientID).Distinct().CountAsync();
-            int imagesToday = await _context.RadiologyImages.AsNoTracking()
-                .CountAsync(i => i.CreatedDate >= today && i.CreatedDate < tomorrow);
-
-            var recentStudies = await (
-                from study in _context.RadiologyStudies.AsNoTracking()
-                join patient in _context.Patients.AsNoTracking() on study.PatientID equals patient.PatientID
-                join type in _context.StudyTypes.AsNoTracking() on study.StudyTypeID equals type.StudyTypeID
-                orderby study.StudyDate descending
-                select new
+            bool databaseConnected;
+            // The connectivity probe is bounded: a misconfigured or unreachable
+            // server can otherwise stall the dashboard for ~60s before failing.
+            using (var probeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+            {
+                try
                 {
-                    study.StudyID, study.PatientID, study.StudyDate,
-                    PatientName = patient.FirstName + " " + patient.LastName,
-                    type.StudyTypeName,
-                    study.BodyPart
-                }).Take(5).ToListAsync();
-
-            var recentImages = await (
-                from image in _context.RadiologyImages.AsNoTracking()
-                join patient in _context.Patients.AsNoTracking() on image.PatientID equals patient.PatientID
-                join imageType in _context.ImageTypes.AsNoTracking() on image.ImageTypeID equals imageType.ImageTypeID into types
-                from imageType in types.DefaultIfEmpty()
-                orderby image.CreatedDate descending
-                select new
+                    databaseConnected = await _context.Database.CanConnectAsync(probeTimeout.Token);
+                }
+                catch
                 {
-                    image.ImageID, image.PatientID, image.FileName, image.ContentType, image.CreatedDate,
-                    PatientName = patient.FirstName + " " + patient.LastName,
-                    ImageTypeName = imageType == null ? null : imageType.ImageTypeName
-                }).Take(5).ToListAsync();
+                    databaseConnected = false;
+                }
+            }
 
+            int totalPatients = 0, activePatients = 0, totalStudies = 0, totalImages = 0;
+            int newPatientsToday = 0, studiesToday = 0, patientsToday = 0, imagesToday = 0;
+            List<object> recentStudies = new();
+            List<object> recentImages = new();
+
+            if (databaseConnected)
+            {
+                // A DbContext cannot run several commands concurrently, so the counts
+                // are awaited sequentially. recentStudies/recentImages are plain
+                // projections so they stay cheap.
+                totalPatients = await _context.Patients.AsNoTracking().CountAsync();
+                activePatients = await _context.Patients.AsNoTracking().CountAsync(p => p.IsActive);
+                totalStudies = await _context.RadiologyStudies.AsNoTracking().CountAsync();
+                totalImages = await _context.RadiologyImages.AsNoTracking().CountAsync();
+
+                newPatientsToday = await _context.Patients.AsNoTracking()
+                    .CountAsync(p => p.CreatedDate >= today && p.CreatedDate < tomorrow);
+                studiesToday = await _context.RadiologyStudies.AsNoTracking()
+                    .CountAsync(s => s.StudyDate >= today && s.StudyDate < tomorrow);
+                patientsToday = await _context.RadiologyStudies.AsNoTracking()
+                    .Where(s => s.StudyDate >= today && s.StudyDate < tomorrow)
+                    .Select(s => s.PatientID).Distinct().CountAsync();
+                imagesToday = await _context.RadiologyImages.AsNoTracking()
+                    .CountAsync(i => i.CreatedDate >= today && i.CreatedDate < tomorrow);
+
+                recentStudies = await (
+                    from study in _context.RadiologyStudies.AsNoTracking()
+                    join patient in _context.Patients.AsNoTracking() on study.PatientID equals patient.PatientID
+                    join type in _context.StudyTypes.AsNoTracking() on study.StudyTypeID equals type.StudyTypeID
+                    orderby study.StudyDate descending
+                    select (object)new
+                    {
+                        study.StudyID, study.PatientID, study.StudyDate,
+                        PatientName = patient.FirstName + " " + patient.LastName,
+                        type.StudyTypeName,
+                        study.BodyPart
+                    }).Take(5).ToListAsync();
+
+                recentImages = await (
+                    from image in _context.RadiologyImages.AsNoTracking()
+                    join patient in _context.Patients.AsNoTracking() on image.PatientID equals patient.PatientID
+                    join imageType in _context.ImageTypes.AsNoTracking() on image.ImageTypeID equals imageType.ImageTypeID into types
+                    from imageType in types.DefaultIfEmpty()
+                    orderby image.CreatedDate descending
+                    select (object)new
+                    {
+                        image.ImageID, image.PatientID, image.FileName, image.ContentType, image.CreatedDate,
+                        PatientName = patient.FirstName + " " + patient.LastName,
+                        ImageTypeName = imageType == null ? null : imageType.ImageTypeName
+                    }).Take(5).ToListAsync();
+            }
+
+            // The storage root is configured through RadiologyStorage:RootPath.
+            // Reading it here (instead of a hard-coded D:\RadiologyData) keeps the
+            // dashboard in sync with the path that actually stores the images.
             object storage;
             try
             {
-                var drive = new DriveInfo(@"D:\");
-                storage = new
+                string rootPath = _storageOptions.RootPath;
+                if (string.IsNullOrWhiteSpace(rootPath))
                 {
-                    available = drive.IsReady && Directory.Exists(@"D:\RadiologyData"),
-                    rootPath = @"D:\RadiologyData",
-                    freeBytes = drive.IsReady ? drive.AvailableFreeSpace : (long?)null,
-                    totalBytes = drive.IsReady ? drive.TotalSize : (long?)null
-                };
+                    storage = new { available = false, rootPath = (string?)null, freeBytes = (long?)null, totalBytes = (long?)null };
+                }
+                else
+                {
+                    string fullPath = Path.GetFullPath(rootPath);
+                    string? pathRoot = Path.GetPathRoot(fullPath);
+                    DriveInfo? drive = string.IsNullOrWhiteSpace(pathRoot) ? null : new DriveInfo(pathRoot);
+                    bool driveReady = drive?.IsReady ?? false;
+                    storage = new
+                    {
+                        available = driveReady && Directory.Exists(fullPath),
+                        rootPath = fullPath,
+                        freeBytes = driveReady ? drive!.AvailableFreeSpace : (long?)null,
+                        totalBytes = driveReady ? drive!.TotalSize : (long?)null
+                    };
+                }
             }
             catch
             {
-                storage = new { available = false, rootPath = @"D:\RadiologyData", freeBytes = (long?)null, totalBytes = (long?)null };
+                storage = new { available = false, rootPath = _storageOptions.RootPath, freeBytes = (long?)null, totalBytes = (long?)null };
             }
 
             // LAN addresses are discovered locally and never require an Internet service.
@@ -138,7 +182,7 @@ namespace DentalRay.Api.Controllers
                 today = new { patientsToday, studiesToday, imagesToday, newPatientsToday },
                 recentStudies,
                 recentImages,
-                system = new { databaseConnected = true, storage, network }
+                system = new { databaseConnected, storage, network }
             });
         }
     }
