@@ -256,7 +256,8 @@ begin
     if CurPageID = SqlPage.ID then begin
         if not EnsureSetupHelperExtracted then begin Result := False; Exit; end;
         if Trim(SqlPage.Values[0]) = '' then begin MsgBox('لطفاً نام SQL Server را وارد کنید.', mbError, MB_OK); Result := False; Exit; end;
-        if SameText(Trim(SqlPage.Values[0]), '.\DENTALRAY') then if not DiscoverDentalRaySqlServer then begin Result := False; Exit; end;
+        { Always discover the SQL Server instance automatically. The installer must not assume .\DENTALRAY. }
+        if not DiscoverDentalRaySqlServer then begin Result := False; Exit; end;
         if not PrepareDentalRayDatabase then begin Result := False; Exit; end;
     end else if CurPageID = StoragePage.ID then begin
         if Trim(StoragePage.Values[0]) = '' then begin MsgBox('لطفاً مسیر ذخیره تصاویر را مشخص کنید.', mbError, MB_OK); Result := False; end;
