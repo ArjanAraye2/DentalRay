@@ -23,7 +23,10 @@ body.dentalray-login-active .app-sidebar{display:none!important}
 }
 .login-shell{
   width:min(1120px,100%);
-  min-height:660px;
+  /* Height follows the viewport so the shell (and the clinic art inside it)
+     shrinks on short screens instead of overflowing. */
+  height:min(660px,calc(100vh - 84px));
+  min-height:min(520px,calc(100vh - 84px));
   display:grid;
   grid-template-columns:1fr 1fr;
   direction:ltr;
@@ -42,6 +45,8 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   padding:62px 92px 34px;
   background:#fff;
   position:relative;
+  min-height:0;
+  overflow-y:auto;
 }
 .login-form-panel::after{
   content:"";
@@ -57,6 +62,7 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   order:2;
   position:relative;
   min-width:0;
+  min-height:0;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -100,7 +106,11 @@ body.dentalray-login-active .app-sidebar{display:none!important}
 .login-clinic-art{
   width:calc(100% + 96px);
   max-width:none;
-  height:470px;
+  /* Fills the space left by the header/footer instead of a fixed 470px,
+     so it becomes smaller on shorter viewports. */
+  flex:1 1 auto;
+  min-height:0;
+  height:auto;
   margin-top:22px;
   object-fit:cover;
   object-position:center bottom;
@@ -281,7 +291,7 @@ body.dentalray-login-active .app-sidebar{display:none!important}
 
 @media(max-width:900px){
   .login-screen{padding:22px}
-  .login-shell{width:min(900px,100%);min-height:600px}
+  .login-shell{width:min(900px,100%);height:min(600px,calc(100vh - 44px));min-height:min(480px,calc(100vh - 44px))}
   .login-form-panel{padding:48px 54px 28px}
   .login-brand-panel{padding:40px 34px 24px}
   .login-form-logo .login-logo-name strong{font-size:32px}
@@ -290,10 +300,11 @@ body.dentalray-login-active .app-sidebar{display:none!important}
 @media(max-width:720px){
   body.dentalray-login-active{overflow:auto}
   .login-screen{position:absolute;min-height:100%;padding:12px}
-  .login-shell{grid-template-columns:1fr;min-height:auto;border-radius:20px}
+  .login-shell{grid-template-columns:1fr;height:auto;min-height:auto;border-radius:20px}
   .login-form-panel{order:2;padding:34px 24px 26px}
   .login-brand-panel{order:1;min-height:360px;padding:30px 24px 22px}
-  .login-clinic-art{margin-top:8px;max-width:none;height:360px;transform:translateY(18px) scale(1.05)}
+  /* Stacked layout: the art becomes a normal block with a fixed box again. */
+  .login-clinic-art{flex:0 0 auto;height:360px;margin-top:8px;max-width:none;transform:translateY(18px) scale(1.05)}
   .login-brand-footer{margin-top:18px}
   .login-form-logo{margin-bottom:30px}
 }
