@@ -3255,6 +3255,18 @@ table button {
 .dashboard-summary-card.today-images { background: #eafbf4; }
 .dashboard-summary-card.today-new { background: #fff7e6; }
 
+/* "Today" cards read as neutral until they actually have activity for the day.
+   A non-zero value turns the card green, so a filled dashboard is obvious
+   at a glance while empty days stay quiet. */
+.dashboard-summary-card.today-card { transition: background .2s ease, box-shadow .2s ease; }
+.dashboard-summary-card.today-card.has-value {
+    background: linear-gradient(145deg, #e9fbf1, #d6f5e4);
+    box-shadow: 0 8px 20px rgba(18, 173, 103, .14);
+    border-color: #b9ecd1;
+}
+.dashboard-summary-card.today-card.has-value strong { color: #0b7a4a; }
+.dashboard-summary-card.today-card:not(.has-value) { opacity: .72; }
+
 .dashboard-detail-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3266,6 +3278,25 @@ table button {
 .dashboard-panel-title span { color: #71869b; font-size: 10px; }
 .dashboard-recent-list { display: grid; gap: 6px; min-height: 90px; }
 .dashboard-recent-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 7px; border: 1px solid #e1edf7; border-radius: 8px; background: #fbfdff; }
+
+/* Dashboard rows are real actions: opening a record or an image. */
+.dashboard-recent-clickable {
+    width: 100%;
+    color: inherit;
+    font: inherit;
+    text-align: right;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.dashboard-recent-clickable:hover {
+    border-color: #9fc9ef;
+    background: #f1f8ff;
+    transform: translateY(-1px);
+}
+.dashboard-recent-clickable:active { transform: translateY(0); }
+
+/* Study thumbnails are photographs, not glyphs, so they fill their box. */
+img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #18314d; }
 .dashboard-recent-row > span:nth-child(2) { display: grid; gap: 2px; }
 .dashboard-recent-row strong { color: #174b80; font-size: 11px; }
 .dashboard-recent-row small, .dashboard-recent-row time { color: #6b8096; font-size: 9px; }

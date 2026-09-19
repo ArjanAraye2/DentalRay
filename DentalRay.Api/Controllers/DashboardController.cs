@@ -81,7 +81,19 @@ namespace DentalRay.Api.Controllers
                         study.StudyID, study.PatientID, study.StudyDate,
                         PatientName = patient.FirstName + " " + patient.LastName,
                         type.StudyTypeName,
-                        study.BodyPart
+                        study.BodyPart,
+                        // Thumbnail shown on the dashboard: latest image of the study
+                        // that has an actual picture (PDFs are ignored; the UI shows
+                        // the study icon for them instead).
+                        ThumbnailImageID = _context.RadiologyStudyImages.AsNoTracking()
+                            .Where(link => link.StudyID == study.StudyID)
+                            .Join(_context.RadiologyImages.AsNoTracking(),
+                                link => link.ImageID, image => image.ImageID,
+                                (link, image) => image)
+                            .Where(image => image.ContentType != "application/pdf")
+                            .OrderByDescending(image => image.CreatedDate)
+                            .Select(image => (long?)image.ImageID)
+                            .FirstOrDefault()
                     }).Take(5).ToListAsync();
 
                 recentImages = await (

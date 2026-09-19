@@ -25,10 +25,10 @@
       </div>
       <h3 class="dashboard-group-title">امروز</h3>
       <div class="dashboard-summary-grid dashboard-today-grid">
-        <div class="dashboard-summary-card today-patients"><strong id="dashboardPatientsToday">-</strong><span>بیماران امروز</span></div>
-        <div class="dashboard-summary-card today-studies"><strong id="dashboardStudiesToday">-</strong><span>مطالعات امروز</span></div>
-        <div class="dashboard-summary-card today-images"><strong id="dashboardImagesToday">-</strong><span>تصاویر امروز</span></div>
-        <div class="dashboard-summary-card today-new"><strong id="dashboardNewPatientsToday">-</strong><span>بیماران جدید امروز</span></div>
+        <div class="dashboard-summary-card today-card today-patients"><strong id="dashboardPatientsToday">-</strong><span>بیماران امروز</span></div>
+        <div class="dashboard-summary-card today-card today-studies"><strong id="dashboardStudiesToday">-</strong><span>مطالعات امروز</span></div>
+        <div class="dashboard-summary-card today-card today-images"><strong id="dashboardImagesToday">-</strong><span>تصاویر امروز</span></div>
+        <div class="dashboard-summary-card today-card today-new"><strong id="dashboardNewPatientsToday">-</strong><span>بیماران جدید امروز</span></div>
       </div>
       <div class="dashboard-detail-grid">
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین مطالعات</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentStudies" class="dashboard-recent-list"></div></section>
@@ -87,8 +87,36 @@
         });
     }
 
-    async function openDashboard() {
-        hidePages(); dashboard.classList.remove("hidden"); setActive("dashboard");
+    // The dashboard refreshes itself while it is open. The timer is paused when
+    // the tab is hidden so background tabs never poll needlessly.
+    const DASHBOARD_REFRESH_MS = 30000;
+    let dashboardTimer = null;
+    let dashboardVisible = false;
+
+    function startDashboardAutoRefresh() {
+        stopDashboardAutoRefresh();
+        dashboardTimer = setInterval(() => {
+            if (dashboardVisible && document.visibilityState === "visible" && !dashboard.classList.contains("hidden")) {
+                openDashboard({ silent: true });
+            }
+        }, DASHBOARD_REFRESH_MS);
+    }
+    function stopDashboardAutoRefresh() {
+        if (dashboardTimer) { clearInterval(dashboardTimer); dashboardTimer = null; }
+    }
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && dashboardVisible && !dashboard.classList.contains("hidden")) {
+            openDashboard({ silent: true });
+        }
+    });
+
+    async function openDashboard(options = {}) {
+        const silent = options.silent === true;
+        if (!silent) {
+            hidePages(); dashboard.classList.remove("hidden"); setActive("dashboard");
+            dashboardVisible = true;
+            startDashboardAutoRefresh();
+        }
         try {
             const response = await fetch("/api/dashboard", { cache: "no-store" });
             const result = await response.json();
@@ -103,8 +131,16 @@
                 dashboardNewPatientsToday: today.newPatientsToday
             };
             // Show a dash instead of a misleading 0 when the database is unreachable.
-            Object.entries(values).forEach(([id, value]) =>
-                document.getElementById(id).textContent = connected ? (value ?? 0) : "—");
+            Object.entries(values).forEach(([id, value]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = connected ? (value ?? 0) : "—";
+                // Cards that track "today" turn green once they have activity.
+                const card = el.closest(".dashboard-summary-card");
+                if (card?.classList.contains("today-card")) {
+                    card.classList.toggle("has-value", connected && Number(value) > 0);
+                }
+            });
             renderRecentStudies(connected ? (result.recentStudies || []) : []);
             renderRecentImages(connected ? (result.recentImages || []) : []);
             document.getElementById("dashboardGeneratedAt").textContent = `آخرین به‌روزرسانی: ${formatPersianDateTime(result.generatedAt)}`;
@@ -118,6 +154,7 @@
             renderNetworkAccess(result.system?.network || {});
             renderSettingsNetworkLinks(result.system?.network || {});
         } catch {
+            if (silent) return; // keep the last good snapshot on a background refresh
             dashboard.querySelectorAll(".dashboard-summary-card strong").forEach(x => x.textContent = "-");
             document.getElementById("dashboardRecentStudies").textContent = "دریافت اطلاعات داشبورد ناموفق بود.";
             document.getElementById("dashboardRecentImages").textContent = "دریافت اطلاعات داشبورد ناموفق بود.";
@@ -159,12 +196,100 @@
     function renderRecentStudies(items) {
         const root = document.getElementById("dashboardRecentStudies"); root.replaceChildren();
         if (!items.length) { root.textContent = "مطالعه‌ای ثبت نشده است."; return; }
-        items.forEach(item => { const row = document.createElement("div"); row.className = "dashboard-recent-row"; row.innerHTML = `<span class="dashboard-recent-icon">▣</span><span><strong></strong><small></small></span><time></time>`; row.querySelector("strong").textContent = item.patientName; row.querySelector("small").textContent = `${item.studyTypeName}${item.bodyPart ? ` — ${item.bodyPart}` : ""}`; row.querySelector("time").textContent = formatPersianDateTime(item.studyDate); root.appendChild(row); });
+        items.forEach(item => {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "dashboard-recent-row dashboard-recent-clickable";
+            row.title = "باز کردن پرونده بیمار و همین مطالعه";
+
+            // Prefer a real thumbnail; fall back to the study icon when the study
+            // has no image (or only PDFs).
+            const media = item.thumbnailImageID
+                ? document.createElement("img")
+                : document.createElement("span");
+            media.className = "dashboard-recent-icon";
+            if (item.thumbnailImageID) {
+                media.src = `/api/radiologyimages/${item.thumbnailImageID}`;
+                media.alt = ""; media.loading = "lazy";
+                media.onerror = () => { media.removeAttribute("src"); media.textContent = "▣"; };
+            } else media.textContent = "▣";
+
+            const text = document.createElement("span");
+            const name = document.createElement("strong");
+            name.textContent = item.patientName;
+            const meta = document.createElement("small");
+            meta.textContent = `${item.studyTypeName}${item.bodyPart ? ` — ${item.bodyPart}` : ""}`;
+            text.append(name, meta);
+
+            const time = document.createElement("time");
+            time.textContent = formatPersianDateTime(item.studyDate);
+
+            row.append(media, text, time);
+            row.addEventListener("click", () => openPatientStudy(item));
+            root.appendChild(row);
+        });
     }
     function renderRecentImages(items) {
         const root = document.getElementById("dashboardRecentImages"); root.replaceChildren();
         if (!items.length) { root.textContent = "تصویری ثبت نشده است."; return; }
-        items.forEach(item => { const row = document.createElement("div"); row.className = "dashboard-recent-row"; const media = item.contentType === "application/pdf" ? document.createElement("span") : document.createElement("img"); media.className = "dashboard-image-thumb"; if (media.tagName === "IMG") { media.src = `/api/radiologyimages/${item.imageID}`; media.alt = ""; media.loading = "lazy"; } else media.textContent = "PDF"; const text = document.createElement("span"), name = document.createElement("strong"), type = document.createElement("small"), time = document.createElement("time"); name.textContent = item.patientName; type.textContent = item.imageTypeName || item.fileName; time.textContent = formatPersianDateTime(item.createdDate); text.append(name, type); row.append(media, text, time); root.appendChild(row); });
+        items.forEach(item => {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "dashboard-recent-row dashboard-recent-clickable";
+            row.title = item.contentType === "application/pdf" ? "باز کردن PDF در تب جدید" : "نمایش تصویر بزرگ";
+
+            const isPdf = item.contentType === "application/pdf";
+            const media = isPdf ? document.createElement("span") : document.createElement("img");
+            media.className = "dashboard-image-thumb";
+            if (isPdf) media.textContent = "PDF";
+            else { media.src = `/api/radiologyimages/${item.imageID}`; media.alt = ""; media.loading = "lazy"; }
+
+            const text = document.createElement("span"), name = document.createElement("strong"),
+                  type = document.createElement("small"), time = document.createElement("time");
+            name.textContent = item.patientName;
+            type.textContent = item.imageTypeName || item.fileName;
+            time.textContent = formatPersianDateTime(item.createdDate);
+            text.append(name, type);
+            row.append(media, text, time);
+            row.addEventListener("click", () => openDashboardImage(item, isPdf));
+            root.appendChild(row);
+        });
+    }
+
+    // Opens the patient record and scrolls to the clicked study card. The
+    // patients workspace is reused so behaviour matches the patient list.
+    async function openPatientStudy(item) {
+        navigate("patients");
+        try {
+            if (typeof window.openPatientInline === "function") await window.openPatientInline(item.patientID);
+            // Studies render asynchronously; wait for the card to exist.
+            const card = await waitForStudyCard(item.studyID);
+            card?.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch { /* patient lookup failed; the workspace already shows its own error */ }
+    }
+
+    function waitForStudyCard(studyID, timeoutMs = 4000) {
+        return new Promise(resolve => {
+            const started = Date.now();
+            const tick = () => {
+                const card = document.querySelector(`.study-scroll-card[data-study-id="${studyID}"]`);
+                if (card) return resolve(card);
+                if (Date.now() - started > timeoutMs) return resolve(null);
+                setTimeout(tick, 120);
+            };
+            tick();
+        });
+    }
+
+    function openDashboardImage(item, isPdf) {
+        const url = `/api/radiologyimages/${item.imageID}`;
+        if (isPdf) { window.open(url, "_blank", "noopener"); return; }
+        // Reuse the application's own image viewer when it is available.
+        if (typeof window.openLargeImage === "function") {
+            window.openLargeImage({ imageID: item.imageID, fileName: item.fileName, contentType: item.contentType, imageTypeName: item.imageTypeName });
+        } else {
+            window.open(url, "_blank", "noopener");
+        }
     }
 
     function openPatients() {
@@ -267,9 +392,9 @@
 
     function navigate(name) {
         if (name === "dashboard") return openDashboard();
-        if (name === "patients") return openPatients();
-        if (name === "settings") return openSettings();
-        if (placeholderSections[name]) return openPlaceholder(name);
+        if (name === "patients") { dashboardVisible = false; stopDashboardAutoRefresh(); return openPatients(); }
+        if (name === "settings") { dashboardVisible = false; stopDashboardAutoRefresh(); return openSettings(); }
+        if (placeholderSections[name]) { dashboardVisible = false; stopDashboardAutoRefresh(); return openPlaceholder(name); }
     }
 
     sidebarLinks.forEach(link => link.addEventListener("click", event => {
