@@ -41,8 +41,9 @@ persian.WelcomeFontSize=16
 persian.RightToLeft=yes
 
 [Files]
+; SetupHelper is used before the normal file-copy stage, so keep it embedded and extract it on demand.
+Source: "{#SourceRoot}\DentalRay.SetupHelper\*"; DestDir: "{tmp}\DentalRay.SetupHelper"; Flags: dontcopy noencryption recursesubdirs createallsubdirs
 Source: "{#SourceRoot}\DentalRay\*"; DestDir: "{app}"; Excludes: "appsettings.json,appsettings.Development.json"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#SourceRoot}\DentalRay.SetupHelper\*"; DestDir: "{tmp}\DentalRay.SetupHelper"; Flags: ignoreversion recursesubdirs createallsubdirs deleteafterinstall
 
 [Icons]
 Name: "{autoprograms}\DentalRay"; Filename: "{sys}\rundll32.exe"; Parameters: "url.dll,FileProtocolHandler http://localhost:5202"; IconFilename: "{app}\{#MyAppExeName}"
@@ -77,6 +78,33 @@ end;
 function RunHiddenAndWait(FileName: String; Parameters: String; WorkingDirectory: String; var ResultCode: Integer): Boolean;
 begin
     Result := Exec(FileName, Parameters, WorkingDirectory, SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+function EnsureSetupHelperExtracted: Boolean;
+var
+    HelperDirectory, HelperExe, ScriptPath: String;
+begin
+    Result := False;
+    HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
+    HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
+    ScriptPath := HelperDirectory + '\Database\DentalRay.Database.Install.sql';
+
+    if FileExists(HelperExe) and FileExists(ScriptPath) then
+    begin
+        Result := True;
+        Exit;
+    end;
+
+    try
+        ExtractTemporaryFiles(HelperDirectory + '\*');
+        ExtractTemporaryFiles(HelperDirectory + '\Database\*');
+        Result := FileExists(HelperExe) and FileExists(ScriptPath);
+    except
+        Result := False;
+    end;
+
+    if not Result then
+        MsgBox('فایل‌های لازم برای آماده‌سازی DentalRay از بسته نصب استخراج نشدند.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
 end;
 
 function GetExistingStoragePath: String;
@@ -209,6 +237,7 @@ function NextButtonClick(CurPageID: Integer): Boolean;
 begin
     Result := True;
     if CurPageID = SqlPage.ID then begin
+        if not EnsureSetupHelperExtracted then begin Result := False; Exit; end;
         if Trim(SqlPage.Values[0]) = '' then begin MsgBox('لطفاً نام SQL Server را وارد کنید.', mbError, MB_OK); Result := False; Exit; end;
         if SameText(Trim(SqlPage.Values[0]), '.\DENTALRAY') then if not DiscoverDentalRaySqlServer then begin Result := False; Exit; end;
         if not PrepareDentalRayDatabase then begin Result := False; Exit; end;
@@ -248,6 +277,7 @@ begin
     HelperDirectory := ExpandConstant('{tmp}\DentalRay.SetupHelper');
     HelperExe := HelperDirectory + '\DentalRay.SetupHelper.exe';
 
+    if not EnsureSetupHelperExtracted then RaiseException('فایل‌های لازم برای آماده‌سازی DentalRay از بسته نصب استخراج نشدند.');
     if not FileExists(HelperExe) then RaiseException('DentalRay SetupHelper پیدا نشد.');
     if not RunHiddenAndWait(HelperExe, '--server "' + SqlServer + '"', HelperDirectory, ResultCode) then RaiseException('SetupHelper اجرا نشد.');
     if ResultCode <> 0 then RaiseException('آماده‌سازی دیتابیس انجام نشد.' + CRLF + 'SetupHelper Exit Code: ' + IntToStr(ResultCode));
