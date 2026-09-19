@@ -180,7 +180,7 @@ end;
 
 function PrepareDentalRayDatabase: Boolean;
 var
-    HelperExe, HelperDirectory, ScriptPath, CheckFile, StateText, Params: String;
+    HelperExe, HelperDirectory, ScriptPath, CheckFile, ErrorFile, StateText, Params, ErrorText: String;
     StateAnsi: AnsiString;
     ResultCode: Integer;
 begin
@@ -209,13 +209,22 @@ begin
         CreateDatabaseConfirmed := True;
     end else if Pos('EXISTS', UpperCase(StateText)) = 0 then begin MsgBox('وضعیت دیتابیس قابل تشخیص نیست.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
 
-    Params := '--server "' + Trim(SqlPage.Values[0]) + '" --script "' + ScriptPath + '"';
+    ErrorFile := ExpandConstant('{tmp}\DentalRay.DatabaseError.txt');
+    DeleteFile(ErrorFile);
+    Params := '--server "' + Trim(SqlPage.Values[0]) + '" --script "' + ScriptPath + '" --error-output "' + ErrorFile + '"';
     if CreateDatabaseConfirmed then Params := Params + ' --create-database true';
 
     if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) or (ResultCode <> 0) then begin
         if ResultCode = 20 then MsgBox('SQL Server قابل دسترسی نیست.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
         else if ResultCode = 30 then MsgBox('دیتابیس DentalRay وجود ندارد و ایجاد آن تأیید نشده است.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
-        else MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
+        else begin
+            ErrorText := '';
+            if FileExists(ErrorFile) then LoadStringFromFile(ErrorFile, AnsiString(ErrorText));
+            if Trim(ErrorText) <> '' then
+                MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + CRLF + ErrorText + CRLF + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
+            else
+                MsgBox('آماده‌سازی دیتابیس DentalRay ناموفق بود.' + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK);
+        end;
         Exit;
     end;
     Result := True;
