@@ -40,6 +40,20 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success = true });
         }
 
+        public sealed class RecoveryMobileRequest { public string NationalCode { get; set; } = string.Empty; public string Mobile { get; set; } = string.Empty; }
+
+        [HttpPut("recovery-mobile")]
+        public async Task<IActionResult> SaveRecoveryMobile(RecoveryMobileRequest request)
+        {
+            if (!IsSuperAdmin()) return Forbid();
+            var nationalCode = (request.NationalCode ?? string.Empty).Trim();
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == nationalCode);
+            if (user == null) return NotFound(new { success = false, message = "کاربر پیدا نشد." });
+            user.RecoveryMobile = request.Mobile?.Trim();
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true });
+        }
+
         [HttpPost("sms/test")]
         public async Task<IActionResult> TestSms([FromBody] SendSmsRequest request)
         {
