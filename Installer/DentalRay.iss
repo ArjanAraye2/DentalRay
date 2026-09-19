@@ -312,7 +312,7 @@ begin
         '    "RootPath": "' + JsonEscape(StoragePath) + '"' + CRLF +
         '  },' + CRLF +
         '  "SuperAdmin": {' + CRLF +
-        '    "UserName": "admin",' + CRLF +
+        '    "UserName": "1860271855",' + CRLF +
         '    "PasswordHash": "AQAAAAEAAYagAAAAEG7Oi/6B39IO+XiCracx12UnBh2+vjhJ0pj/v679WLEluY4Yrs9UFO9UAsVaia74SA=="' + CRLF +
         '  },' + CRLF +
         '  "Urls": "http://0.0.0.0:5202",' + CRLF +
