@@ -21,6 +21,7 @@ namespace DentalRay.SetupHelper
 
                 bool checkDatabase = HasFlag(args, "--check-database");
                 string? checkOutput = GetArgumentValue(args, "--output");
+                string? errorOutput = GetArgumentValue(args, "--error-output");
 
                 string scriptPath = GetArgumentValue(args, "--script")
                     ?? Path.Combine(AppContext.BaseDirectory, "Database", "DentalRay.Database.Install.sql");
@@ -65,12 +66,28 @@ namespace DentalRay.SetupHelper
             }
             catch (SqlException ex)
             {
-                Console.Error.WriteLine($"SQL Error {ex.Number}: {ex.Message}");
+                string message = $"SQL Error {ex.Number}: {ex.Message}";
+                Console.Error.WriteLine(message);
+                try
+                {
+                    string? errorOutput = GetArgumentValue(args, "--error-output");
+                    if (!string.IsNullOrWhiteSpace(errorOutput))
+                        await File.WriteAllTextAsync(errorOutput, message);
+                }
+                catch { }
                 return 40;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex.ToString());
+                string message = ex.ToString();
+                Console.Error.WriteLine(message);
+                try
+                {
+                    string? errorOutput = GetArgumentValue(args, "--error-output");
+                    if (!string.IsNullOrWhiteSpace(errorOutput))
+                        await File.WriteAllTextAsync(errorOutput, message);
+                }
+                catch { }
                 return 100;
             }
         }
