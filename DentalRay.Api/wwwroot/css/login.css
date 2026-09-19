@@ -293,7 +293,7 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   .login-shell{grid-template-columns:1fr;min-height:auto;border-radius:20px}
   .login-form-panel{order:2;padding:34px 24px 26px}
   .login-brand-panel{order:1;min-height:360px;padding:30px 24px 22px}
-  .login-clinic-art{margin-top:8px;max-width:none;height:360px;transform:translateY(18px) scale(1.05)
+  .login-clinic-art{margin-top:8px;max-width:none;height:360px;transform:translateY(18px) scale(1.05)}
   .login-brand-footer{margin-top:18px}
   .login-form-logo{margin-bottom:30px}
 }

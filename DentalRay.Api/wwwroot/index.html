@@ -4,8 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DentalRay</title>
-    <link rel="stylesheet" href="/css/site.css?v=20260918.9" />
+    <link rel="stylesheet" href="/css/fonts.css?v=20260920.1" />
+    <link rel="stylesheet" href="/css/site.css?v=20260920.4" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20260919.3" />
+    <!-- Loaded up-front so Study/Dental forms never flash unstyled; the JS
+         helpers use these ids and therefore skip injecting them again. -->
+    <link id="studyDentalStylesheet" rel="stylesheet" href="/css/study-dental.css?v=20260920.1" />
+    <link id="dentalGraphicStyles" rel="stylesheet" href="/css/dental-graphic.css?v=20260920.1" />
+    <link id="odontogramArchCss" rel="stylesheet" href="/css/odontogram-arch.css?v=20260920.1" />
 </head>
 <body>
 <aside class="app-sidebar">
@@ -20,7 +26,11 @@
 </aside>
 <div class="app-shell">
 <header class="main-header"><div class="header-content">
-  <div class="header-search"><span>⌕</span><input type="search" placeholder="جستجو در DentalRay..." aria-label="جستجوی کلی" /></div>
+  <div class="header-search" id="globalSearchBox">
+    <span aria-hidden="true">⌕</span>
+    <input id="globalSearchInput" type="search" placeholder="جستجوی بیمار: نام، کد ملی یا موبایل..." aria-label="جستجوی سراسری بیمار" autocomplete="off" />
+    <div id="globalSearchResults" class="global-search-results hidden" role="listbox" aria-label="نتایج جستجوی بیمار"></div>
+  </div>
   <div class="header-brand"><div class="brand-mark">DR</div><div><h1>DentalRay</h1><p>مدیریت پرونده و تصاویر رادیولوژی بیماران</p></div></div>
 </div></header>
 <main class="page-container">

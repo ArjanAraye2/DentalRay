@@ -48,6 +48,8 @@ window.toEnglishJalaliInput=toEnglishJalaliInput;
 window.parsePersianDateForBackend=parsePersianDateForBackend;
 window.formatPersianDateForInput=formatPersianDateForInput;
 window.formatPersianDateTimeForInput=formatPersianDateTimeForInput;
+// Navigation's global search opens a patient record directly.
+window.openPatientInline=openPatientInline;
 function validatePatientFields(f,l,n,m){if(!f)throw new Error("نام بیمار را وارد کنید.");if(!l)throw new Error("نام خانوادگی بیمار را وارد کنید.");if(!/^\d{10}$/.test(n))throw new Error("کد ملی باید دقیقاً ۱۰ رقم باشد.");if(m&&!/^\+?\d+$/.test(m))throw new Error("شماره موبایل معتبر نیست.");}
 
 function createPatientIdentityCell(patient){

@@ -1,0 +1,13 @@
+/* ==========================================================
+   DentalRay - Local fonts
+   Vazirmatn is bundled with the application so the UI renders
+   identically on clinic machines that have no internet access.
+   ========================================================== */
+
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("/fonts/Vazirmatn-Variable.woff2") format("woff2-variations");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
