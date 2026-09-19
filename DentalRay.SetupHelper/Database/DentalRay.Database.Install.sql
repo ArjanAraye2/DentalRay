@@ -152,20 +152,22 @@ GO
 
 IF COL_LENGTH(N'dbo.tblRadiologyImages', N'StudyID') IS NOT NULL
 BEGIN
-    UPDATE i
-       SET PatientID = s.PatientID
-      FROM dbo.tblRadiologyImages i
-      JOIN dbo.tblRadiologyStudies s ON s.StudyID=i.StudyID
-     WHERE i.PatientID IS NULL;
+    EXEC(N'
+        UPDATE i
+           SET PatientID = s.PatientID
+          FROM dbo.tblRadiologyImages i
+          JOIN dbo.tblRadiologyStudies s ON s.StudyID=i.StudyID
+         WHERE i.PatientID IS NULL;
 
-    ;WITH x AS
-    (
-        SELECT ImageID, ROW_NUMBER() OVER(PARTITION BY PatientID ORDER BY CreatedDate,ImageID) AS rn
-        FROM dbo.tblRadiologyImages
-        WHERE SerialNumber IS NULL
-    )
-    UPDATE i SET SerialNumber=x.rn
-      FROM dbo.tblRadiologyImages i JOIN x ON x.ImageID=i.ImageID;
+        ;WITH x AS
+        (
+            SELECT ImageID, ROW_NUMBER() OVER(PARTITION BY PatientID ORDER BY CreatedDate,ImageID) AS rn
+            FROM dbo.tblRadiologyImages
+            WHERE SerialNumber IS NULL
+        )
+        UPDATE i SET SerialNumber=x.rn
+          FROM dbo.tblRadiologyImages i JOIN x ON x.ImageID=i.ImageID;
+    ');
 END;
 GO
 
@@ -203,11 +205,13 @@ GO
 /* Preserve every old Study -> Image relationship in the new link table. */
 IF COL_LENGTH(N'dbo.tblRadiologyImages', N'StudyID') IS NOT NULL
 BEGIN
-    INSERT INTO dbo.tblRadiologyStudyImages(StudyID,ImageID,CreatedDate)
-    SELECT i.StudyID,i.ImageID,i.CreatedDate
-      FROM dbo.tblRadiologyImages i
-     WHERE NOT EXISTS
-           (SELECT 1 FROM dbo.tblRadiologyStudyImages l WHERE l.StudyID=i.StudyID AND l.ImageID=i.ImageID);
+    EXEC(N'
+        INSERT INTO dbo.tblRadiologyStudyImages(StudyID,ImageID,CreatedDate)
+        SELECT i.StudyID,i.ImageID,i.CreatedDate
+          FROM dbo.tblRadiologyImages i
+         WHERE NOT EXISTS
+               (SELECT 1 FROM dbo.tblRadiologyStudyImages l WHERE l.StudyID=i.StudyID AND l.ImageID=i.ImageID);
+    ');
 
     DECLARE @fk sysname;
     SELECT TOP(1) @fk=fk.name FROM sys.foreign_keys fk
