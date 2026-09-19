@@ -10,6 +10,9 @@ GO
 USE [DentalRay];
 GO
 
+/* =========================
+   1. Lookup / organization
+   ========================= */
 IF OBJECT_ID(N'dbo.tblClinics',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblClinics(
@@ -117,6 +120,9 @@ BEGIN
 END;
 GO
 
+/* =========================
+   2. Patients
+   ========================= */
 IF OBJECT_ID(N'dbo.tblPatients',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblPatients(
@@ -141,10 +147,14 @@ IF COL_LENGTH(N'dbo.tblPatients',N'PhotoRelativePath') IS NULL
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'UX_tblPatients_NationalCode' AND object_id=OBJECT_ID(N'dbo.tblPatients'))
     CREATE UNIQUE INDEX UX_tblPatients_NationalCode ON dbo.tblPatients(NationalCode);
+GO
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblPatients_LastName' AND object_id=OBJECT_ID(N'dbo.tblPatients'))
     CREATE INDEX IX_tblPatients_LastName ON dbo.tblPatients(LastName);
 GO
 
+/* =========================
+   3. Study types
+   ========================= */
 IF OBJECT_ID(N'dbo.tblStudyTypes',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblStudyTypes(
@@ -155,6 +165,7 @@ BEGIN
     );
 END;
 GO
+
 DECLARE @StudyTypes TABLE(StudyTypeName NVARCHAR(150));
 INSERT INTO @StudyTypes VALUES
 (N'تعیین نشده'),(N'معاینه و تشخیص'),(N'مشاوره درمان'),(N'عصب‌کشی'),
@@ -169,6 +180,9 @@ SELECT x.StudyTypeName,1 FROM @StudyTypes x
 WHERE NOT EXISTS(SELECT 1 FROM dbo.tblStudyTypes t WHERE t.StudyTypeName=x.StudyTypeName);
 GO
 
+/* =========================
+   4. Radiology studies
+   ========================= */
 IF OBJECT_ID(N'dbo.tblRadiologyStudies',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblRadiologyStudies(
@@ -189,6 +203,7 @@ GO
 IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'StudyTypeID') IS NULL
     ALTER TABLE dbo.tblRadiologyStudies ADD StudyTypeID INT NULL;
 GO
+/* Legacy StudyType text, if present, is intentionally retained. */
 IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'StudyType') IS NOT NULL
 BEGIN
     INSERT INTO dbo.tblStudyTypes(StudyTypeName,IsActive)
@@ -202,25 +217,39 @@ BEGIN
     WHERE s.StudyTypeID IS NULL;
 END;
 GO
-IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'ClinicID') IS NULL ALTER TABLE dbo.tblRadiologyStudies ADD ClinicID INT NULL;
-IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'DentistStaffID') IS NULL ALTER TABLE dbo.tblRadiologyStudies ADD DentistStaffID INT NULL;
+IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'ClinicID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD ClinicID INT NULL;
+GO
+IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'DentistStaffID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD DentistStaffID INT NULL;
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_tblPatients')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblPatients FOREIGN KEY(PatientID) REFERENCES dbo.tblPatients(PatientID);
+GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_Clinic')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_Clinic FOREIGN KEY(ClinicID) REFERENCES dbo.tblClinics(ClinicID);
+GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_Dentist')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_Dentist FOREIGN KEY(DentistStaffID) REFERENCES dbo.tblStaff(StaffID);
+GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_StudyType')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_StudyType FOREIGN KEY(StudyTypeID) REFERENCES dbo.tblStudyTypes(StudyTypeID);
 GO
-IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_ClinicID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies')) CREATE INDEX IX_tblRadiologyStudies_ClinicID ON dbo.tblRadiologyStudies(ClinicID);
-IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_DentistStaffID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies')) CREATE INDEX IX_tblRadiologyStudies_DentistStaffID ON dbo.tblRadiologyStudies(DentistStaffID);
-IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_PatientID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies')) CREATE INDEX IX_tblRadiologyStudies_PatientID ON dbo.tblRadiologyStudies(PatientID);
-IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_StudyDate' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies')) CREATE INDEX IX_tblRadiologyStudies_StudyDate ON dbo.tblRadiologyStudies(StudyDate);
-IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_StudyTypeID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies')) CREATE INDEX IX_tblRadiologyStudies_StudyTypeID ON dbo.tblRadiologyStudies(StudyTypeID);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_ClinicID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_ClinicID ON dbo.tblRadiologyStudies(ClinicID);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_DentistStaffID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_DentistStaffID ON dbo.tblRadiologyStudies(DentistStaffID);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_PatientID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_PatientID ON dbo.tblRadiologyStudies(PatientID);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_StudyDate' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_StudyDate ON dbo.tblRadiologyStudies(StudyDate);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_StudyTypeID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_StudyTypeID ON dbo.tblRadiologyStudies(StudyTypeID);
 GO
 
+/* =========================
+   5. Image types and images
+   ========================= */
 IF OBJECT_ID(N'dbo.tblImageTypes',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblImageTypes(
@@ -258,12 +287,14 @@ IF COL_LENGTH(N'dbo.tblRadiologyImages',N'PatientID') IS NULL ALTER TABLE dbo.tb
 IF COL_LENGTH(N'dbo.tblRadiologyImages',N'SerialNumber') IS NULL ALTER TABLE dbo.tblRadiologyImages ADD SerialNumber INT NULL;
 IF COL_LENGTH(N'dbo.tblRadiologyImages',N'ImageTypeID') IS NULL ALTER TABLE dbo.tblRadiologyImages ADD ImageTypeID INT NULL;
 GO
+/* Legacy StudyID is retained; relationships are also copied to the link table below. */
 IF COL_LENGTH(N'dbo.tblRadiologyImages',N'StudyID') IS NOT NULL
 BEGIN
     EXEC(N'
       UPDATE i SET PatientID=s.PatientID
       FROM dbo.tblRadiologyImages i JOIN dbo.tblRadiologyStudies s ON s.StudyID=i.StudyID
       WHERE i.PatientID IS NULL;
+
       ;WITH x AS(
         SELECT ImageID,ROW_NUMBER() OVER(PARTITION BY PatientID ORDER BY CreatedDate,ImageID) rn
         FROM dbo.tblRadiologyImages WHERE SerialNumber IS NULL
@@ -330,6 +361,9 @@ BEGIN
 END;
 GO
 
+/* =========================
+   6. Financial tables
+   ========================= */
 IF OBJECT_ID(N'dbo.tblStudyActions',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblStudyActions(
