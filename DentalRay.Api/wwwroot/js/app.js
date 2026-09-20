@@ -342,35 +342,111 @@ async function saveStudyDetails(){
 }
 window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveStudyDetails();};
 
-function renderStudiesSafe(studies){
- E.studiesContainer.replaceChildren();
- selectedStudyID=null;selectedStudy=null;
- if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز مطالعه‌ای ثبت نشده است.";return;}
- const ordered=[...studies].sort((a,b)=>new Date(b.studyDate||0)-new Date(a.studyDate||0));
- ordered.forEach(study=>{
-  const card=document.createElement("article");card.className="study-scroll-card";card.dataset.studyId=String(study.studyID);
-  const header=document.createElement("header");header.className="study-scroll-header";
-  const heading=document.createElement("div");const title=document.createElement("h4");title.textContent=study.studyTypeName||study.studyType||`مطالعه ${study.studyID}`;const date=document.createElement("time");date.textContent=formatPersianDateTime(study.studyDate);heading.append(title,date);
-  // Status badge so an unfinished Study is obvious without opening it.
-  const statusBadge=createStudyStatusBadge(study);if(statusBadge)heading.appendChild(statusBadge);
-  const actions=document.createElement("div");actions.className="study-scroll-actions";
-  // One-click completion. Closing a study used to take four steps: open, edit,
-  // change the status, save. Only shown while there is something to close.
-  if(Number(study.status)!==2){
-   const complete=document.createElement("button");complete.type="button";complete.className="study-complete-button";complete.textContent="✓ تمام شد";
-   complete.title="علامت‌گذاری این مطالعه به‌عنوان تمام‌شده";complete.onclick=()=>completeStudyFromCard(study,complete);
-   actions.appendChild(complete);
-  }
-  const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="مشاهده / ویرایش";edit.onclick=()=>openStudyDetails(study);
-  const addImage=document.createElement("button");addImage.type="button";addImage.textContent="+ افزودن تصویر";addImage.onclick=()=>openUploadImageForm(study);actions.append(edit,addImage);header.append(heading,actions);
-  const body=document.createElement("div");body.className="study-scroll-body";
-  const details=document.createElement("div");details.className="study-scroll-details";details.append(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));details.querySelectorAll(":scope > div").forEach(x=>x.classList.add("info-line"));
-  const chartSection=document.createElement("section");chartSection.className="study-scroll-chart";const chartTitle=document.createElement("strong");chartTitle.textContent="نمودار دندان‌های این مطالعه";const chart=document.createElement("div");chart.className="study-card-dental-chart study-chart-readonly";chartSection.append(chartTitle,chart);body.append(details,chartSection);
-  const imagesSection=document.createElement("section");imagesSection.className="study-scroll-images";const imagesTitle=document.createElement("div");imagesTitle.className="study-scroll-images-title";imagesTitle.textContent="تصاویر مطالعه";const status=document.createElement("div");status.className="status-message";status.textContent="در حال دریافت تصاویر...";const grid=document.createElement("div");grid.className="images-grid";imagesSection.append(imagesTitle,status,grid);
-  card.append(header,body,imagesSection);E.studiesContainer.appendChild(card);hydrateStudyCard(study,chart,status,grid);
- });
+ // Studies as collapsible rows.
+ //
+ // A study card used to render everything at once - details, a full odontogram and
+ // an image grid - which made each row tall enough to need its own scrolling. Now
+ // the header carries a one-line summary and the body opens on demand, so a patient
+ // with several studies stays readable.
+ function studySummary(study){
+  const parts=[];
+  if(study.bodyPart)parts.push(study.bodyPart);
+  const toothCount=Array.isArray(study.toothNumbers)?study.toothNumbers.length:0;
+  if(toothCount)parts.push(`${toothCount} دندان`);
+  if(study.imageCount)parts.push(`${study.imageCount} تصویر`);
+  if(study.report&&String(study.report).trim())parts.push("دارای گزارش");
+  if(Number(study.status)===3&&study.followUpDate)parts.push(`پیگیری ${formatPersianDate(study.followUpDate)}`);
+  return parts.join(" · ")||"بدون جزئیات";
  }
+ function renderStudiesSafe(studies){
+  E.studiesContainer.replaceChildren();
+  selectedStudyID=null;selectedStudy=null;
+  if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز مطالعه‌ای ثبت نشده است.";return;}
+  const ordered=[...studies].sort((a,b)=>new Date(b.studyDate||0)-new Date(a.studyDate||0));
+  ordered.forEach(study=>{
+   const card=document.createElement("article");
+   card.className="study-scroll-card";
+   card.dataset.studyId=String(study.studyID);
 
+   // --- header: a clickable summary row -------------------------------------
+   const header=document.createElement("header");
+   header.className="study-scroll-header study-collapsible-header";
+   header.tabIndex=0;
+   header.setAttribute("role","button");
+   header.setAttribute("aria-expanded","false");
+
+   const heading=document.createElement("div");
+   heading.className="study-header-main";
+   const title=document.createElement("h4");
+   title.textContent=study.studyTypeName||study.studyType||`مطالعه ${study.studyID}`;
+   const date=document.createElement("time");
+   date.textContent=formatPersianDateTime(study.studyDate);
+   title.append(" ", date);
+   heading.appendChild(title);
+   const statusBadge=createStudyStatusBadge(study);
+   if(statusBadge)heading.appendChild(statusBadge);
+   // The one-line summary is what makes a collapsed list useful.
+   const summaryLine=document.createElement("p");
+   summaryLine.className="study-summary-line";
+   summaryLine.textContent=studySummary(study);
+   heading.appendChild(summaryLine);
+
+   const actions=document.createElement("div");
+   actions.className="study-scroll-actions";
+   const toggle=document.createElement("button");
+   toggle.type="button";toggle.className="study-toggle-button secondary-button";toggle.textContent="نمایش";
+   toggle.setAttribute("aria-label","نمایش جزئیات مطالعه");
+   if(Number(study.status)!==2){
+    const complete=document.createElement("button");complete.type="button";complete.className="study-complete-button";complete.textContent="✓ تمام شد";
+    complete.title="علامت‌گذاری این مطالعه به‌عنوان تمام‌شده";complete.onclick=e=>{e.stopPropagation();completeStudyFromCard(study,complete);};
+    actions.appendChild(complete);
+   }
+   const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="مشاهده / ویرایش";
+   edit.onclick=e=>{e.stopPropagation();openStudyDetails(study);};
+   const addImage=document.createElement("button");addImage.type="button";addImage.textContent="+ افزودن تصویر";
+   addImage.onclick=e=>{e.stopPropagation();openUploadImageForm(study);};
+   actions.append(toggle,edit,addImage);
+
+   // --- body: built on first open, so a closed study costs nothing ----------
+   const body=document.createElement("div");
+   body.className="study-scroll-body hidden";
+   let hydrated=false;
+
+   const setOpen=open=>{
+    body.classList.toggle("hidden",!open);
+    header.setAttribute("aria-expanded",open?"true":"false");
+    toggle.textContent=open?"بستن":"نمایش";
+    card.classList.toggle("study-open",open);
+    if(open&&!hydrated){
+     hydrated=true;
+     const details=document.createElement("div");details.className="study-scroll-details";
+     details.append(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));
+     details.querySelectorAll(":scope > div").forEach(x=>x.classList.add("info-line"));
+     const chartSection=document.createElement("section");chartSection.className="study-scroll-chart";
+     const chartTitle=document.createElement("strong");chartTitle.textContent="نمودار دندان‌های این مطالعه";
+     const chart=document.createElement("div");chart.className="study-card-dental-chart study-chart-readonly";
+     chartSection.append(chartTitle,chart);
+     body.append(details,chartSection);
+     const imagesSection=document.createElement("section");imagesSection.className="study-scroll-images";
+     const imagesTitle=document.createElement("div");imagesTitle.className="study-scroll-images-title";imagesTitle.textContent="تصاویر مطالعه";
+     const status=document.createElement("div");status.className="status-message";status.textContent="در حال دریافت تصاویر...";
+     const grid=document.createElement("div");grid.className="images-grid";
+     imagesSection.append(imagesTitle,status,grid);
+     body.appendChild(imagesSection);
+     hydrateStudyCard(study,chart,status,grid);
+    }
+   };
+   toggle.onclick=e=>{e.stopPropagation();setOpen(body.classList.contains("hidden"));};
+   header.addEventListener("click",()=>setOpen(body.classList.contains("hidden")));
+   header.addEventListener("keydown",e=>{
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();setOpen(body.classList.contains("hidden"));}
+   });
+
+   header.append(heading,actions);
+   card.append(header,body);
+   E.studiesContainer.appendChild(card);
+  });
+ }
 async function hydrateStudyCard(study,chart,status,grid){
  const [imagesResult,studyResult]=await Promise.allSettled([fetch(`/api/radiologyimages/study/${study.studyID}`).then(async r=>({r,x:await r.json()})),fetch(`/api/radiologystudies/${study.studyID}`).then(async r=>({r,x:await r.json()}))]);
  if(studyResult.status==="fulfilled"&&studyResult.value.r.ok){const x=studyResult.value.x,teeth=x.toothNumbers||x.study?.toothNumbers||[];if(window.DentalRayDentalChart)window.DentalRayDentalChart.render(chart,teeth);}

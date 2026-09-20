@@ -190,6 +190,59 @@
     .attention-send { width: 100%; min-height: 44px; }
 }
 
+/* ==========================================================
+   Collapsible study rows
+   A card rendered everything at once, making each study tall enough to need its
+   own scrolling. The header now carries a one-line summary and the body opens on
+   demand, so several studies fit on screen.
+   ========================================================== */
+.study-collapsible-header {
+    cursor: pointer;
+    user-select: none;
+}
+.study-collapsible-header:hover { background: #eef6ff; }
+.study-collapsible-header:focus-visible {
+    outline: 2px solid var(--brand-500);
+    outline-offset: -2px;
+}
+
+.study-header-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    min-width: 0;
+}
+.study-header-main h4 { margin: 0; }
+.study-header-main time {
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+}
+
+/* The summary is what makes a collapsed list scannable. */
+.study-summary-line {
+    flex: 1 0 100%;
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+}
+
+.study-toggle-button {
+    min-width: 74px;
+    font-weight: 700;
+}
+.study-scroll-card.study-open .study-toggle-button {
+    background: #eef2f6;
+    color: #334155;
+}
+
+/* The body keeps the spacing it had when it was always visible. */
+.study-scroll-body { padding: 12px; }
+.study-scroll-body .study-scroll-details,
+.study-scroll-body .study-scroll-chart { margin-bottom: 12px; }
+
 @media (max-width: 700px) {
     .patient-reminder-filters { flex-direction: column; gap: 6px; }
     .study-status-select { max-width: none; }
