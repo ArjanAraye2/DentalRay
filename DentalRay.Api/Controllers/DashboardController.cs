@@ -48,6 +48,7 @@ namespace DentalRay.Api.Controllers
 
             int totalPatients = 0, activePatients = 0, totalStudies = 0, totalImages = 0;
             int newPatientsToday = 0, studiesToday = 0, patientsToday = 0, imagesToday = 0;
+            int openStudies = 0, dueFollowUps = 0;
             List<object> recentStudies = new();
             List<object> recentImages = new();
 
@@ -70,6 +71,12 @@ namespace DentalRay.Api.Controllers
                     .Select(s => s.PatientID).Distinct().CountAsync();
                 imagesToday = await _context.RadiologyImages.AsNoTracking()
                     .CountAsync(i => i.CreatedDate >= today && i.CreatedDate < tomorrow);
+
+                // Outstanding work: a Study still open, or a follow-up that has come due.
+                openStudies = await _context.RadiologyStudies.AsNoTracking()
+                    .CountAsync(s => s.Status != 2);
+                dueFollowUps = await _context.RadiologyStudies.AsNoTracking()
+                    .CountAsync(s => s.Status == 3 && s.FollowUpDate != null && s.FollowUpDate <= today);
 
                 recentStudies = await (
                     from study in _context.RadiologyStudies.AsNoTracking()
@@ -189,7 +196,9 @@ namespace DentalRay.Api.Controllers
                     activePatients,
                     inactivePatients = totalPatients - activePatients,
                     totalStudies,
-                    totalImages
+                    totalImages,
+                    openStudies,
+                    dueFollowUps
                 },
                 today = new { patientsToday, studiesToday, imagesToday, newPatientsToday },
                 recentStudies,

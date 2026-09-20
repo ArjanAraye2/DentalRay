@@ -24,7 +24,7 @@ namespace DentalRay.Api.Controllers
         // Patient identity/basic information is shared among authenticated DentalRay users.
         // StudyAccessService is deliberately NOT applied to Patient discovery.
         [HttpGet]
-        public async Task<IActionResult> GetPatients(string? search = null, bool includeInactive = false)
+        public async Task<IActionResult> GetPatients(string? search = null, bool includeInactive = false, bool openOnly = false, bool dueOnly = false)
         {
             // Statistics describe the complete patient population, while the list below
             // still respects the current search/include-inactive filters.
@@ -36,6 +36,15 @@ namespace DentalRay.Api.Controllers
 
             var query = _context.Patients.AsNoTracking().AsQueryable();
             if (!includeInactive) query = query.Where(p => p.IsActive);
+
+            // "Open only": a patient still has work outstanding (status is not
+            // completed). "Due only": a planned follow-up has reached its date.
+            // Both are used by the reminder filter in the patient list.
+            if (openOnly)
+                query = query.Where(p => _context.RadiologyStudies.Any(s => s.PatientID == p.PatientID && s.Status != 2));
+            if (dueOnly)
+                query = query.Where(p => _context.RadiologyStudies.Any(s =>
+                    s.PatientID == p.PatientID && s.Status == 3 && s.FollowUpDate != null && s.FollowUpDate <= DateTime.Today));
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -58,6 +67,16 @@ namespace DentalRay.Api.Controllers
                     // Design D patient list summary. These correlated aggregates are
                     // translated by EF Core and avoid one query per patient.
                     StudyCount = _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID),
+                    // Open (1) and pending follow-up (3) count as "not finished", so
+                    // the list can show how much work is still outstanding.
+                    OpenStudyCount = _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID && s.Status != 2),
+                    CompletedStudyCount = _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID && s.Status == 2),
+                    // A follow-up that has come due, used by the reminder filter.
+                    DueFollowUpCount = _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID && s.Status == 3 && s.FollowUpDate != null && s.FollowUpDate <= DateTime.Today),
+                    NextFollowUpDate = _context.RadiologyStudies
+                        .Where(s => s.PatientID == p.PatientID && s.Status == 3 && s.FollowUpDate != null)
+                        .Select(s => (DateTime?)s.FollowUpDate)
+                        .Min(),
                     LastStudyDate = _context.RadiologyStudies
                         .Where(s => s.PatientID == p.PatientID)
                         .Select(s => (DateTime?)s.StudyDate)
@@ -65,11 +84,16 @@ namespace DentalRay.Api.Controllers
                 })
                 .ToListAsync();
 
+            // statistics for the header, including how many patients still have work.
+            int patientsWithOpenStudies = await _context.RadiologyStudies.AsNoTracking()
+                .Where(s => s.Status != 2)
+                .Select(s => s.PatientID).Distinct().CountAsync();
+
             return Ok(new
             {
                 success = true,
                 count = patients.Count,
-                statistics = new { totalPatients, activePatients, inactivePatients, patientsWithStudies },
+                statistics = new { totalPatients, activePatients, inactivePatients, patientsWithStudies, patientsWithOpenStudies },
                 patients
             });
         }
@@ -245,7 +269,8 @@ namespace DentalRay.Api.Controllers
                 {
                     s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID,
                     StudyTypeName = st.StudyTypeName,
-                    s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate
+                    s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
+                    s.Status, s.FollowUpDate, s.FollowUpNote
                 }).ToListAsync();
 
             Console.WriteLine($"[DentalRay PatientDetails] STUDIES loaded Count={studies.Count}");
@@ -264,6 +289,7 @@ namespace DentalRay.Api.Controllers
             {
                 s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID, s.StudyTypeName,
                 s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
+                s.Status, s.FollowUpDate, s.FollowUpNote,
                 imageCount = imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0
             }).ToList();
 

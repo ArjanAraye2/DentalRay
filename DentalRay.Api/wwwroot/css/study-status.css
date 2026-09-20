@@ -1,0 +1,69 @@
+/* Dentix - Study status and reminder indicators. */
+
+/* --- Status badge on a Study card in the patient record --- */
+.study-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-inline-start: 8px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.study-status-badge.status-1 { background: #fff6e6; color: var(--warning); }
+.study-status-badge.status-3 { background: var(--brand-100); color: var(--brand-700); }
+/* A follow-up whose date has passed needs attention now. */
+.study-status-badge.overdue {
+    background: var(--danger-soft);
+    color: var(--danger);
+    box-shadow: inset 0 0 0 1px #f7d2ce;
+}
+
+/* --- Open / completed counts in the patient list --- */
+.study-count-open {
+    color: var(--warning);
+    font-weight: 800;
+}
+.study-count-done {
+    color: var(--muted);
+}
+/* The whole row gets a hint when the patient still has open work. */
+.patient-list-row.has-open-studies td:first-child {
+    box-shadow: inset 3px 0 0 var(--brand-500);
+}
+
+/* --- Reminder filters under the search box --- */
+.patient-reminder-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+}
+.patient-reminder-filters .checkbox-row { margin-top: 0; }
+
+/* The open filter is the more common one, so it reads as an action. */
+#patientsSection #openStudiesOnly:checked + span,
+#patientsSection #dueFollowUpOnly:checked + span {
+    color: var(--brand-700);
+    font-weight: 700;
+}
+
+/* --- Study status form fields --- */
+.study-status-select {
+    max-width: 340px;
+}
+.study-followup-field {
+    padding: 12px;
+    border: 1px solid var(--brand-200);
+    border-radius: var(--radius-sm);
+    background: var(--brand-25);
+}
+
+@media (max-width: 700px) {
+    .patient-reminder-filters { flex-direction: column; gap: 6px; }
+    .study-status-select { max-width: none; }
+}

@@ -34,6 +34,20 @@ namespace DentalRay.Api.Models
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
 
+        /// <summary>
+        /// 1 = open, 2 = completed, 3 = needs another study later.
+        ///
+        /// Studies used to carry no state, so the list could not show which
+        /// patients still had work outstanding.
+        /// </summary>
+        public byte Status { get; set; } = 2;
+
+        /// <summary>When the user wants to be reminded, used for status 3.</summary>
+        public DateTime? FollowUpDate { get; set; }
+
+        [MaxLength(500)]
+        public string? FollowUpNote { get; set; }
+
         // UI/API helper only. Tooth selections are physically stored in
         // tblRadiologyStudyTeeth, not in tblRadiologyStudies.
         [NotMapped]
