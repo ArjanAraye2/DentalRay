@@ -18,8 +18,11 @@ namespace DentalRay.Api.Models
         // FDI numbers selected in the odontogram. Empty means no teeth selected.
         public List<int> ToothNumbers { get; set; } = new();
 
-        /// <summary>1 = open, 2 = completed, 3 = needs another study later.</summary>
+        /// <summary>1 = open, 2 = completed, 3 = waiting.</summary>
         public byte Status { get; set; } = 2;
+
+        /// <summary>What the patient is waiting for, when Status is 3.</summary>
+        public int? WaitStageID { get; set; }
 
         /// <summary>Required when Status is 3, so a reminder always has a date.</summary>
         public DateTime? FollowUpDate { get; set; }

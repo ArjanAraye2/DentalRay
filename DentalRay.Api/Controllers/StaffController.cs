@@ -62,6 +62,27 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success = true, count = specialties.Count, specialties });
         }
 
+        // Dentists with their specialty, used by the study form to suggest the right
+        // waiting stage (a radiology dentist waits for an image, a prosthodontics
+        // dentist waits for a prosthesis).
+        [HttpGet("dentists")]
+        public async Task<IActionResult> GetDentists()
+        {
+            var dentists = await _context.Staff.AsNoTracking()
+                .Where(s => s.StaffType == 2 && (s.EndDate == null || s.EndDate >= DateTime.Today))
+                .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
+                .Select(s => new
+                {
+                    s.StaffID, s.FirstName, s.LastName, s.SpecialtyID,
+                    SpecialtyName = _context.DentalSpecialties.AsNoTracking()
+                        .Where(d => d.SpecialtyID == s.SpecialtyID)
+                        .Select(d => d.SpecialtyName).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Ok(new { success = true, count = dentists.Count, dentists });
+        }
+
         [HttpGet("{staffID:int}")]
         public async Task<IActionResult> GetStaffById(int staffID)
         {

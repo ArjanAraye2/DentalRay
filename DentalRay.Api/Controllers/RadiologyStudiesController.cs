@@ -43,7 +43,9 @@ namespace DentalRay.Api.Controllers
                 var statusError = ValidateFollowUp(study.Status, study.FollowUpDate, study.FollowUpNote);
                 if (statusError != null) return BadRequest(new { success = false, message = statusError });
                 study.FollowUpNote = NormalizeOptionalText(study.FollowUpNote);
-                if (study.Status != 3) study.FollowUpDate = null;
+                if (study.Status != 3) { study.FollowUpDate = null; study.WaitStageID = null; }
+                if (study.WaitStageID.HasValue && !await _context.WaitStages.AnyAsync(w => w.WaitStageID == study.WaitStageID.Value && w.IsActive))
+                    return BadRequest(new { success = false, message = "مرحله انتظار انتخاب‌شده معتبر نیست." });
                 if(study.StudyDate==default)study.StudyDate=DateTime.Now;
                 study.StudyID=0;study.CreatedDate=DateTime.Now;study.ModifiedDate=null;
                 await using var transaction=await _context.Database.BeginTransactionAsync();
@@ -78,7 +80,7 @@ namespace DentalRay.Api.Controllers
             var toothRows=await _context.RadiologyStudyTeeth.AsNoTracking().Where(x=>ids.Contains(x.StudyID)).ToListAsync();
             var typeIds=studies.Select(s=>s.StudyTypeID).Distinct().ToList();
             var types=await _context.StudyTypes.AsNoTracking().Where(t=>typeIds.Contains(t.StudyTypeID)).ToDictionaryAsync(t=>t.StudyTypeID,t=>t.StudyTypeName);
-            var result=studies.Select(s=>new{s.StudyID,s.PatientID,s.ClinicID,s.DentistStaffID,s.StudyDate,s.StudyTypeID,StudyTypeName=types.GetValueOrDefault(s.StudyTypeID),s.BodyPart,s.Description,s.Report,s.CreatedDate,s.ModifiedDate,s.Status,s.FollowUpDate,s.FollowUpNote,ToothNumbers=toothRows.Where(t=>t.StudyID==s.StudyID).Select(t=>(int)t.ToothNumber).OrderBy(n=>n).ToArray()}).ToList();
+            var result=studies.Select(s=>new{s.StudyID,s.PatientID,s.ClinicID,s.DentistStaffID,s.StudyDate,s.StudyTypeID,StudyTypeName=types.GetValueOrDefault(s.StudyTypeID),s.BodyPart,s.Description,s.Report,s.CreatedDate,s.ModifiedDate,s.Status,s.FollowUpDate,s.FollowUpNote,s.WaitStageID,ToothNumbers=toothRows.Where(t=>t.StudyID==s.StudyID).Select(t=>(int)t.ToothNumber).OrderBy(n=>n).ToArray()}).ToList();
             return Ok(new{success=true,patientID,count=result.Count,studies=result});
         }
 
@@ -112,6 +114,12 @@ namespace DentalRay.Api.Controllers
                 // when the Study is completed or simply open.
                 study.FollowUpDate=request.Status==3?request.FollowUpDate:null;
                 study.FollowUpNote=followUpNote;
+                // A waiting stage only applies while the study is waiting.
+                if(request.Status==3){
+                    if(request.WaitStageID.HasValue&&!await _context.WaitStages.AnyAsync(w=>w.WaitStageID==request.WaitStageID.Value&&w.IsActive))
+                        return BadRequest(new{success=false,message="مرحله انتظار انتخاب‌شده معتبر نیست."});
+                    study.WaitStageID=request.WaitStageID;
+                } else study.WaitStageID=null;
                 study.ModifiedDate=DateTime.Now;
                 var old=await _context.RadiologyStudyTeeth.Where(x=>x.StudyID==studyID).ToListAsync();_context.RadiologyStudyTeeth.RemoveRange(old);
                 foreach(var tooth in teeth)_context.RadiologyStudyTeeth.Add(new RadiologyStudyTooth{StudyID=studyID,ToothNumber=(byte)tooth,CreatedDate=DateTime.Now});

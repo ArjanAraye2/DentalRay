@@ -35,12 +35,20 @@ namespace DentalRay.Api.Models
         public DateTime? ModifiedDate { get; set; }
 
         /// <summary>
-        /// 1 = open, 2 = completed, 3 = needs another study later.
+        /// 1 = open, 2 = completed, 3 = waiting.
         ///
         /// Studies used to carry no state, so the list could not show which
-        /// patients still had work outstanding.
+        /// patients still had work outstanding. "Waiting" covers whatever holds the
+        /// patient up; WaitStageID says exactly what.
         /// </summary>
         public byte Status { get; set; } = 2;
+
+        /// <summary>
+        /// What the patient is waiting for, for example "آماده شدن عکس" in a
+        /// radiology clinic or "آماده شدن پروتز" in a prosthodontics clinic.
+        /// Only meaningful when Status is 3.
+        /// </summary>
+        public int? WaitStageID { get; set; }
 
         /// <summary>When the user wants to be reminded, used for status 3.</summary>
         public DateTime? FollowUpDate { get; set; }

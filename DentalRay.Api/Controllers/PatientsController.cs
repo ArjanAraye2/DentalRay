@@ -270,7 +270,10 @@ namespace DentalRay.Api.Controllers
                     s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID,
                     StudyTypeName = st.StudyTypeName,
                     s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
-                    s.Status, s.FollowUpDate, s.FollowUpNote
+                    s.Status, s.FollowUpDate, s.FollowUpNote, s.WaitStageID,
+                    WaitStageName = _context.WaitStages.AsNoTracking()
+                        .Where(w => w.WaitStageID == s.WaitStageID)
+                        .Select(w => w.Name).FirstOrDefault()
                 }).ToListAsync();
 
             Console.WriteLine($"[DentalRay PatientDetails] STUDIES loaded Count={studies.Count}");
@@ -289,7 +292,7 @@ namespace DentalRay.Api.Controllers
             {
                 s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID, s.StudyTypeName,
                 s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
-                s.Status, s.FollowUpDate, s.FollowUpNote,
+                s.Status, s.FollowUpDate, s.FollowUpNote, s.WaitStageID, s.WaitStageName,
                 imageCount = imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0
             }).ToList();
 
