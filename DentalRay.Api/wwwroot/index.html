@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
@@ -100,21 +100,6 @@
   <label for="newFollowUpNote" style="margin-top:8px">یادداشت پیگیری</label>
   <input id="newFollowUpNote" type="text" maxlength="500" placeholder="مثال: نیاز به CBCT مجدد" />
 </div><div id="newStudyStatus" class="status-message"></div><div class="form-actions"><button type="submit">ثبت رادیولوژی</button><button id="cancelNewStudyButtonBottom" type="button" class="secondary-button">انصراف</button></div></form></section>
-<section id="editStudySection" class="card hidden"><div class="details-toolbar"><button id="cancelEditStudyButton" type="button" class="secondary-button">انصراف</button></div><div class="section-header"><div><h2>ویرایش رادیولوژی</h2><p id="editStudySubtitle"></p></div></div><form id="editStudyForm"><div class="form-grid"><div class="form-field"><label for="editStudyType">نوع رادیولوژی</label><input id="editStudyType" type="text" maxlength="50" required /></div><div class="form-field"><label for="editBodyPart">ناحیه</label><input id="editBodyPart" type="text" maxlength="100" /></div><div class="form-field"><label for="editStudyDate">تاریخ و زمان شمسی</label><input id="editStudyDate" data-jalali-datetime type="text" maxlength="16" /><small class="field-hint">فرمت: سال/ماه/روز ساعت:دقیقه</small></div><div class="form-field full-width"><label for="editStudyDescription">توضیحات</label><textarea id="editStudyDescription" maxlength="1000" rows="3"></textarea></div><div class="form-field full-width"><label for="editStudyReport">گزارش</label><textarea id="editStudyReport" rows="4"></textarea></div></div><div class="form-field full-width study-status-field">
-  <label for="editStatus">وضعیت مطالعه</label>
-  <select id="editStatus" class="study-status-select">
-    <option value="1">باز — کار مطالعه در جریان است</option>
-    <option value="2">تمام‌شده</option>
-    <option value="3">نیاز به مطالعه بعدی</option>
-  </select>
-</div>
-<div class="form-field full-width study-followup-field hidden" id="editFollowUpBox">
-  <label for="editFollowUpDate">تاریخ پیگیری</label>
-  <input id="editFollowUpDate" data-jalali-date type="text" maxlength="10" inputmode="numeric" placeholder="مثال: 1405/07/15" />
-  <small class="field-hint">در این تاریخ، مطالعه در فهرست پیگیری‌ها ظاهر می‌شود.</small>
-  <label for="editFollowUpNote" style="margin-top:8px">یادداشت پیگیری</label>
-  <input id="editFollowUpNote" type="text" maxlength="500" placeholder="مثال: نیاز به CBCT مجدد" />
-</div><div id="editStudyStatus" class="status-message"></div><div class="form-actions"><button type="submit">ذخیره تغییرات</button><button id="cancelEditStudyButtonBottom" type="button" class="secondary-button">انصراف</button></div></form></section>
 <!-- New files still enter through a Study. The input accepts PDF and mobile camera capture; DentalRay itself imposes no explicit size cap. -->
 <section id="uploadImageSection" class="card hidden"><div class="details-toolbar"><button id="cancelUploadImageButton" type="button" class="secondary-button">انصراف</button></div><div class="section-header"><div><h2>افزودن تصویر یا PDF</h2><p id="uploadImageStudyInfo"></p></div></div><form id="uploadImageForm"><div class="form-field"><label for="uploadImageType">نوع تصویر</label><select id="uploadImageType" required><option value="">در حال دریافت...</option></select><small class="field-hint">نوع رادیولوژی مانند OPG یا CBCT</small></div><div class="form-field"><label for="imageFileInput">انتخاب فایل موجود</label><input id="imageFileInput" type="file" accept="image/*,.pdf,application/pdf" required /><small class="field-hint">تمام فرمت‌های تصویری قابل‌شناسایی و PDF</small></div><div class="form-field"><label for="cameraFileInput">یا عکس‌برداری با دوربین</label><input id="cameraFileInput" type="file" accept="image/*" capture="environment" /><small class="field-hint">در موبایل می‌توانید مستقیماً از دوربین دستگاه استفاده کنید.</small></div><div id="cameraPreviewPanel" class="hidden"><img id="cameraPreviewImage" alt="پیش‌نمایش تصویر دوربین" /><div class="form-actions"><button id="confirmCameraButton" type="button">تأیید تصویر</button><button id="retakeCameraButton" type="button" class="secondary-button">عکس‌برداری مجدد</button></div></div><div id="uploadImageStatus" class="status-message"></div><div class="form-actions"><button type="submit">ذخیره و اتصال به Study</button><button id="cancelUploadImageButtonBottom" type="button" class="secondary-button">انصراف</button></div></form></section>
 <section id="mergePatientSection" class="card hidden"><div class="details-toolbar"><button id="cancelMergePatientButton" type="button" class="secondary-button">انصراف</button></div><div class="section-header"><div><h2>ادغام بیمار</h2><p>پرونده فعلی Source خواهد بود.</p></div></div><div class="warning-box">این عملیات مهم است. رادیولوژی‌ها و تصاویر Source به بیمار مقصد منتقل می‌شوند و پرونده Source حذف خواهد شد.</div><form id="mergePatientForm"><div class="form-field"><label for="mergeTargetNationalCode">کد ملی بیمار مقصد</label><input id="mergeTargetNationalCode" type="text" inputmode="numeric" maxlength="20" required /></div><div id="mergePatientStatus" class="status-message"></div><div class="form-actions"><button type="submit" class="warning-button">بررسی و انجام Merge</button><button id="cancelMergePatientButtonBottom" type="button" class="secondary-button">انصراف</button></div></form></section>
