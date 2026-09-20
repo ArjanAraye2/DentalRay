@@ -1338,10 +1338,17 @@ button {
     background: #f6fafb;
     cursor: default;
 }
+/* The "مشاهده / ویرایش" panel is the main place a dentist looks at a Study. Its chart
+   is read-only (the teeth are not editable there) but the view buttons must stay
+   usable, otherwise the panel is stuck on a single view - which is what used to
+   happen when the whole toolbar was hidden. */
 #studyDetailsDentalChart.study-chart-readonly {
     pointer-events: none;
 }
-#studyDetailsDentalChart.study-chart-readonly .dental-chart-toolbar button {
+#studyDetailsDentalChart.study-chart-readonly .dental-chart-toolbar {
+    pointer-events: auto;
+}
+#studyDetailsDentalChart.study-chart-readonly .dental-chart-selected {
     display: none;
 }
 
@@ -2891,8 +2898,6 @@ table button {
     overflow: hidden;
 }
 
-.patient-summary-dental-chart .dental-chart-toolbar,
-.patient-summary-dental-chart .dental-chart-selected { display: none; }
 .patient-summary-dental-chart .dental-chart-body { font-size: 12px; }
 
 @media (max-width: 1250px) {
