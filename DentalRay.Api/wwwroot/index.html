@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DentalRay</title>
     <link rel="stylesheet" href="/css/fonts.css?v=20260920.1" />
-    <link rel="stylesheet" href="/css/site.css?v=20260921.1" />
+    <link rel="stylesheet" href="/css/site.css?v=20260921.2" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20260919.3" />
     <!-- Loaded up-front so Study/Dental forms never flash unstyled; the JS
          helpers use these ids and therefore skip injecting them again. -->
@@ -17,17 +17,17 @@
 <aside class="app-sidebar">
   <div class="sidebar-brand"><div class="sidebar-logo">🦷</div><div><strong>DentalRay</strong><small>Dental Imaging System</small></div></div>
   <nav class="sidebar-nav" aria-label="منوی اصلی">
-    <a href="#" class="sidebar-link active" data-nav="dashboard"><span>⌂</span>داشبورد</a>
-    <a href="#" class="sidebar-link" data-nav="patients"><span>♟</span>بیماران</a>
-    <a href="#" class="sidebar-link" data-nav="reports"><span>▤</span>گزارش‌ها</a>
-    <a href="#" class="sidebar-link" data-nav="settings"><span>⚙</span>تنظیمات</a>
+    <a href="#" class="sidebar-link active" data-nav="dashboard"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2"/><path d="M5 9.6V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.6"/><path d="M9.5 21v-5.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V21"/></svg></span>داشبورد</a>
+    <a href="#" class="sidebar-link" data-nav="patients"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.2 5.2a3.4 3.4 0 0 1 0 6.5"/><path d="M17.6 14.7c2.2.6 3.6 2.3 3.6 4.5"/></svg></span>بیماران</a>
+    <a href="#" class="sidebar-link" data-nav="reports"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8.5 13.5h7"/><path d="M8.5 17h4.5"/></svg></span>گزارش‌ها</a>
+    <a href="#" class="sidebar-link" data-nav="settings"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.54 15a1.7 1.7 0 0 0-1.56-1.03H2.9a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.54 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 8.9 4.54a1.7 1.7 0 0 0 1.03-1.56V2.9a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9.1a1.7 1.7 0 0 0 1.56 1.03h.09a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg></span>تنظیمات</a>
   </nav>
   <div class="sidebar-footer"><strong>DentalRay</strong><span>تصویربرداری دقیق، لبخند سالم‌تر</span></div>
 </aside>
 <div class="app-shell">
 <header class="main-header"><div class="header-content">
   <div class="header-search" id="globalSearchBox">
-    <span aria-hidden="true">⌕</span>
+    <span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg></span>
     <input id="globalSearchInput" type="search" placeholder="جستجوی بیمار: نام، کد ملی یا موبایل..." aria-label="جستجوی سراسری بیمار" autocomplete="off" />
     <div id="globalSearchResults" class="global-search-results hidden" role="listbox" aria-label="نتایج جستجوی بیمار"></div>
   </div>
@@ -98,6 +98,6 @@
 <script src="/js/studytype-admin.js"></script>
 <script src="/js/imagetype-admin.js"></script>
 <script src="/js/users-admin.js"></script>
-<script src="/js/navigation.js?v=20260920.1"></script>
+<script src="/js/navigation.js?v=20260921.1"></script>
 </body>
 </html>

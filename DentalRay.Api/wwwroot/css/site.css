@@ -45,6 +45,7 @@
     --surface: #ffffff;
     --surface-soft: #f6fafb;
     --border: #d8e7ec;
+    --border-strong: #c3dae1;
 
     /* Status */
     --primary: var( --brand-500 );
@@ -406,12 +407,17 @@ button {
 
 /* ==========================================================
    Form Controls
+   A flat, label-above-control layout. Each field used to be its own
+   bordered box, which turned every form into a grid of frames and made
+   the controls smaller and harder to scan. Fields are now grouped by a
+   single card, with generous hit targets for touch screens.
    ========================================================== */
 
 .form-grid {
     display: grid;
     grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
-    gap: 16px 20px;
+    gap: 18px 20px;
+    align-items: start;
 }
 
 
@@ -419,7 +425,8 @@ button {
     display: flex;
     flex-direction: column;
     gap: 7px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
+    min-width: 0;
 }
 
 
@@ -429,36 +436,53 @@ button {
 
 
     .form-field label {
-        font-weight: bold;
-        font-size: 14px;
+        display: block;
+        margin: 0;
+        color: var( --heading );
+        font-weight: 600;
+        font-size: var( --fs-sm );
+        line-height: 1.6;
     }
 
-
+    /* Controls: taller targets, consistent border and a clear focus ring. */
     .form-field input,
     .form-field select,
     .form-field textarea,
     .search-container input {
         width: 100%;
-        padding: 10px 11px;
-        border: 1px solid #c3dae1;
-        border-radius: 8px;
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid var( --border-strong, #c3dae1 );
+        border-radius: var( --radius-sm );
         background: #ffffff;
         color: var( --text );
         font-family: inherit;
-        font-size: 14px;
+        font-size: var( --fs-base );
         outline: none;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        transition: border-color var( --dur ) var( --ease ),
+                    box-shadow var( --dur ) var( --ease );
     }
 
+    .form-field textarea {
+        min-height: 96px;
+        line-height: 1.85;
+    }
 
         .form-field input:focus,
         .form-field select:focus,
         .form-field textarea:focus,
         .search-container input:focus {
             border-color: var( --primary );
-            box-shadow: 0 0 0 3px rgba(12,55,70, 0.09 );
+            box-shadow: 0 0 0 3px rgba( 12, 55, 70, 0.10 );
         }
 
+        /* Read-only fields should read as data, not as disabled inputs. */
+        .form-field input[readonly],
+        .form-field textarea[readonly],
+        .form-field select:disabled {
+            color: var( --muted-strong );
+            cursor: default;
+        }
 
     .form-field textarea {
         resize: vertical;
@@ -1258,7 +1282,22 @@ button {
     font-size:14px;
     transition: background .15s ease, transform .15s ease;
 }
-.sidebar-link span { width:24px; text-align:center; font-size:19px; }
+/* Icons are real SVG so they inherit currentColor and stay crisp.
+   Previously these were unicode glyphs (♟ / ⚙), which rendered in the body
+   font and ignored the navigation colour - the patients glyph in particular
+   came out almost black. */
+.sidebar-link .nav-icon {
+    width: 24px;
+    min-width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.sidebar-link .nav-icon svg {
+    width: 21px;
+    height: 21px;
+    display: block;
+}
 .sidebar-link:hover { background:rgba(255,255,255,.09); transform:translateX(-2px); }
 .sidebar-link.active { color:#ffffff; background:linear-gradient(135deg,#0e7f95,#0c687e); box-shadow:0 8px 20px rgba(25,149,173,.28); }
 
@@ -1309,6 +1348,13 @@ button {
     background:#f5fbfd;
 }
 .header-search span { color:var(--shell-blue); font-size:21px; }
+.header-search .search-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var( --brand-600 );
+    font-size: 0;
+}
+.header-search .search-icon svg { width: 19px; height: 19px; display: block; }
 .header-search input {
     width:100%;
     height:42px;
@@ -1406,10 +1452,9 @@ button {
 @media (max-width: 900px) {
     :root { --sidebar-width: 76px; }
     .sidebar-brand { justify-content:center; padding:14px 8px; }
-    .sidebar-brand > div:last-child, .sidebar-link:not(.active) { }
     .sidebar-brand > div:last-child, .sidebar-footer { display:none; }
-    .sidebar-link { justify-content:center; padding:10px 6px; font-size:0; }
-    .sidebar-link span { font-size:20px; }
+    .sidebar-link { justify-content:center; padding:10px 6px; font-size:0; gap:0; }
+    .sidebar-link .nav-icon svg { width:22px; height:22px; }
     .header-brand p { display:none; }
 }
 @media (max-width: 700px) {
@@ -1428,7 +1473,7 @@ button {
         justify-content:space-around;
         gap:4px;
     }
-    .sidebar-link { flex:1; min-height:50px; font-size:0; justify-content:center; }
+    .sidebar-link { flex:1; min-height:50px; font-size:0; justify-content:center; gap:0; }
     .app-shell { margin-right:0; padding-bottom:72px; }
     .main-header { position:sticky; }
     .header-search { width:58vw; }
@@ -1602,30 +1647,35 @@ button {
     box-shadow: 0 7px 24px rgba(12,55,70,.06);
 }
 #studyDetailsForm .form-grid {
-    grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 13px 16px;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 18px 20px;
 }
+/* Same flat treatment as the entry forms: no per-field frame. */
 #studyDetailsForm .form-field {
-    padding: 12px;
+    padding: 0;
     margin: 0;
-    background: #f5fbfd;
-    border: 1px solid #e4eff2;
-    border-radius: 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
 }
 #studyDetailsForm .form-field.full-width { grid-column: 1 / -1; }
-#studyDetailsForm .form-field label { color:#0f5165; }
+#studyDetailsForm .form-field label {
+    color: var( --heading );
+    font-weight: 600;
+    font-size: var( --fs-sm );
+}
 #studyDetailsForm input,
 #studyDetailsForm select,
 #studyDetailsForm textarea {
-    border-color:#c3dae1;
-    background:#ffffff;
+    border-color: var( --border-strong, #c3dae1 );
+    background: #ffffff;
 }
 #studyDetailsForm input[readonly],
 #studyDetailsForm textarea[readonly],
 #studyDetailsForm select:disabled {
-    color:#0d3f4f;
-    background:#f6fafb;
-    border-color:#d8e7ec;
+    color: var( --muted-strong );
+    background: var( --surface-soft );
+    border-color: var( --border );
     opacity:1;
 }
 #studyDetailsDentalChart {
@@ -1737,35 +1787,48 @@ button {
 #newPatientForm .form-grid,#editPatientForm .form-grid,
 #newStudyForm .form-grid,#editStudyForm .form-grid {
     grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:14px 18px;
+    gap:18px 20px;
 }
+/* Fields no longer get their own frame: the form itself is the single card.
+   Removing the per-field box makes the label/control pairing easy to scan and
+   gives the inputs their full width back. */
 #newPatientForm .form-field,#editPatientForm .form-field,
 #newStudyForm .form-field,#editStudyForm .form-field,
 #uploadImageForm .form-field,#mergePatientForm .form-field {
     margin-bottom:0;
-    padding:12px;
-    background:#f5fbfd;
-    border:1px solid #e4eff2;
-    border-radius:12px;
+    padding:0;
+    background:transparent;
+    border:0;
+    border-radius:0;
 }
 #newPatientForm label,#editPatientForm label,#newStudyForm label,
 #editStudyForm label,#uploadImageForm label,#mergePatientForm label {
-    color:#0f5165;
+    color:var( --heading );
+    font-weight:600;
+    font-size:var( --fs-sm );
 }
 #newPatientForm input,#newPatientForm select,#newPatientForm textarea,
 #editPatientForm input,#editPatientForm select,#editPatientForm textarea,
 #newStudyForm input,#newStudyForm select,#newStudyForm textarea,
 #editStudyForm input,#editStudyForm select,#editStudyForm textarea,
 #uploadImageForm input,#uploadImageForm select,#mergePatientForm input {
-    border-color:#c3dae1;
+    border-color:var( --border-strong, #c3dae1 );
     background:#ffffff;
+}
+/* The helper text sits under its control and should not compete with it. */
+#newPatientForm .field-hint,#editPatientForm .field-hint,
+#newStudyForm .field-hint,#editStudyForm .field-hint,
+#uploadImageForm .field-hint {
+    margin-top:-1px;
+    color:var( --muted );
+    font-size:var( --fs-xs );
 }
 #newPatientForm .form-actions,#editPatientForm .form-actions,
 #newStudyForm .form-actions,#editStudyForm .form-actions,
 #uploadImageForm .form-actions,#mergePatientForm .form-actions {
-    padding-top:16px;
-    margin-top:16px;
-    border-top:1px solid #e4eff2;
+    padding-top:18px;
+    margin-top:22px;
+    border-top:1px solid var( --border );
 }
 #newPatientForm .form-actions button[type=submit],
 #editPatientForm .form-actions button[type=submit],
@@ -1809,10 +1872,10 @@ button {
 
 @media(max-width:700px){
     #newPatientForm,#editPatientForm,#newStudyForm,#editStudyForm,
-    #uploadImageForm,#mergePatientForm { padding:10px; }
+    #uploadImageForm,#mergePatientForm { padding:12px; }
     #newPatientForm .form-grid,#editPatientForm .form-grid,
     #newStudyForm .form-grid,#editStudyForm .form-grid,
-    #uploadImageForm { grid-template-columns:1fr; }
+    #uploadImageForm { grid-template-columns:1fr; gap:16px; }
     #uploadImageForm > .form-field:first-child,
     #uploadImageForm > .status-message,#uploadImageForm > .form-actions,
     #cameraPreviewPanel { grid-column:auto; }
@@ -3319,7 +3382,8 @@ table button {
 .dashboard-group-title { margin: 17px 2px 8px; color: #0f5165; font-size: 14px; }
 .dashboard-overall-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .dashboard-today-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.dashboard-metric-icon { font-size: 20px; }
+.dashboard-metric-icon { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; }
+.dashboard-metric-icon svg { width: 22px; height: 22px; display: block; }
 .dashboard-summary-card.metric-blue { border-top: 4px solid #0e7f95; }
 .dashboard-summary-card.metric-green { border-top: 4px solid #0e7d55; }
 .dashboard-summary-card.metric-gray { border-top: 4px solid #7d95a2; }
@@ -3704,5 +3768,83 @@ body { line-height: 1.75; }
 .sidebar-link.active {
     background: var( --brand-600 );
     box-shadow: 0 6px 16px rgba( 25, 149, 173, 0.28 );
+}
+
+
+/* ==========================================================
+   Touch and small-screen ergonomics
+   Staff open DentalRay on phones and tablets as well as desktops, so
+   targets are generously sized and the mobile bar shows text labels.
+   ========================================================== */
+
+@media ( hover: none ) and ( pointer: coarse ) {
+    /* Comfortable thumb targets for every control. */
+    button,
+    .sidebar-link,
+    .dashboard-recent-clickable,
+    .recent-study-row {
+        min-height: 46px;
+    }
+    .patient-table button { min-height: 40px; }
+    .form-field input,
+    .form-field select,
+    .form-field textarea,
+    .search-container input { min-height: 48px; }
+    /* iOS zooms the page when a field is focused with a font below 16px. */
+    .form-field input,
+    .form-field select,
+    .form-field textarea { font-size: 16px; }
+}
+
+@media ( max-width: 700px ) {
+    /* The bottom bar keeps its label under the icon: an icon alone is slow to
+       recognise, and the previous rules hid all text on small screens. */
+    .app-sidebar { height: 62px; }
+    .sidebar-nav { padding: 6px 8px; gap: 6px; }
+    .sidebar-link {
+        flex: 1;
+        min-height: 50px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
+        padding: 5px 2px;
+        font-size: 11px !important;
+        line-height: 1.2;
+        border-radius: var( --radius-sm );
+    }
+    .sidebar-link .nav-icon svg { width: 20px; height: 20px; }
+    /* Keep the label readable but quiet until the tab is active. */
+    .sidebar-link span:not(.nav-icon) { font-size: 11px; opacity: .92; }
+    .sidebar-link.active span:not(.nav-icon) { opacity: 1; font-weight: 700; }
+    .app-shell { padding-bottom: 70px; }
+
+    /* Forms: one column, roomy spacing, actions reachable with the thumb. */
+    .form-grid { grid-template-columns: 1fr; gap: 16px; }
+    .details-toolbar { gap: 8px; }
+    .form-actions button,
+    .details-toolbar button { min-height: 46px; }
+    .form-actions { flex-direction: column-reverse; }
+    .form-actions button { width: 100%; }
+
+    /* Tables scroll instead of squashing the columns. */
+    .table-container { -webkit-overflow-scrolling: touch; }
+
+    /* Dialogs use the full width and stay scrollable. */
+    .confirm-dialog,
+    .jalali-picker-dialog { width: 100%; }
+    .global-search-results { max-height: 60vh; }
+}
+
+/* Respect users who ask for less motion. */
+@media ( prefers-reduced-motion: reduce ) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    button:hover:not(:disabled) { transform: none; }
 }
 
