@@ -30,6 +30,13 @@
         <div class="dashboard-summary-card today-card today-images"><strong id="dashboardImagesToday">-</strong><span>تصاویر امروز</span></div>
         <div class="dashboard-summary-card today-card today-new"><strong id="dashboardNewPatientsToday">-</strong><span>بیماران جدید امروز</span></div>
       </div>
+      <section class="dashboard-panel dashboard-attention-panel">
+        <div class="dashboard-panel-title">
+          <strong>نیازمند اطلاع‌رسانی</strong>
+          <span id="attentionSummary">-</span>
+        </div>
+        <div id="dashboardAttention" class="attention-list"></div>
+      </section>
       <div class="dashboard-detail-grid">
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین مطالعات</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentStudies" class="dashboard-recent-list"></div></section>
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین تصاویر</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentImages" class="dashboard-recent-list"></div></section>
@@ -158,6 +165,7 @@
             document.getElementById("dashboardStorageStatus").className = storage.available ? "system-ok" : "system-error";
             renderNetworkAccess(result.system?.network || {});
             renderSettingsNetworkLinks(result.system?.network || {});
+            loadAttention();
         } catch {
             if (silent) return; // keep the last good snapshot on a background refresh
             dashboard.querySelectorAll(".dashboard-summary-card strong").forEach(x => x.textContent = "-");
@@ -167,6 +175,69 @@
     }
 
     const formatBytes = value => !Number.isFinite(Number(value)) ? "-" : `${(Number(value) / 1073741824).toLocaleString("fa-IR", { maximumFractionDigits: 1 })} گیگابایت`;
+
+    // Who needs a message today, gathered from appointments, due follow-ups and
+    // outstanding balances. Nothing is sent from here automatically; each row has a
+    // button that opens the messaging dialog with the right template.
+    async function loadAttention() {
+        const root = document.getElementById("dashboardAttention");
+        const summary = document.getElementById("attentionSummary");
+        if (!root) return;
+        root.textContent = "در حال بررسی...";
+        try {
+            const r = await fetch("/api/attention", { cache: "no-store" });
+            const x = await r.json();
+            if (!r.ok || !x.success) throw new Error();
+
+            const rows = []
+                .concat((x.appointments || []).map(i => ({ ...i, kindLabel: "نوبت پیش‌رو" })))
+                .concat((x.followUps || []).map(i => ({ ...i, kindLabel: "پیگیری سررسیده" })))
+                .concat((x.balances || []).map(i => ({ ...i, kindLabel: "مانده حساب" })));
+
+            summary.textContent = rows.length ? `${rows.length} مورد` : "موردی نیست";
+            root.replaceChildren();
+            if (!rows.length) {
+                root.innerHTML = '<div class="attention-empty">همه‌چیز به‌روز است. کاری برای اطلاع‌رسانی باقی نمانده.</div>';
+                return;
+            }
+            rows.forEach(item => {
+                const row = document.createElement("div");
+                row.className = `attention-row attention-${item.kind}`;
+                const text = document.createElement("div");
+                text.className = "attention-text";
+                const name = document.createElement("strong");
+                name.textContent = item.patientName || "-";
+                const meta = document.createElement("small");
+                meta.textContent = item.kind === "balance"
+                    ? `${item.kindLabel} — ${Number(item.balance || 0).toLocaleString("fa-IR")} تومان`
+                    : `${item.kindLabel} — ${item.dueDate ? formatPersianDateTime(item.dueDate) : ""}`;
+                text.append(name, meta);
+                const send = document.createElement("button");
+                send.type = "button";
+                send.className = "attention-send";
+                send.textContent = "ارسال پیامک";
+                send.onclick = () => openAttentionMessage(item);
+                row.append(text, send);
+                root.appendChild(row);
+            });
+        } catch {
+            if (summary) summary.textContent = "-";
+            root.textContent = "دریافت فهرست اطلاع‌رسانی ناموفق بود.";
+        }
+    }
+
+    // Opens the patient and asks the messaging dialog to open with the template for
+    // this kind of reminder.
+    async function openAttentionMessage(item) {
+        try {
+            navigate("patients");
+            if (typeof window.openPatientInline === "function") await window.openPatientInline(item.patientID);
+            window.dispatchEvent(new CustomEvent("dentalray-offer-message", {
+                detail: { patientID: item.patientID, templateKey: item.templateKey }
+            }));
+        } catch { /* the patient workspace shows its own error */ }
+    }
+
     function renderNetworkAccess(network) {
         latestNetwork = network;
         document.getElementById("dashboardServerName").textContent = network.hostName || "-";
