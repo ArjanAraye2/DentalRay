@@ -1,7 +1,12 @@
 #define MyAppName "DentalRay"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Rahim Namazi"
 #define MyAppExeName "DentalRay.Api.exe"
+; Release stamp shown in the installer file name. Override from the command line
+; on release day, e.g. /DReleaseStamp=14050629, so the version never goes stale.
+#ifndef ReleaseStamp
+#define ReleaseStamp "14050629"
+#endif
 #ifndef SourceRoot
 #define SourceRoot ".."
 #endif
@@ -19,7 +24,8 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=Output
-OutputBaseFilename=DentalRay_Setup_1.0.0
+; Version plus the Persian (Jalali) release date, so build files are distinguishable.
+OutputBaseFilename=DentalRay_Setup_{#MyAppVersion}_{#ReleaseStamp}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern hidebevels

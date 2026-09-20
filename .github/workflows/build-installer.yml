@@ -32,14 +32,27 @@ jobs:
         shell: powershell
         run: choco install innosetup --version=6.7.1 -y --no-progress
 
+      - name: Compute Persian release stamp
+        id: stamp
+        shell: powershell
+        run: |
+          # The installer file name carries the Jalali release date, matching
+          # the local build so a file is always identifiable at a glance.
+          $pc = New-Object System.Globalization.PersianCalendar
+          $now = Get-Date
+          $stamp = '{0}{1:00}{2:00}' -f $pc.GetYear($now), $pc.GetMonth($now), $pc.GetDayOfMonth($now)
+          "value=$stamp" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Persian release stamp: $stamp"
+
       - name: Build Setup
         shell: powershell
         run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DSourceRoot="${env:GITHUB_WORKSPACE}\publish" Installer\DentalRay.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DSourceRoot="${env:GITHUB_WORKSPACE}\publish" /DReleaseStamp="${{ steps.stamp.outputs.value }}" Installer\DentalRay.iss
 
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
           name: DentalRay-Installer
-          path: Installer/Output/DentalRay_Setup_1.0.0.exe
+          # The version and date live in the .iss file, so collect whatever it built.
+          path: Installer/Output/DentalRay_Setup_*.exe
           if-no-files-found: error
