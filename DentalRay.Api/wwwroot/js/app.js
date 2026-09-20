@@ -240,6 +240,51 @@ function syncStudyDetailsStatusFields(){
 async function ensureStudyDetailsTypes(selectedID){
  try{const r=await fetch("/api/studytypes",{cache:"no-store"}),x=await r.json();if(!r.ok||!x.success)throw new Error();E.studyDetailsType.replaceChildren();(x.studyTypes||[]).forEach(t=>{const o=document.createElement("option");o.value=String(t.studyTypeID);o.textContent=t.studyTypeName;E.studyDetailsType.appendChild(o);});if(selectedID&&!Array.from(E.studyDetailsType.options).some(o=>Number(o.value)===Number(selectedID))){const current=document.createElement("option");current.value=String(selectedID);current.textContent=`${selectedStudy?.studyTypeName||"نوع فعلی"} (غیرفعال)`;E.studyDetailsType.prepend(current);}E.studyDetailsType.value=String(selectedID||"");}catch{E.studyDetailsType.replaceChildren();const o=document.createElement("option");o.value=String(selectedID||"");o.textContent=selectedStudy?.studyTypeName||"تعیین نشده";E.studyDetailsType.appendChild(o);}
 }
+// Marks a study complete straight from its card, without opening the panel.
+//
+// It reuses the update endpoint with the fields the API requires, keeping the
+// study's own values so nothing is overwritten. The confirm step exists because
+// completing a study also clears its waiting stage and follow-up date.
+async function completeStudyFromCard(study,button){
+ const wasWaiting=Number(study.status)===3;
+ const message=wasWaiting
+  ?"این مطالعه «تمام‌شده» شود؟\nمرحله انتظار و تاریخ پیگیری آن پاک می‌شود."
+  :"این مطالعه «تمام‌شده» شود؟";
+ if(!await askConfirmation({title:"تمام شدن مطالعه",message,confirmText:"بله، تمام شد",danger:false}))return;
+ const original=button.textContent;button.disabled=true;button.textContent="در حال ثبت...";
+ try{
+  const body={
+   studyDate:study.studyDate,
+   studyTypeID:study.studyTypeID,
+   bodyPart:study.bodyPart||null,
+   description:study.description||null,
+   report:study.report||null,
+   toothNumbers:[],
+   status:2,
+   waitStageID:null,
+   followUpDate:null,
+   followUpNote:null,
+   dentistStaffID:study.dentistStaffID??null
+  };
+  const r=await fetch(`/api/radiologystudies/${study.studyID}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  let x={};try{x=await r.json();}catch{}
+  if(!r.ok||!x.success)throw new Error(getApiError(x,"تغییر وضعیت مطالعه انجام نشد."));
+  showToast("مطالعه تمام‌شده شد.");
+  // Re-render from the server so the badge, counts and any waiting date update.
+  await openPatient(selectedPatientID);
+  // A finished study with an outstanding balance is the moment to remind the
+  // patient, so the offer is made here with the real balance.
+  try{
+   const fr=await fetch(`/api/patients/${selectedPatientID}/finance`,{cache:"no-store"}),fx=await fr.json();
+   if(fr.ok&&fx.success&&Number(fx.balanceAmount)>0){
+    offerPatientMessage(selectedPatientID,"این بیمار مانده حساب دارد. یادآوری مانده فرستاده شود؟","balance-due");
+   }
+  }catch{/* the finance lookup is optional */}
+ }catch(e){
+  showToast(e.message||"تغییر وضعیت مطالعه انجام نشد.","error");
+  button.disabled=false;button.textContent=original;
+ }
+}
 async function openStudyDetails(study){
  selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
  E.studyDetailsTitle.textContent=study.studyTypeName||("Study "+study.studyID);E.studyDetailsDate.textContent=formatPersianDateTime(study.studyDate);
@@ -309,6 +354,13 @@ function renderStudiesSafe(studies){
   // Status badge so an unfinished Study is obvious without opening it.
   const statusBadge=createStudyStatusBadge(study);if(statusBadge)heading.appendChild(statusBadge);
   const actions=document.createElement("div");actions.className="study-scroll-actions";
+  // One-click completion. Closing a study used to take four steps: open, edit,
+  // change the status, save. Only shown while there is something to close.
+  if(Number(study.status)!==2){
+   const complete=document.createElement("button");complete.type="button";complete.className="study-complete-button";complete.textContent="✓ تمام شد";
+   complete.title="علامت‌گذاری این مطالعه به‌عنوان تمام‌شده";complete.onclick=()=>completeStudyFromCard(study,complete);
+   actions.appendChild(complete);
+  }
   const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="مشاهده / ویرایش";edit.onclick=()=>openStudyDetails(study);
   const addImage=document.createElement("button");addImage.type="button";addImage.textContent="+ افزودن تصویر";addImage.onclick=()=>openUploadImageForm(study);actions.append(edit,addImage);header.append(heading,actions);
   const body=document.createElement("div");body.className="study-scroll-body";
@@ -444,7 +496,48 @@ function studyPayload(prefix){
   followUpNote:E[`${prefix}Status`]?.value==="3"?emptyToNull(E[`${prefix}FollowUpNote`].value):null
  };
 }
-async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();if(!r.ok||x.success===false)throw new Error(getApiError(x,"ثبت رادیولوژی انجام نشد."));await openPatient(selectedPatientID);showToast("رادیولوژی ثبت شد.");}catch(e){setFormStatus(E.newStudyStatus,getApiError({message:e.message},"ثبت رادیولوژی انجام نشد."),true);}}
+// Offers to message the patient after something worth telling them about.
+//
+// It is a bar under the form, not a dialog, so it never blocks the user: they can
+// ignore it and it simply disappears on the next action. Nothing is sent without
+// an explicit click, which keeps the clinic in control of every message.
+function offerPatientMessage(patientID,reason,preferredTemplate){
+ const host=document.querySelector(".page-container");
+ if(!host||!patientID)return;
+ document.getElementById("patientMessageOffer")?.remove();
+
+ const bar=document.createElement("div");
+ bar.id="patientMessageOffer";
+ bar.className="message-offer";
+ bar.innerHTML='<span class="message-offer-text"></span><button type="button" class="message-offer-send">ارسال پیامک</button><button type="button" class="secondary-button message-offer-dismiss">بعداً</button>';
+ bar.querySelector(".message-offer-text").textContent=reason;
+ host.prepend(bar);
+
+ const close=()=>bar.remove();
+ bar.querySelector(".message-offer-dismiss").onclick=close;
+ bar.querySelector(".message-offer-send").onclick=()=>{
+  close();
+  const study=null;
+  const patient=window.selectedPatient;
+  if(!patient){
+   // The patient record is the anchor the messaging dialog needs.
+   openPatient(patientID).then(()=>{
+    window.dispatchEvent(new CustomEvent("dentalray-offer-message",{detail:{patientID,templateKey:preferredTemplate}}));
+   });
+   return;
+  }
+  window.dispatchEvent(new CustomEvent("dentalray-offer-message",{detail:{patientID,templateKey:preferredTemplate}}));
+ };
+}
+async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await r.json();if(!r.ok||x.success===false)throw new Error(getApiError(x,"ثبت رادیولوژی انجام نشد."));const savedPatientID=selectedPatientID;await openPatient(savedPatientID);showToast("رادیولوژی ثبت شد.");
+ // A study recorded for a future date is a booked visit, so a reminder makes sense.
+ const saved=x.study||x;
+ if(Number(saved.status)===3&&saved.followUpDate){
+  offerPatientMessage(savedPatientID,"برای نوبت پیگیری این مطالعه، به بیمار یادآوری بفرستیم؟","appointment-reminder");
+ } else if(Number(saved.status)===1){
+  offerPatientMessage(savedPatientID,"برای این مطالعه جدید به بیمار اطلاع بفرستیم؟","images-ready");
+ }
+}catch(e){setFormStatus(E.newStudyStatus,getApiError({message:e.message},"ثبت رادیولوژی انجام نشد."),true);}}
 function openMergePatientForm(){E.mergePatientForm.reset();setFormStatus(E.mergePatientStatus,`Source: ${selectedPatient.firstName} ${selectedPatient.lastName} — ${selectedPatient.nationalCode}`,false);hideMainSections();E.mergePatientSection.classList.remove("hidden");}
 async function mergePatient(){try{const code=normalizeDigits(E.mergeTargetNationalCode.value.trim());const tr=await fetch(`/api/patients/${encodeURIComponent(code)}`),target=await tr.json();if(!tr.ok)throw new Error(getApiError(target,"بیمار مقصد پیدا نشد."));if(!await askConfirmation({title:"تأیید ادغام بیمار",message:`Source: ${selectedPatient.nationalCode}\nTarget: ${target.nationalCode}\nتمام Studyها و تصاویر منتقل می‌شوند.`,confirmText:"انجام Merge"}))return;const r=await fetch("/api/patients/merge",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sourcePatientID:selectedPatientID,targetPatientID:target.patientID})}),x=await r.json();if(!r.ok||!x.success)throw new Error(getApiError(x,"Merge انجام نشد."));await loadPatients();await openPatient(target.patientID);showToast("ادغام با موفقیت انجام شد.");}catch(e){setFormStatus(E.mergePatientStatus,e.message,true);}}
 

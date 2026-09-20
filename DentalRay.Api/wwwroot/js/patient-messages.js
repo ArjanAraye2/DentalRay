@@ -269,6 +269,34 @@
 
   function close() { $("patientMessagesCard")?.classList.add("hidden"); }
 
+  // Another module can ask for the dialog, for example after a study is saved.
+  // The dialog opens with the suggested template already chosen.
+  window.addEventListener("dentalray-offer-message", async e => {
+    const detail = e.detail || {};
+    if (!window.selectedPatient || Number(window.selectedPatient.patientID) !== Number(detail.patientID)) {
+      window.showToast?.("بیمار در دسترس نیست. از پرونده بیمار پیامک بفرستید.", "error");
+      return;
+    }
+    await open();
+    if (detail.templateKey) {
+      const sel = $("msgTemplate");
+      if (sel && Array.from(sel.options).some(o => o.value === detail.templateKey)) {
+        sel.value = detail.templateKey;
+        applyTemplate();
+      }
+    }
+    $("msgBody").focus();
+  });
+
+  // A completed study that still owes money is worth a reminder.
+  window.addEventListener("dentalray-payment-offer", async e => {
+    const detail = e.detail || {};
+    if (!detail.balance || Number(detail.balance) <= 0) return;
+    const amount = Number(detail.balance).toLocaleString("fa-IR");
+    window.__pendingBalanceTemplate = { amount, text: `{patient} عزیز، مانده حساب شما ${amount} تومان است. Dentix` };
+    window.showToast?.(`مانده حساب این بیمار ${amount} تومان است.`, "warning");
+  });
+
   // Inject the toolbar button once the patient record exists in the page.
   function addToolbarButton() {
     const toolbar = document.querySelector("#patientDetailsSection .details-toolbar");

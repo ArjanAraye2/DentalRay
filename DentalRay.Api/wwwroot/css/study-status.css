@@ -102,7 +102,46 @@
     .study-form-card .form-field.full-width { grid-column: auto; }
 }
 
+/* --- One-click completion on a study card --- */
+.study-complete-button {
+    background: linear-gradient(135deg, #12a06c, #0e7d55);
+    color: #ffffff;
+    font-weight: 700;
+}
+.study-complete-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0e8e57, #0b6b49);
+}
+.study-complete-button:disabled { opacity: .65; }
+
+/* --- Message offer bar ---
+   Shown after an action worth telling the patient about. It is a bar, not a
+   dialog, so it informs without blocking, and it never sends anything by itself. */
+.message-offer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--brand-200);
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--brand-50), #fff);
+    box-shadow: var(--shadow);
+    animation: toastIn 0.22s ease;
+}
+.message-offer-text {
+    flex: 1 1 260px;
+    color: var(--heading);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+.message-offer-send {
+    background: linear-gradient(135deg, #1685ff, #0f67d8);
+}
+.message-offer button { min-height: 38px; }
+
 @media (max-width: 700px) {
     .patient-reminder-filters { flex-direction: column; gap: 6px; }
     .study-status-select { max-width: none; }
+    .study-complete-button { min-height: 44px; }
 }
