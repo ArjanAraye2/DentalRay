@@ -17,6 +17,24 @@ public class StudyPayment
     public decimal Amount { get; set; }
     [MaxLength(500)]
     public string? Description { get; set; }
+
+    /// <summary>
+    /// True when this row is money paid back to the patient. Refunds are stored as
+    /// a positive amount flagged here rather than a negative amount, so the
+    /// Amount > 0 constraint stays valid and totals stay unambiguous.
+    /// </summary>
+    public bool IsRefund { get; set; }
+
+    /// <summary>Terminal used for the last dispatch attempt, if any.</summary>
+    public int? PosSettingID { get; set; }
+
+    public DateTime? PosSentAt { get; set; }
+
+    public bool? PosSuccess { get; set; }
+
+    [MaxLength(500)]
+    public string? PosMessage { get; set; }
+
     public DateTime CreatedDate { get; set; }
     public DateTime? ModifiedDate { get; set; }
 }

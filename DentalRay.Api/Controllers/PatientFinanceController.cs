@@ -51,7 +51,7 @@ namespace DentalRay.Api.Controllers
                     .SumAsync(a => (decimal?)a.DiscountAmount) ?? 0m;
                 received = await _db.StudyPayments.AsNoTracking()
                     .Where(p => accessibleStudyIDs.Contains(p.StudyID))
-                    .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+                    .SumAsync(p => p.IsRefund ? -(decimal?)p.Amount : (decimal?)p.Amount) ?? 0m;
             }
 
             decimal net = gross - discount;
@@ -86,20 +86,24 @@ namespace DentalRay.Api.Controllers
             var rows = await _db.StudyPayments.AsNoTracking()
                 .Where(p => accessibleStudyIDs.Contains(p.StudyID)
                          && p.PaymentDate >= today && p.PaymentDate < tomorrow)
-                .Select(p => new { p.Amount, p.PaymentMethod })
+                .Select(p => new { p.Amount, p.PaymentMethod, p.IsRefund })
                 .ToListAsync();
 
-            decimal cash = rows.Where(r => r.PaymentMethod == 3).Sum(r => r.Amount);
-            decimal pos = rows.Where(r => r.PaymentMethod == 1).Sum(r => r.Amount);
-            decimal card = rows.Where(r => r.PaymentMethod == 2).Sum(r => r.Amount);
-            decimal unknown = rows.Where(r => r.PaymentMethod is null).Sum(r => r.Amount);
+            // A refund issued today should not read as takings, so it subtracts
+            // from the method it reverses.
+            decimal Signed(decimal amount, bool isRefund) => isRefund ? -amount : amount;
+            decimal cash = rows.Where(r => r.PaymentMethod == 3).Sum(r => Signed(r.Amount, r.IsRefund));
+            decimal pos = rows.Where(r => r.PaymentMethod == 1).Sum(r => Signed(r.Amount, r.IsRefund));
+            decimal card = rows.Where(r => r.PaymentMethod == 2).Sum(r => Signed(r.Amount, r.IsRefund));
+            decimal unknown = rows.Where(r => r.PaymentMethod is null).Sum(r => Signed(r.Amount, r.IsRefund));
 
             return Ok(new
             {
                 success = true,
                 date = today,
                 count = rows.Count,
-                total = rows.Sum(r => r.Amount),
+                total = rows.Sum(r => Signed(r.Amount, r.IsRefund)),
+                refundCount = rows.Count(r => r.IsRefund),
                 cash,
                 pos,
                 card,
