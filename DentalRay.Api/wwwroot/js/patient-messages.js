@@ -18,6 +18,25 @@
 
   let templates = [];
 
+  // 1 = SMS, 2 = phone call, 3 = in person, 4 = other.
+  const CHANNELS = { 1: "پیامک", 2: "تماس تلفنی", 3: "حضوری", 4: "سایر" };
+  const OUTCOMES = { 1: "پاسخ داد", 2: "پاسخ نداد", 3: "پیام گذاشته شد", 4: "درخواست پیامک کرد", 5: "نوبت گرفت", 6: "خودش تماس می‌گیرد" };
+  const isSms = () => Number($("msgChannel").value) === 1;
+
+  // A phone call or a visit is not sent anywhere, so the SMS-only fields hide and
+  // the outcome fields appear instead.
+  function applyChannelMode() {
+    const sms = isSms();
+    $("msgTemplateField").classList.toggle("hidden", !sms);
+    $("msgOutcomeField").classList.toggle("hidden", sms);
+    $("msgDurationField").classList.toggle("hidden", sms);
+    $("msgSendButton").classList.toggle("hidden", !sms);
+    $("msgLogButton").classList.toggle("hidden", sms);
+    $("msgBodyLabel").textContent = sms ? "متن پیام" : "شرح ارتباط";
+    $("msgBody").placeholder = sms ? "" : "خلاصه‌ی آنچه گفته شد...";
+    setStatus("", false);
+  }
+
   async function loadTemplates() {
     if (templates.length) return templates;
     try { templates = (await api("/api/messages/templates")).templates || []; } catch { templates = []; }
@@ -35,12 +54,40 @@
         <p id="msgRecipient" class="message-recipient"></p>
 
         <div class="form-field">
+          <label for="msgChannel">نوع ارتباط</label>
+          <select id="msgChannel">
+            <option value="1">پیامک</option>
+            <option value="2">تماس تلفنی</option>
+            <option value="3">حضوری</option>
+            <option value="4">سایر</option>
+          </select>
+        </div>
+
+        <div class="form-field" id="msgTemplateField">
           <label for="msgTemplate">قالب پیام</label>
           <select id="msgTemplate"></select>
         </div>
 
+        <div class="form-field hidden" id="msgOutcomeField">
+          <label for="msgOutcome">نتیجه ارتباط</label>
+          <select id="msgOutcome">
+            <option value="">ثبت نشده</option>
+            <option value="1">پاسخ داد</option>
+            <option value="2">پاسخ نداد</option>
+            <option value="3">پیام گذاشته شد</option>
+            <option value="4">درخواست پیامک کرد</option>
+            <option value="5">نوبت گرفت</option>
+            <option value="6">خودش تماس می‌گیرد</option>
+          </select>
+        </div>
+
+        <div class="form-field hidden" id="msgDurationField">
+          <label for="msgDuration">مدت تماس (دقیقه)</label>
+          <input id="msgDuration" type="number" min="0" max="600" placeholder="مثال: 3" />
+        </div>
+
         <div class="form-field">
-          <label for="msgBody">متن پیام</label>
+          <label for="msgBody" id="msgBodyLabel">متن پیام</label>
           <textarea id="msgBody" rows="4" maxlength="2000"></textarea>
           <small class="field-hint"><span id="msgLength">0</span> / ۲۰۰۰</small>
         </div>
@@ -54,6 +101,7 @@
 
         <div class="confirm-actions message-actions">
           <button type="button" id="msgSendButton">ارسال پیامک</button>
+          <button type="button" id="msgLogButton" class="secondary-button hidden">ثبت ارتباط</button>
           <button type="button" id="msgCancelButton" class="secondary-button">انصراف</button>
         </div>
 
@@ -67,6 +115,8 @@
     $("msgCancelButton").onclick = close;
     $("msgSendButton").onclick = send;
     $("msgTemplate").onchange = applyTemplate;
+    $("msgChannel").onchange = applyChannelMode;
+    $("msgLogButton").onclick = logContact;
     $("msgBody").addEventListener("input", updateLength);
     card.addEventListener("click", e => { if (e.target === card) close(); });
   }
@@ -102,6 +152,11 @@
     $("patientMessagesCard").classList.remove("hidden");
     $("msgRecipient").textContent = `${patient.firstName || ""} ${patient.lastName || ""}`.trim() || "-";
     $("msgMobile").value = patient.mobile || "";
+    $("msgChannel").value = "1";
+    $("msgOutcome").value = "";
+    $("msgDuration").value = "";
+    $("msgBody").value = "";
+    applyChannelMode();
     setStatus("", false);
 
     const list = await loadTemplates();
@@ -125,10 +180,25 @@
       items.forEach(m => {
         const row = document.createElement("div");
         row.className = "message-history-row " + (Number(m.status) === 1 ? "ok" : "err");
+        const ch = Number(m.channel) || 1;
+        const sms = ch === 1;
+        const outcome = m.outcome != null ? OUTCOMES[Number(m.outcome)] : null;
         const head = document.createElement("div");
         head.className = "message-history-head";
-        head.innerHTML = `<strong>${Number(m.status) === 1 ? "ارسال شد" : "ناموفق"}</strong>
+        head.innerHTML = `<strong>${escapeHtml(CHANNELS[ch] || "ارتباط")}${outcome ? " — " + escapeHtml(outcome) : ""}</strong>
           <span>${escapeHtml(formatDate(m.sentAt || m.createdDate))}</span>`;
+        if (sms && Number(m.status) !== 1) {
+          const badge = document.createElement("span");
+          badge.className = "message-history-failed";
+          badge.textContent = "ارسال نشد";
+          head.appendChild(badge);
+        }
+        if (m.contactedByName) {
+          const by = document.createElement("span");
+          by.className = "message-history-by";
+          by.textContent = m.contactedByName;
+          head.appendChild(by);
+        }
         const body = document.createElement("p");
         body.textContent = m.body;
         row.append(head, body);
@@ -166,6 +236,35 @@
       await loadHistory(patient.patientID);
     } catch (e) { setStatus(e.message, true); }
     finally { $("msgSendButton").disabled = false; }
+  }
+
+  async function logContact() {
+    const patient = window.selectedPatient;
+    if (!patient) return;
+    const body = $("msgBody").value.trim();
+    if (!body) { setStatus("شرح ارتباط را وارد کنید.", true); return; }
+
+    $("msgLogButton").disabled = true;
+    setStatus("در حال ثبت...", false);
+    try {
+      const x = await api(`/api/patients/${patient.patientID}/messages/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: Number($("msgChannel").value),
+          outcome: $("msgOutcome").value ? Number($("msgOutcome").value) : null,
+          durationMinutes: $("msgDuration").value ? Number($("msgDuration").value) : null,
+          body
+        })
+      });
+      setStatus(x.message || "ارتباط ثبت شد.", false);
+      window.showToast?.("ارتباط با بیمار ثبت شد.");
+      $("msgBody").value = "";
+      $("msgOutcome").value = "";
+      $("msgDuration").value = "";
+      await loadHistory(patient.patientID);
+    } catch (e) { setStatus(e.message, true); }
+    finally { $("msgLogButton").disabled = false; }
   }
 
   function close() { $("patientMessagesCard")?.classList.add("hidden"); }

@@ -3,10 +3,35 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DentalRay.Api.Models
 {
-    /// <summary>One message sent to a patient, kept so the clinic can prove what went out.</summary>
+    /// <summary>
+    /// How the clinic reached the patient, and how it went.
+    ///
+    /// SMS, a phone call and a note at reception all live here, so the patient
+    /// record can show one history instead of only messages.
+    /// </summary>
     [Table("tblPatientMessages")]
     public class PatientMessage
     {
+        /// <summary>1 = SMS, 2 = phone call, 3 = in person, 4 = other.</summary>
+        public byte Channel { get; set; } = PatientContactChannel.Sms;
+
+        /// <summary>
+        /// How the contact ended. Mostly used for calls:
+        /// 1 = answered, 2 = no answer, 3 = left a message,
+        /// 4 = asked for an SMS, 5 = appointment booked, 6 = will call back.
+        /// </summary>
+        public byte? Outcome { get; set; }
+
+        /// <summary>
+        /// Who made the contact, kept as a name because the built-in SuperAdmin
+        /// account has no matching staff record.
+        /// </summary>
+        [MaxLength(150)]
+        public string? ContactedByName { get; set; }
+
+        /// <summary>Only meaningful for a phone call.</summary>
+        public int? DurationMinutes { get; set; }
+
         [Key]
         public long MessageID { get; set; }
 

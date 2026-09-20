@@ -80,6 +80,22 @@
     font-size: 11px;
 }
 
+/* Channel and outcome badges in the contact history. */
+.message-history-failed {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var( --danger-soft );
+    color: var( --danger );
+    font-size: 10px;
+    font-weight: 700;
+}
+.message-history-by {
+    color: var( --muted );
+    font-size: 10px;
+}
+/* A logged call or visit is not "sent", so it reads differently from an SMS. */
+.message-history-row.call { border-color: var( --brand-200 ); background: #f6fdfc; }
+
 @media (max-width: 700px) {
     .message-dialog { width: 100%; padding: 16px; }
     .message-actions button { width: 100%; min-height: 46px; }

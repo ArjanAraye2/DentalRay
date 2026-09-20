@@ -40,6 +40,42 @@ namespace DentalRay.Api.Services
         public sealed record SendOutcome(bool Success, string Message, long? MessageID);
 
         /// <summary>
+        /// Records a contact that did not go through a provider, such as a phone call
+        /// or a conversation at the desk. Nothing is sent; the point is the record.
+        /// </summary>
+        public async Task<SendOutcome> LogContactAsync(
+            int patientID,
+            byte channel,
+            string body,
+            byte? outcome = null,
+            int? durationMinutes = null,
+            int? contactByUserID = null,
+            string? contactedByName = null,
+            int? appointmentID = null,
+            CancellationToken cancellationToken = default)
+        {
+            var row = new PatientMessage
+            {
+                PatientID = patientID,
+                Channel = channel,
+                Mobile = string.Empty,
+                Body = body ?? string.Empty,
+                Outcome = outcome,
+                DurationMinutes = durationMinutes,
+                AppointmentID = appointmentID,
+                CreatedBy = contactByUserID,
+                ContactedByName = contactedByName,
+                // A logged contact happened, so it is complete by definition.
+                Status = 1,
+                SentAt = DateTime.Now,
+                CreatedDate = DateTime.Now
+            };
+            _db.PatientMessages.Add(row);
+            await _db.SaveChangesAsync(cancellationToken);
+            return new SendOutcome(true, "ارتباط ثبت شد.", row.MessageID);
+        }
+
+        /// <summary>
         /// Sends a message to a patient and stores the outcome.
         /// </summary>
         public async Task<SendOutcome> SendAsync(
@@ -49,16 +85,19 @@ namespace DentalRay.Api.Services
             string? templateKey = null,
             int? appointmentID = null,
             int? createdBy = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            string? sentByName = null)
         {
             var row = new PatientMessage
             {
                 PatientID = patientID,
+                Channel = Models.PatientContactChannel.Sms,
                 Mobile = mobile ?? string.Empty,
                 Body = body ?? string.Empty,
                 TemplateKey = templateKey,
                 AppointmentID = appointmentID,
                 CreatedBy = createdBy,
+                ContactedByName = sentByName,
                 CreatedDate = DateTime.Now,
                 Status = 0
             };
