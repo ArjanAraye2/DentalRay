@@ -28,6 +28,7 @@ WizardImageBackColor=#DDF4F5
 WizardSmallImageBackColor=#DDF4F5
 WizardSizePercent=110
 UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile={#SourceRoot}\DentalRay\wwwroot\images\dentalray.ico
 
 [Languages]
 Name: "persian"; MessagesFile: "Farsi.isl"
@@ -47,8 +48,8 @@ Source: "{#SourceRoot}\DentalRay.SetupHelper\DentalRay.Database.Install.sql"; Fl
 Source: "{#SourceRoot}\DentalRay\*"; DestDir: "{app}"; Excludes: "appsettings.json,appsettings.Development.json"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\DentalRay"; Filename: "{sys}\rundll32.exe"; Parameters: "url.dll,FileProtocolHandler http://localhost:5202"; IconFilename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\DentalRay"; Filename: "{sys}\rundll32.exe"; Parameters: "url.dll,FileProtocolHandler http://localhost:5202"; IconFilename: "{app}\{#MyAppExeName}"
+Name: "{autoprograms}\DentalRay"; Filename: "{sys}\rundll32.exe"; Parameters: "url.dll,FileProtocolHandler http://localhost:5202"; IconFilename: "{app}\wwwroot\images\dentalray.ico"
+Name: "{autodesktop}\DentalRay"; Filename: "{sys}\rundll32.exe"; Parameters: "url.dll,FileProtocolHandler http://localhost:5202"; IconFilename: "{app}\wwwroot\images\dentalray.ico"
 
 [UninstallRun]
 Filename: "{sys}\sc.exe"; Parameters: "stop DentalRay"; Flags: runhidden waituntilterminated; RunOnceId: "StopDentalRayService"

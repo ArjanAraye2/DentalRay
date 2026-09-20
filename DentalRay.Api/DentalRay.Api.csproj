@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Executable icon: used by the service host and by the shortcuts the
+         installer creates, so DentalRay never shows the default .NET icon. -->
+    <ApplicationIcon>wwwroot\images\dentalray.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
