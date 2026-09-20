@@ -17,89 +17,13 @@
   const UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
   const LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-  // Local space: origin at the middle of the mouth, y grows downward.
+  // Local space: origin at the middle of the mouth, y grows downward. The arch curve
+  // and the tooth layout come from tooth-arch.js, which the CBCT view shares.
   const CENTER = 530;          // where the local origin lands in the viewBox
   const VIEW = 1060;
-  const HALF_WIDTH = 286;      // incisor to the last molar, sideways
-  const DEPTH = 320;           // incisor to the last molar, front to back
-  const FRONT = { upper: -44, lower: 46 };  // y of the incisors; they face each other
-  const FRONT_FLAT = 1.3;      // real arches are flatter at the front than an ellipse
-  const FILL = 0.88;           // share of the arch the teeth take; the rest is gaps
   const FIT = 0.98;            // keeps a full turn inside the viewBox
 
-  function archPoint(t, jaw) {
-    // t: -1 at the left molar, 0 at the incisors, +1 at the right molar.
-    const th = t * Math.PI / 2;
-    const u = Math.sin(th);
-    const v = Math.pow(1 - Math.cos(th), FRONT_FLAT);
-    const y = jaw === "upper" ? FRONT.upper - DEPTH * v : FRONT.lower + DEPTH * v;
-    return { x: HALF_WIDTH * u, y: y };
-  }
-
-  // The interior each jaw's teeth face away from: the palate above, the tongue below.
-  const FOCUS = {
-    upper: { x: 0, y: FRONT.upper - DEPTH * 0.55 },
-    lower: { x: 0, y: FRONT.lower + DEPTH * 0.55 }
-  };
-
-  function buildArch(jaw) {
-    const N = 220, pts = [];
-    let s = 0, prev = null;
-    for (let i = 0; i <= N; i++) {
-      const p = archPoint(-1 + 2 * i / N, jaw);
-      if (prev) s += Math.hypot(p.x - prev.x, p.y - prev.y);
-      pts.push({ x: p.x, y: p.y, s: s });
-      prev = p;
-    }
-    return pts;
-  }
-
-  function pointAt(pts, s) {
-    const last = pts.length - 1;
-    if (s <= 0) return pts[0];
-    if (s >= pts[last].s) return pts[last];
-    let lo = 0, hi = last;
-    while (lo + 1 < hi) {
-      const mid = (lo + hi) >> 1;
-      if (pts[mid].s <= s) lo = mid; else hi = mid;
-    }
-    const a = pts[lo], b = pts[hi], span = b.s - a.s;
-    const f = span ? (s - a.s) / span : 0;
-    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
-  }
-
   const FALLBACK = { crown: "M10 10 Q20 6 30 10 L29 25 Q20 29 11 25 Z", root: "M13 25 L16.5 38 Q20 40 23.5 38 L27 25 Z", detail: "M13 15 Q20 13 27 15" };
-
-  function layout(jaw) {
-    const shapes = window.DentalRayToothShapes;
-    const teeth = jaw === "upper" ? UPPER : LOWER;
-    const pts = buildArch(jaw);
-    const total = pts[pts.length - 1].s;
-    const info = teeth.map(n => (shapes ? shapes.shapeOf(n) : FALLBACK));
-    const sumW = info.reduce((a, s) => a + (s.crownWidth || 20), 0);
-    // One scale for the whole jaw: the teeth keep their real width ratios, so a molar
-    // is wide and an incisor is narrow, and together they fill the arch.
-    const k = (total * FILL) / sumW;
-    let acc = (total - sumW * k) / 2;
-    const focus = FOCUS[jaw];
-
-    return teeth.map((n, i) => {
-      const shape = info[i];
-      const w = (shape.crownWidth || 20) * k;
-      const at = acc + w / 2;
-      acc += w;
-      const p = pointAt(pts, at);
-      // Tangent by finite difference, then the normal, then make sure it points away
-      // from the inside of the mouth so the crown faces the mouth opening.
-      const a = pointAt(pts, at - 3), b = pointAt(pts, at + 3);
-      let tx = b.x - a.x, ty = b.y - a.y;
-      const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-      let nx = -ty, ny = tx;
-      if ((p.x - focus.x) * nx + (p.y - focus.y) * ny < 0) { nx = -nx; ny = -ny; }
-      const rot = Math.atan2(nx, -ny) * 180 / Math.PI;
-      return { n: n, shape: shape, x: p.x, y: p.y, rot: rot, nx: nx, ny: ny, k: k, w: w };
-    });
-  }
 
   function toothMarkup(t, chosen) {
     const s = t.shape;
@@ -128,10 +52,11 @@
     if (!container) return;
     const chosen = new Set((selected || []).map(Number));
     const shapes = window.DentalRayToothShapes;
-    if (!shapes) return;
+    const lib = window.DentalRayToothArch;
+    if (!shapes || !lib) return;
 
-    const upperPts = buildArch("upper"), lowerPts = buildArch("lower");
-    const upper = layout("upper"), lower = layout("lower");
+    const upperPts = lib.buildPath("upper"), lowerPts = lib.buildPath("lower");
+    const upper = lib.layout("upper", UPPER), lower = lib.layout("lower", LOWER);
 
     container.innerHTML =
       '<div class="natural-odontogram">' +
@@ -242,5 +167,5 @@
     apply();
   }
 
-  window.DentalRayNaturalOdontogram = { render, FOCUS: FOCUS, archPoint: archPoint };
+  window.DentalRayNaturalOdontogram = { render };
 })();
