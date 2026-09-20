@@ -712,48 +712,48 @@ button {
 }
 
 
-.study-card {
-    padding: 15px;
-    background: #ffffff;
-    border: 1px solid var( --border );
-    border-radius: 10px;
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
 
 
-    .study-card:hover {
-        box-shadow: 0 7px 20px rgba(12,55,70, 0.07 );
-    }
 
 
-.study-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-}
 
 
-.study-title {
-    font-weight: bold;
-    font-size: 15px;
-}
 
 
-.study-meta {
-    display: grid;
-    grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
-    gap: 8px 16px;
-    color: #455e6b;
-    font-size: 14px;
-}
 
 
-    .study-meta strong {
-        color: #1f2d36;
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* ==========================================================
@@ -1130,24 +1130,24 @@ button {
         margin-top: 10px;
     }
 
-/* ==========================================================
-   Study Card - Final Layout
-   ========================================================== */
-
-.study-card {
-    overflow: hidden;
-}
 
 
-    .study-card + .study-card {
-        margin-top: 4px;
-    }
 
 
-.study-card-header {
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eef4f6;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 .study-inline-images {
@@ -1781,17 +1781,17 @@ button {
     border-radius:0 0 15px 15px;
     box-shadow:0 7px 24px rgba(12,55,70,.06);
 }
-#patientDetailsSection .study-card {
-    padding:13px 15px;
-    border-color:#d8e7ec;
-    background:linear-gradient(180deg,#ffffff,#f5fbfd);
-    cursor:pointer;
-}
-#patientDetailsSection .study-card:hover {
-    border-color:#7fc9d8;
-    background:#eef8fb;
-    transform:translateY(-1px);
-}
+
+
+
+
+
+
+
+
+
+
+
 @media(max-width:1100px){
     #patientDetailsSection .patient-info-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     #patientDetailsSection .info-item.full-width { grid-column:1 / -1; }
@@ -2395,8 +2395,7 @@ table button {
 #patientsSection .patient-table,
 #patientsSection .patient-table th,
 #patientsSection .patient-table td,
-#patientsSection + #patientDetailsSection .info-item,
-#patientsSection + #patientDetailsSection .study-card {
+#patientsSection + #patientDetailsSection .info-item {
     font-family:inherit;
 }
 #patientsSection + #patientDetailsSection .details-toolbar {
@@ -2529,14 +2528,14 @@ table button {
 }
 #patientsSection + #patientDetailsSection .subsection-header h3 { font-size:14px; }
 #patientsSection + #patientDetailsSection .studies-container { padding:7px; }
-#patientsSection + #patientDetailsSection .study-card {
-    padding:8px 10px;
-    margin-bottom:6px;
-    border-radius:8px;
-    font-size: 12px;
-}
-#patientsSection + #patientDetailsSection .study-title { font-size:12px; }
-#patientsSection + #patientDetailsSection .study-meta { font-size: 12px; }
+
+
+
+
+
+
+
+
 
 @media(max-width:900px){
     #patientsSection + #patientDetailsSection .patient-info-grid {
@@ -2645,11 +2644,11 @@ table button {
     background: #eef8fb;
 }
 
-#patientDetailsSection .study-card {
-    border-color: #c3dae1;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #ffffff, #f5fbfd);
-}
+
+
+
+
+
 
 @media (max-width: 900px) {
     #patientsSection .patient-table { min-width: 980px; }
@@ -3802,7 +3801,7 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 #patientsSection .patient-statistics > div,
 #patientDetailsSection .patient-overview-column,
 #patientsSection + #patientDetailsSection .patient-overview-column,
-#patientDetailsSection .study-card,
+
 .study-scroll-header,
 .subsection-header,
 .study-list-header,
@@ -3844,7 +3843,7 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 .image-card { border-radius: var( --radius-lg ); }
 
 .info-item,
-.study-card,
+
 .dashboard-summary-card,
 .settings-admin-actions .settings-action-button,
 .study-scroll-details .info-line,
@@ -3874,7 +3873,7 @@ a.sidebar-link,
 .patient-list-row,
 .image-card,
 .study-scroll-card,
-.study-card,
+
 input,
 select,
 textarea {
@@ -4040,4 +4039,3 @@ body { line-height: 1.75; }
     }
     button:hover:not(:disabled) { transform: none; }
 }
-

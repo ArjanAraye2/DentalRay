@@ -24,7 +24,9 @@ function renderResult(host,result){
 async function analyze(card,button){
  const studyID=Number(card.dataset.studyId);if(!studyID)return;
  let host=card.querySelector('.ai-study-analysis');
- if(!host){host=document.createElement('div');host.className='ai-study-analysis';card.querySelector('.study-accordion-body')?.appendChild(host);}
+ // The Study body is now ".study-scroll-body" and exists as soon as the row is
+ // built, so the result has a home whether or not the row has been opened yet.
+ if(!host){host=document.createElement('div');host.className='ai-study-analysis';(card.querySelector('.study-scroll-body')||card).appendChild(host);}
  button.disabled=true;host.innerHTML='<p>در حال تحلیل همه تصاویر این Study با هوش مصنوعی...</p>';
  try{
    const response=await fetch(`/api/ai/studies/${studyID}/analyze`,{method:'POST'});
@@ -34,6 +36,8 @@ async function analyze(card,button){
  }catch(error){host.innerHTML=`<p class="error">${esc(error.message||'تحلیل هوش مصنوعی انجام نشد.')}</p>`;}
  finally{button.disabled=false;}
 }
-function enhance(){document.querySelectorAll('.study-card').forEach(card=>{if(card.querySelector('.ai-analyze-button'))return;const body=card.querySelector('.study-accordion-body');if(!body)return;const actions=body.querySelector('.study-action-buttons')||body.querySelector('.study-body-actions');if(!actions)return;const button=document.createElement('button');button.type='button';button.className='secondary-button ai-analyze-button';button.textContent='تحلیل با هوش مصنوعی';button.addEventListener('click',()=>analyze(card,button));actions.appendChild(button);});}
+// Attach to the current collapsible row markup. The actions live in the header, so
+// the button is visible without opening the Study, and the click must not toggle it.
+function enhance(){document.querySelectorAll('.study-scroll-card').forEach(card=>{if(card.querySelector('.ai-analyze-button'))return;const actions=card.querySelector('.study-scroll-actions');if(!actions)return;const button=document.createElement('button');button.type='button';button.className='secondary-button ai-analyze-button';button.textContent='تحلیل با هوش مصنوعی';button.addEventListener('click',e=>{e.stopPropagation();analyze(card,button);});actions.appendChild(button);});}
 const container=document.getElementById('studiesContainer');if(container){new MutationObserver(enhance).observe(container,{childList:true,subtree:true});enhance();}
 })();

@@ -1,17 +1,178 @@
-// DentalRay - interactive graphical FDI Dental Chart
-(function(){
-const permanentRows=[[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38]];
-const primaryRows=[[55,54,53,52,51,61,62,63,64,65],[85,84,83,82,81,71,72,73,74,75]];const storageKey='dentalray.dentalChartView';
-function toothSvg(n){const t=n%10;let c,r,d;if(t<=2){c='M10 5 Q20 0 30 5 L29 19 Q20 23 11 19 Z';r='M11 19 L14 43 Q17 46 20 31 Q23 46 26 43 L29 19 Z';d='M14 9 Q20 6 26 9';}else if(t===3){c='M11 8 L20 2 L29 8 L28 20 Q20 24 12 20 Z';r='M12 20 L16 43 Q18 47 20 31 Q22 47 24 43 L28 20 Z';d='M15 11 L20 7 L25 11';}else{c='M7 8 Q12 2 17 7 Q20 2 23 7 Q29 2 33 8 L30 22 Q20 27 10 22 Z';r='M10 22 L12 42 Q15 47 20 32 Q25 47 28 42 L30 22 Z';d='M12 12 Q20 7 28 12';}return`<svg viewBox="0 0 40 48"><path class="tooth-root" d="${r}"/><path class="tooth-crown" d="${c}"/><path class="tooth-detail" d="${d}"/></svg>`;}
-function toothButton(n,s){const b=document.createElement('button');b.type='button';b.className='tooth-button'+(s.has(n)?' selected':'');b.dataset.tooth=n;b.innerHTML='<span class="tooth-shape">'+toothSvg(n)+'</span><span class="tooth-number">'+n+'</span>';b.onclick=()=>{b.classList.toggle('selected');syncArch(b.closest('.dental-chart'));summary(b.closest('.dental-chart'));};return b;}
-function addSection(root,title,rows,s){const g=document.createElement('div');g.className='dental-chart-group';g.innerHTML='<div class="dental-chart-group-title">'+title+'</div>';rows.forEach((a,i)=>{const r=document.createElement('div');r.className='dental-chart-row dental-chart-row-'+(i?'lower':'upper');a.forEach(n=>r.appendChild(toothButton(n,s)));g.appendChild(r);});root.appendChild(g);}
-function selected(root){return Array.from(root.querySelectorAll('.tooth-button.selected')).map(x=>Number(x.dataset.tooth));}
-function summary(root){const t=root.querySelector('.dental-chart-selected'),v=selected(root);if(t)t.textContent=v.length?'دندان‌های انتخاب‌شده: '+v.sort((a,b)=>a-b).join('، '):'هنوز دندانی انتخاب نشده است.';}
-function syncArch(root){const box=root.querySelector('.dental-integrated-arch');if(box&&window.DentalRayArchOdontogram)window.DentalRayArchOdontogram.render(box,selected(root));}
-function setMode(root,m){['linear','anatomical','arch'].forEach(x=>root.classList.remove('dental-view-'+x));root.classList.add('dental-view-'+m);root.querySelectorAll('.dental-view-button').forEach(b=>b.classList.toggle('active',b.dataset.view===m));if(m==='arch')syncArch(root);try{localStorage.setItem(storageKey,m);}catch(_){}}
-function toolbar(){const b=document.createElement('div');b.className='dental-chart-toolbar';b.innerHTML='<strong>شمای گرافیکی دندان‌ها</strong><span class="dental-chart-view-label">نوع نمایش:</span><button type="button" class="dental-view-button" data-view="linear">خطی</button><button type="button" class="dental-view-button" data-view="anatomical">آناتومیک</button><button type="button" class="dental-view-button" data-view="arch">قوسی</button>';return b;}
-function ensureAssets(done){load('link','odontogramArchCss','/css/odontogram-arch.css');if(window.DentalRayArchOdontogram)return done();let s=document.getElementById('odontogramArchJs');if(!s){s=document.createElement('script');s.id='odontogramArchJs';s.src='/js/odontogram-arch.js';document.body.appendChild(s);}s.addEventListener('load',done,{once:true});}
-function load(tag,id,url){if(document.getElementById(id))return;const e=document.createElement(tag);e.id=id;if(tag==='link'){e.rel='stylesheet';e.href=url;document.head.appendChild(e);}else{e.src=url;document.body.appendChild(e);}}
-window.DentalRayDentalChart={render(container,teeth){if(!container)return;const s=new Set((teeth||[]).map(Number));container.innerHTML='';container.className='dental-chart';const bar=toolbar();container.appendChild(bar);const arch=document.createElement('div');arch.className='dental-integrated-arch';container.appendChild(arch);const body=document.createElement('div');body.className='dental-chart-body';addSection(body,'دندان‌های دائمی',permanentRows,s);addSection(body,'دندان‌های شیری',primaryRows,s);container.appendChild(body);const sum=document.createElement('div');sum.className='dental-chart-selected';container.appendChild(sum);bar.querySelectorAll('.dental-view-button').forEach(b=>b.onclick=()=>setMode(container,b.dataset.view));let mode='arch';try{mode=localStorage.getItem(storageKey)||mode;}catch(_){}if(!['linear','anatomical','arch'].includes(mode))mode='arch';ensureAssets(()=>setMode(container,mode));summary(container);},getSelected(container){return container?selected(container).sort((a,b)=>a-b):[];}};
-load('link','dentalGraphicStyles','/css/dental-graphic.css');load('script','dentalrayTerminology','/js/frontend-terminology.js');
+// Dentix - interactive graphical FDI Dental Chart
+//
+// Three views: a plain numbered row (linear), anatomical rows, and an arch. The
+// tooth artwork comes from tooth-shapes.js so both drawn views share one source of
+// truth for shape, root layout and width.
+(function () {
+  "use strict";
+
+  const permanentRows = [
+    [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28],
+    [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
+  ];
+  const primaryRows = [
+    [55, 54, 53, 52, 51, 61, 62, 63, 64, 65],
+    [85, 84, 83, 82, 81, 71, 72, 73, 74, 75]
+  ];
+  const storageKey = "dentalray.dentalChartView";
+
+  // Falls back to a plain outline if the shapes module did not load, so the chart
+  // stays usable rather than throwing.
+  function toothSvg(n) {
+    if (window.DentalRayToothShapes) return window.DentalRayToothShapes.svg(n);
+    return '<svg viewBox="10 6 20 34" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path class="tooth-root" d="M13 25 L16.5 38 Q20 40 23.5 38 L27 25 Z"/>' +
+      '<path class="tooth-crown" d="M10 10 Q20 6 30 10 L29 25 Q20 29 11 25 Z"/>' +
+      '<path class="tooth-detail" d="M13 15 Q20 13 27 15"/></svg>';
+  }
+
+  function toothButton(n, s) {
+    const b = document.createElement("button");
+    b.type = "button";
+    // A molar is visibly wider than an incisor, and the quadrant tints the tooth
+    // so the four quarters are easy to tell apart.
+    const shapes = window.DentalRayToothShapes;
+    b.className = "tooth-button" + (s.has(n) ? " selected" : "") + (shapes ? " " + shapes.quadrantClass(n) : "");
+    b.dataset.tooth = n;
+    b.title = "دندان " + n;
+    if (shapes) {
+      // The SVG is cropped to the tooth and stretched to this box, so the width has
+      // to keep the crown's real proportions. The .tooth-shape box is 46px tall and
+      // a tooth is about 34 local units tall, which is the scale used here.
+      const shape = shapes.shapeOf(n);
+      b.style.setProperty("--tooth-width", Math.round(shape.crownWidth * 1.35) + "px");
+    }
+    b.setAttribute("aria-pressed", s.has(n) ? "true" : "false");
+    b.innerHTML = '<span class="tooth-shape">' + toothSvg(n) + '</span><span class="tooth-number">' + n + "</span>";
+    b.onclick = () => {
+      b.classList.toggle("selected");
+      b.setAttribute("aria-pressed", b.classList.contains("selected") ? "true" : "false");
+      syncArch(b.closest(".dental-chart"));
+      summary(b.closest(".dental-chart"));
+    };
+    return b;
+  }
+
+  function addSection(root, title, rows, s) {
+    const g = document.createElement("div");
+    g.className = "dental-chart-group";
+    const h = document.createElement("div");
+    h.className = "dental-chart-group-title";
+    h.textContent = title;
+    g.appendChild(h);
+    rows.forEach((a, i) => {
+      const r = document.createElement("div");
+      r.className = "dental-chart-row dental-chart-row-" + (i ? "lower" : "upper");
+      a.forEach(n => r.appendChild(toothButton(n, s)));
+      g.appendChild(r);
+    });
+    root.appendChild(g);
+  }
+
+  function selected(root) {
+    return Array.from(root.querySelectorAll(".tooth-button.selected")).map(x => Number(x.dataset.tooth));
+  }
+
+  function summary(root) {
+    const t = root.querySelector(".dental-chart-selected"), v = selected(root);
+    if (!t) return;
+    t.textContent = v.length
+      ? "دندان‌های انتخاب‌شده: " + v.sort((a, b) => a - b).join("، ")
+      : "هنوز دندانی انتخاب نشده است.";
+  }
+
+  function syncArch(root) {
+    const box = root.querySelector(".dental-integrated-arch");
+    if (box && window.DentalRayArchOdontogram) window.DentalRayArchOdontogram.render(box, selected(root));
+  }
+
+  function setMode(root, m) {
+    ["linear", "anatomical", "arch"].forEach(x => root.classList.remove("dental-view-" + x));
+    root.classList.add("dental-view-" + m);
+    root.querySelectorAll(".dental-view-button").forEach(b => b.classList.toggle("active", b.dataset.view === m));
+    if (m === "arch") syncArch(root);
+    try { localStorage.setItem(storageKey, m); } catch (_) { }
+  }
+
+  function toolbar() {
+    const b = document.createElement("div");
+    b.className = "dental-chart-toolbar";
+    b.innerHTML = '<strong>شمای گرافیکی دندان‌ها</strong>' +
+      '<span class="dental-chart-view-label">نوع نمایش:</span>' +
+      '<button type="button" class="dental-view-button" data-view="linear">خطی</button>' +
+      '<button type="button" class="dental-view-button" data-view="anatomical">آناتومیک</button>' +
+      '<button type="button" class="dental-view-button" data-view="arch">قوسی</button>';
+    return b;
+  }
+
+  function ensureAssets(done) {
+    load("link", "odontogramArchCss", "/css/odontogram-arch.css");
+    // The tooth library feeds both drawn views, so make sure it is present.
+    if (!window.DentalRayToothShapes) {
+      const lib = document.getElementById("dentalrayToothShapes");
+      if (!lib) {
+        const s = document.createElement("script");
+        s.id = "dentalrayToothShapes";
+        s.src = "/js/tooth-shapes.js";
+        s.addEventListener("load", () => ensureAssets(done), { once: true });
+        document.body.appendChild(s);
+        return;
+      }
+    }
+    if (window.DentalRayArchOdontogram) return done();
+    let s = document.getElementById("odontogramArchJs");
+    if (!s) {
+      s = document.createElement("script");
+      s.id = "odontogramArchJs";
+      s.src = "/js/odontogram-arch.js";
+      document.body.appendChild(s);
+    }
+    s.addEventListener("load", done, { once: true });
+  }
+
+  function load(tag, id, url) {
+    if (document.getElementById(id)) return;
+    const e = document.createElement(tag);
+    e.id = id;
+    if (tag === "link") { e.rel = "stylesheet"; e.href = url; document.head.appendChild(e); }
+    else { e.src = url; document.body.appendChild(e); }
+  }
+
+  window.DentalRayDentalChart = {
+    render(container, teeth) {
+      if (!container) return;
+      const s = new Set((teeth || []).map(Number));
+      container.innerHTML = "";
+      // Add the marker class rather than replacing className. Study cards pass in
+      // "study-card-dental-chart study-chart-readonly", and overwriting it wiped the
+      // rules that hide the view buttons and make the chart read-only.
+      container.classList.add("dental-chart");
+      const bar = toolbar();
+      container.appendChild(bar);
+      const arch = document.createElement("div");
+      arch.className = "dental-integrated-arch";
+      container.appendChild(arch);
+      const body = document.createElement("div");
+      body.className = "dental-chart-body";
+      addSection(body, "دندان‌های دائمی", permanentRows, s);
+      addSection(body, "دندان‌های شیری", primaryRows, s);
+      container.appendChild(body);
+      const sum = document.createElement("div");
+      sum.className = "dental-chart-selected";
+      container.appendChild(sum);
+      bar.querySelectorAll(".dental-view-button").forEach(b => b.onclick = () => setMode(container, b.dataset.view));
+      let mode = "arch";
+      try { mode = localStorage.getItem(storageKey) || mode; } catch (_) { }
+      if (!["linear", "anatomical", "arch"].includes(mode)) mode = "arch";
+      ensureAssets(() => setMode(container, mode));
+      summary(container);
+    },
+    getSelected(container) { return container ? selected(container).sort((a, b) => a - b) : []; }
+  };
+
+  // index.html loads the tooth library directly; ensureAssets() lazily injects it on
+  // any page that only includes this file, so there is no unconditional load here
+  // (which would add a second tag when the library is already present).
+  load("link", "dentalGraphicStyles", "/css/dental-graphic.css");
+  load("script", "dentalrayTerminology", "/js/frontend-terminology.js");
 })();
