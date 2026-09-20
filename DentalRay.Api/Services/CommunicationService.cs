@@ -15,11 +15,13 @@ namespace DentalRay.Api.Services
     {
         private readonly string _settingsPath;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<CommunicationService> _logger;
         private readonly object _sync = new();
 
-        public CommunicationService(IHttpClientFactory httpClientFactory)
+        public CommunicationService(IHttpClientFactory httpClientFactory, ILogger<CommunicationService> logger)
         {
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
             var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "DentalRay");
             Directory.CreateDirectory(directory);
             _settingsPath = Path.Combine(directory, "DentalRay.communication.json");
@@ -41,13 +43,32 @@ namespace DentalRay.Api.Services
 
         public async Task SaveSettingsAsync(CommunicationChannelSettings settings)
         {
-            settings.SmsApiKey = settings.SmsApiKey.Trim();
+            settings.SmsApiKey = (settings.SmsApiKey ?? string.Empty).Trim();
             settings.SmsApiUrl = string.IsNullOrWhiteSpace(settings.SmsApiUrl) ? "https://api.kavenegar.com/v1" : settings.SmsApiUrl.Trim().TrimEnd('/');
             settings.SmsProvider = string.IsNullOrWhiteSpace(settings.SmsProvider) ? "Kavenegar" : settings.SmsProvider.Trim();
+
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+
             lock (_sync)
             {
-                var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_settingsPath, json);
+                try
+                {
+                    File.WriteAllText(_settingsPath, json);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    // The settings folder under ProgramData only grants write to
+                    // administrators on some installations. Reporting the real
+                    // reason is far more useful than a generic failure.
+                    _logger.LogError(ex, "Cannot write communication settings to {Path}", _settingsPath);
+                    throw new InvalidOperationException(
+                        "ذخیره تنظیمات پیامک ممکن نشد؛ دسترسی نوشتن در پوشه تنظیمات وجود ندارد. برنامه را با دسترسی مدیر اجرا کنید.", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Cannot write communication settings to {Path}", _settingsPath);
+                    throw new InvalidOperationException("ذخیره تنظیمات پیامک ناموفق بود.", ex);
+                }
             }
             await Task.CompletedTask;
         }

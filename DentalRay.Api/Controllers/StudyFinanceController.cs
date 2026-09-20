@@ -14,12 +14,13 @@ public class StudyFinanceController : ControllerBase
     private readonly DentalRayDbContext _db;
     private readonly StudyAccessService _access;
     private readonly PosProtocolRegistry _posProtocols;
+    private readonly PatientMessagingService _messaging;
     private readonly ILogger<StudyFinanceController> _logger;
 
     public StudyFinanceController(DentalRayDbContext db, StudyAccessService access,
-        PosProtocolRegistry posProtocols, ILogger<StudyFinanceController> logger)
+        PosProtocolRegistry posProtocols, PatientMessagingService messaging, ILogger<StudyFinanceController> logger)
     {
-        _db = db; _access = access; _posProtocols = posProtocols; _logger = logger;
+        _db = db; _access = access; _posProtocols = posProtocols; _messaging = messaging; _logger = logger;
     }
 
     [HttpGet]
@@ -124,6 +125,10 @@ public class StudyFinanceController : ControllerBase
         if (payment == null) return NotFound(new { success = false, message = "دریافت پیدا نشد." });
         if (payment.IsRefund) return BadRequest(new { success = false, message = "مبلغ بازپرداخت به پوز فرستاده نمی‌شود." });
 
+        // Needed to send the confirmation SMS to the right patient.
+        int studyPatientID = await _db.RadiologyStudies.AsNoTracking()
+            .Where(s => s.StudyID == studyID).Select(s => s.PatientID).FirstOrDefaultAsync();
+
         var setting = posSettingID.HasValue
             ? await _db.PosSettings.FirstOrDefaultAsync(x => x.PosSettingID == posSettingID.Value)
             : await _db.PosSettings.Where(x => x.IsActive)
@@ -166,6 +171,41 @@ public class StudyFinanceController : ControllerBase
             : $"{result.Message}{(string.IsNullOrWhiteSpace(result.RawResponse) ? "" : " | " + result.RawResponse)}", 500);
         await _db.SaveChangesAsync();
 
+        // On a confirmed payment, send the patient a short confirmation.
+        //
+        // Only on success, and deliberately without the amount: a wrong mobile
+        // number or a shared phone would otherwise leak treatment costs, and the
+        // patient already has the terminal receipt. A failed dispatch must never
+        // produce an alarming "payment failed" message.
+        string? smsMessage = null;
+        if (result.Success)
+        {
+            try
+            {
+                var patient = await _db.Patients.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.PatientID == studyPatientID);
+                if (patient != null && !string.IsNullOrWhiteSpace(patient.Mobile))
+                {
+                    var template = MessageTemplates.Find("payment-confirmed");
+                    if (template != null)
+                    {
+                        string body = PatientMessagingService.RenderBody(template.Body)
+                            .Replace("{patient}", $"{patient.FirstName} {patient.LastName}".Trim());
+                        var sms = await _messaging.SendAsync(patient.PatientID, patient.Mobile, body,
+                            template.Key, null, null, cancellationToken);
+                        smsMessage = sms.Success ? "پیامک تأیید برای بیمار ارسال شد." : $"پیامک ارسال نشد: {sms.Message}";
+                    }
+                }
+                else smsMessage = "شماره موبایل بیمار ثبت نشده است.";
+            }
+            catch (Exception ex)
+            {
+                // The money was taken; a messaging problem must not fail the call.
+                _logger.LogError(ex, "POS confirmed for payment {PaymentID} but the SMS failed", id);
+                smsMessage = "پرداخت تأیید شد ولی ارسال پیامک ناموفق بود.";
+            }
+        }
+
         return Ok(new
         {
             success = true,
@@ -173,7 +213,8 @@ public class StudyFinanceController : ControllerBase
             message = result.Message,
             raw = result.RawResponse,
             posName = setting.Name,
-            sentAt = payment.PosSentAt
+            sentAt = payment.PosSentAt,
+            sms = smsMessage
         });
     }
 

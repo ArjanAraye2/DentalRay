@@ -23,6 +23,8 @@ builder.Services.AddScoped<StudyAccessService>();
 // new vendor only needs a new IPosProtocol implementation registered here.
 builder.Services.AddSingleton<IPosProtocol, GenericTcpPosProtocol>();
 builder.Services.AddSingleton<PosProtocolRegistry>();
+// Patient messaging: sends SMS and records every attempt in tblPatientMessages.
+builder.Services.AddScoped<PatientMessagingService>();
 // Central communication service: Kavenegar is the default SMS provider, while the provider remains configurable.
 builder.Services.AddSingleton<ICommunicationService, CommunicationService>();
 builder.Services.AddHttpClient();
