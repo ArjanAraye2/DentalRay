@@ -105,7 +105,8 @@ async function loadPatients(search=""){
     createCell(p.mobile||"-"),
     createCell(p.studyCount??0),
     // Open and completed counts, colour-coded so outstanding work stands out.
-    createStudyCountCell(p.openStudyCount,p.completedStudyCount),
+    // The helper returns two cells, so they are spread into append().
+    ...createStudyCountCell(p.openStudyCount,p.completedStudyCount),
     createCell(formatPersianDate(p.lastStudyDate)),
     createPatientStatusCell(p)
    );
