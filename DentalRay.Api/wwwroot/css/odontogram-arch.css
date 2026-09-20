@@ -1,7 +1,6 @@
-/* Dentix - arch odontogram. */
-/* The arch geometry (gum, palate, mouth and tooth placement) is the original layout.
-   What is painted here is the shared tooth artwork from tooth-shapes.js, so the arch
-   shows eight real tooth types and the correct root count per jaw. */
+/* Dentix - arch odontogram.
+   The arch geometry (gum, palate, mouth and tooth placement) is the original layout.
+   The teeth themselves are painted in dental-graphic.css, which every view shares. */
 
 .real-odontogram {
     max-width: 900px;
@@ -45,62 +44,8 @@
     text-anchor: middle;
 }
 
-/* Teeth. The crown is enamel, the root dentine, the detail the occlusal grooves. */
-.arch-tooth {
-    cursor: pointer;
-}
-
-.arch-tooth .arch-crown {
-    fill: #fffdf7;
-    stroke: #a88d6d;
-    stroke-width: 2;
-    stroke-linejoin: round;
-    filter: drop-shadow(0 2px 2px rgba(58, 42, 27, .2));
-    transition: fill .15s ease, stroke .15s ease;
-}
-
-.arch-tooth .arch-root {
-    fill: #ead7b6;
-    stroke: #ab9070;
-    stroke-width: 1.8;
-    transition: fill .15s ease, stroke .15s ease;
-}
-
-.arch-tooth .arch-detail {
-    fill: none !important;
-    stroke: #d2b98f !important;
-    stroke-width: 1.6 !important;
-    stroke-linecap: round;
-}
-
-/* Quadrant tint, matching the anatomical rows. */
-.arch-tooth.quadrant-2 .arch-crown { fill: #fbfdff; }
-.arch-tooth.quadrant-3 .arch-crown { fill: #fbfffd; }
-.arch-tooth.quadrant-4 .arch-crown { fill: #fffbfb; }
-
-.arch-tooth:hover .arch-crown { fill: #edf6ff; stroke: #2581dc; }
-.arch-tooth:hover .arch-root { fill: #dbeaf8; stroke: #2581dc; }
-
-.arch-tooth.selected .arch-crown {
-    fill: #86c7ff;
-    stroke: #0878e5;
-    stroke-width: 3;
-    filter: drop-shadow(0 3px 4px rgba(0, 112, 230, .35));
-}
-.arch-tooth.selected .arch-root { fill: #6fb4f5; stroke: #0878e5; }
-.arch-tooth.selected .arch-detail { stroke: #fff !important; }
-
-/* Keyboard focus has to be visible because the teeth are now reachable with Tab. */
-.arch-tooth:focus-visible .arch-crown {
-    stroke: #0b62c4;
-    stroke-width: 3;
-    outline: none;
-}
-
-.arch-tooth:focus-visible {
-    outline: 2px solid #2563eb;
-    outline-offset: 2px;
-}
+/* Clickable teeth */
+.arch-tooth { cursor: pointer; }
 
 .arch-tooth-number {
     font: 700 15px Arial, sans-serif;

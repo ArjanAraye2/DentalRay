@@ -18,7 +18,8 @@
   const UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
   const LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-  const FALLBACK = { crown: "M10 10 Q20 6 30 10 L29 25 Q20 29 11 25 Z", root: "M13 25 L16.5 38 Q20 40 23.5 38 L27 25 Z", detail: "M13 15 Q20 13 27 15", crownWidth: 20 };
+  // Layout-only fallback: the fields a view needs to place a tooth, not its artwork.
+  const FALLBACK = { crownWidth: 20, width: 20, height: 40, crownCenterY: 14 };
 
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -110,16 +111,12 @@
     };
 
     function toothMarkup(t, chosen) {
-      const s = t.shape, cx = 20, cy = 21;
       const sel = chosen.has(t.n) ? " selected" : "";
       return '<g class="cbct-tooth' + sel + '" data-tooth="' + t.n + '" role="button" tabindex="0"' +
         ' aria-label="دندان ' + t.n + '" aria-pressed="' + (chosen.has(t.n) ? "true" : "false") + '">' +
         '<g transform="translate(' + t.x.toFixed(1) + " " + t.y.toFixed(1) + ") rotate(" + t.rot.toFixed(1) + ") scale(" + t.k.toFixed(3) + ')">' +
-        '<g transform="translate(-20 -21)">' +
-        '<path class="cbct-root" d="' + s.root + '"/>' +
-        '<path class="cbct-crown" d="' + s.crown + '"/>' +
-        '<path class="cbct-detail" d="' + s.detail + '"/>' +
-        "</g></g></g>";
+        (window.DentalRayToothShapes ? window.DentalRayToothShapes.markup(t.n, "cbct") : "") +
+        "</g></g>";
     }
 
     container.innerHTML =
@@ -240,21 +237,18 @@
     function sagittal() {
       const oy = PANEL / 2;
       const side = [18, 17, 16, 15, 14, 13, 12, 11];
-      const shape = n => shapes.shapeOf(n) || FALLBACK;
       const pitch = (PANEL - 120) / side.length;
       const k = Math.min(1.15, pitch / 34);
       const total = pitch * side.length;
       const startX = (PANEL - total) / 2 + pitch / 2;
       let row = "";
       side.forEach((n, i) => {
-        const sh = shape(n);
         const x = startX + i * pitch;
         const sel = chosen.has(n) ? " selected" : "";
         row += '<g class="cbct-side' + sel + '" data-tooth="' + n + '" role="button" tabindex="0">' +
           '<g transform="translate(' + x.toFixed(1) + " " + oy + ") scale(" + k.toFixed(3) + ')">' +
-          '<g transform="translate(-20 -21)">' +
-          '<path class="cbct-root" d="' + sh.root + '"/>' +
-          '<path class="cbct-crown" d="' + sh.crown + '"/></g></g></g>';
+          (window.DentalRayToothShapes ? window.DentalRayToothShapes.markup(n, "cbct") : "") +
+          "</g></g>";
       });
       const edge = 34;
       return '<path class="cbct-sidebone" d="M' + edge + " " + (oy - 54) + " L" + (PANEL - edge) + " " + (oy - 54) +
@@ -277,9 +271,8 @@
         const k = Math.min(s * 2.1, 1.5);
         return '<g class="cbct-cor' + sel + '" data-tooth="' + t.n + '" role="button" tabindex="0">' +
           '<g transform="translate(' + (cx + t.x * s).toFixed(1) + " " + (cy + dir * 74).toFixed(1) + ") scale(" + k.toFixed(3) + ')">' +
-          '<g transform="translate(-20 -21)">' +
-          '<path class="cbct-root" d="' + t.shape.root + '"/>' +
-          '<path class="cbct-crown" d="' + t.shape.crown + '"/></g></g></g>';
+          (window.DentalRayToothShapes ? window.DentalRayToothShapes.markup(t.n, "cbct") : "") +
+          "</g></g>";
       }).join("");
       const l = 60, r = PANEL - 60;
       return '<path class="cbct-corbone" d="M' + l + " " + (cy - 118) + " Q" + (PANEL / 2) + " " + (cy - 156) + " " + r + " " + (cy - 118) +
@@ -359,9 +352,8 @@
         pieces.push({
           z: p.z, html: '<g class="cbct-vol-tooth' + sel + '" data-tooth="' + t.n + '" role="button" tabindex="0">' +
             '<g transform="translate(' + p.x.toFixed(1) + " " + p.y.toFixed(1) + ") rotate(" + t.rot.toFixed(1) + ") scale(" + k.toFixed(3) + ')" opacity="' + light.toFixed(2) + '">' +
-            '<g transform="translate(-20 -21)">' +
-            '<path class="cbct-vol-root" d="' + shape.root + '"/>' +
-            '<path class="cbct-vol-crown" d="' + shape.crown + '"/></g></g></g>'
+            (window.DentalRayToothShapes ? window.DentalRayToothShapes.markup(t.n, "cbct-vol") : "") +
+            "</g></g>"
         });
       };
 

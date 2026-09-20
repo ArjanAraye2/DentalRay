@@ -23,25 +23,23 @@
   const VIEW = 1060;
   const FIT = 0.98;            // keeps a full turn inside the viewBox
 
-  const FALLBACK = { crown: "M10 10 Q20 6 30 10 L29 25 Q20 29 11 25 Z", root: "M13 25 L16.5 38 Q20 40 23.5 38 L27 25 Z", detail: "M13 15 Q20 13 27 15" };
+
 
   function toothMarkup(t, chosen) {
-    const s = t.shape;
-    const cx = 20, cy = 21;  // the tooth library draws around this point
     const selected = chosen.has(t.n) ? " selected" : "";
-    const labelGap = (21 * t.k) + 13;
+    // The artwork is in a centred local space: crown at y 0, root tip at y height.
+    // The number goes just outside the root tip, then counter-rotates so it stays
+    // upright (apply() recomputes the spin part).
+    const labelGap = t.shape.height * t.k + 13;
     const lx = t.x + t.nx * labelGap, ly = t.y + t.ny * labelGap;
     return '<g class="jaw-tooth' + selected + '" data-tooth="' + t.n + '"' +
       ' role="button" tabindex="0" aria-label="دندان ' + t.n + '"' +
       ' aria-pressed="' + (chosen.has(t.n) ? "true" : "false") + '">' +
       '<g transform="translate(' + t.x.toFixed(1) + " " + t.y.toFixed(1) + ") rotate(" + t.rot.toFixed(1) + ") scale(" + t.k.toFixed(3) + ')">' +
-      '<g transform="translate(' + (-cx) + " " + (-cy) + ')">' +
-      '<path class="jaw-root" d="' + s.root + '"/>' +
-      '<path class="jaw-crown" d="' + s.crown + '"/>' +
-      '<path class="jaw-detail" d="' + s.detail + '"/>' +
-      "</g></g>" +
-      // Counter-rotate so the number stays upright: the text sits outside the tooth's
-      // rotated group, so it only has to cancel the jaw's spin (apply() recomputes it).
+      (window.DentalRayToothShapes
+        ? window.DentalRayToothShapes.markup(t.n, "jaw")
+        : '<path class="jaw-outline" d=""/>') +
+      "</g>" +
       '<text class="jaw-tooth-number" data-base="0" data-x="' + lx.toFixed(1) + '" data-y="' + ly.toFixed(1) + '" transform="translate(' + lx.toFixed(1) + " " + ly.toFixed(1) + ') rotate(0)" text-anchor="middle">' + t.n + "</text>" +
       "</g>";
   }

@@ -51,33 +51,24 @@
   function toothMarkup(number, index, isUpper, chosen) {
     const p = pos(index, isUpper);
     const shapes = window.DentalRayToothShapes;
-    const s = shapes ? shapes.shapeOf(number) : FALLBACK;
-    const b = s.bounds;
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-    // A tooth is tall as well as wide, and the ones at the ends of the arch are
-    // rotated, so a big tooth there would lean into its neighbour. Size each tooth so
-    // its rotated footprint fits inside its share of the arch, then let it grow back
-    // up to the full scale when there is room.
-    const rot = Math.abs(p.a) * Math.PI / 180;
-    const footprint = Math.cos(rot) * b.w + Math.sin(rot) * b.h;
-    const k = Math.min(ARCH_SCALE, (ARCH_SPACING * ARCH_WIDTH_FILL) / footprint);
-    // Centre the tooth on the arch point (crown and root straddle the gum line), then
-    // flip the upper jaw so its root goes up into the gum and its crown faces the
-    // mouth, the way an upper tooth sits.
-    const flip = isUpper ? " scale(1 -1)" : "";
-    const inner = "scale(" + k.toFixed(3) + ")" + flip + " translate(" + (-cx).toFixed(1) + " " + (-cy).toFixed(1) + ")";
-    const labelY = ((b.h * k) / 2 + NUMBER_GAP) * (isUpper ? -1 : 1);
     const quadrant = shapes ? shapes.quadrantClass(number) : "";
     const selectedClass = chosen.has(number) ? " selected" : "";
+    const s = shapes ? shapes.shapeOf(number) : null;
+    const h = s ? s.height : 40;
+    // The teeth sit across the gum band, upright in the same direction as before: the
+    // upper jaw is mirrored so its crowns face the mouth. The artwork is drawn from
+    // the crown downwards, so the box is centred on the arch point.
+    const flip = isUpper ? " scale(1 -1)" : "";
+    const k = ARCH_SCALE;
+    const inner = "scale(" + k.toFixed(3) + ")" + flip + " translate(0 " + (-h / 2).toFixed(1) + ")";
+    const labelY = (h * k / 2 + NUMBER_GAP) * (isUpper ? -1 : 1);
 
     return '<g class="arch-tooth' + (quadrant ? " " + quadrant : "") + selectedClass +
       '" data-tooth="' + number + '" transform="translate(' + p.x.toFixed(1) + " " + p.y.toFixed(1) + ") rotate(" + p.a.toFixed(1) + ')"' +
       ' role="button" tabindex="0" aria-label="دندان ' + number + '"' +
       ' aria-pressed="' + (chosen.has(number) ? "true" : "false") + '">' +
       '<g class="arch-tooth-body" transform="' + inner + '">' +
-      '<path class="arch-root" d="' + s.root + '"/>' +
-      '<path class="arch-crown" d="' + s.crown + '"/>' +
-      '<path class="arch-detail" d="' + s.detail + '"/>' +
+      (shapes ? shapes.markup(number, "arch") : "") +
       "</g>" +
       '<g transform="translate(0 ' + labelY.toFixed(1) + ") rotate(" + (-p.a).toFixed(1) + ')">' +
       '<text class="arch-tooth-number" x="0" y="0">' + number + "</text>" +

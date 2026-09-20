@@ -56,7 +56,9 @@
     return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
   }
 
-  const FALLBACK = { crownWidth: 20, crown: "M10 10 Q20 6 30 10 L29 25 Q20 29 11 25 Z", root: "M13 25 L16.5 38 Q20 40 23.5 38 L27 25 Z", detail: "M13 15 Q20 13 27 15" };
+  // A tooth for a view that does not load the artwork yet. It matches the box of the
+  // real artwork, so placement still works before tooth-shapes.js arrives.
+  const FALLBACK = { crownWidth: 20, width: 20, height: 40, crownCenterY: 14 };
 
   /**
    * Place a jaw's teeth on the arch. One scale is used for the whole jaw so the

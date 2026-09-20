@@ -1,83 +1,152 @@
-/* Dentix - dental chart. */
-/* The artwork, the shape per tooth type and the width all come from
-   tooth-shapes.js. This file only paints what that module draws.
+/* Dentix tooth artwork.
+   The outlines come from tooth-shapes.js. This file only paints them, for every place
+   a tooth is drawn: the anatomical rows, the arch, the natural jaw and the CBCT view.
 
-   A molar is now visibly wider than an incisor, the tooth shape matches the type,
-   and each quadrant gets a faint tint so the four quarters are easy to tell apart.
-   The selected and hover states stay the blue the rest of the app uses. */
+   Each tooth is three layers:
+     -outline    the outer silhouette, stroked and left light (the enamel edge)
+     -shadow     the inner face, filled a little darker (the dentine and the curve)
+     -highlight  the ridge lines on the crown, stroked thin
+   Keeping them separate is what makes the tooth read as a 3D object rather than a
+   flat blob. */
 
-/* --- tooth buttons in the anatomical and linear rows --- */
-.tooth-button {
-    --tooth-width: 30px;
-}
-
+/* --- anatomical rows and the linear picker (class prefix "tooth") ---
+   Both the width and the height come from the tooth's own size, so a molar is drawn
+   larger than an incisor instead of every tooth being forced into one box. */
 .tooth-shape {
     display: block;
-    width: var(--tooth-width, 30px) !important;
-    height: 46px;
+    width: var(--tooth-width, 30px);
+    height: var(--tooth-height, 46px);
 }
 
-.tooth-shape svg {
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-}
+.tooth-shape svg { width: 100%; height: 100%; overflow: visible; }
 
-/* Crown is enamel, root is dentine, detail is the occlusal grooves. */
-.tooth-shape .tooth-crown {
-    fill: #fffdf7;
+.tooth-shape .tooth-outline {
+    fill: #fffdf8;
     stroke: #9f896d;
-    stroke-width: 1.2;
+    stroke-width: 1.4;
     stroke-linejoin: round;
-    filter: drop-shadow(0 2px 2px rgba(65, 45, 25, .14));
+    filter: drop-shadow(0 2px 2px rgba(65, 45, 25, .16));
 }
 
-.tooth-shape .tooth-root {
-    fill: #ead7b6;
-    stroke: #a58b69;
-    stroke-width: 1.1;
-    filter: drop-shadow(0 2px 2px rgba(65, 45, 25, .14));
+.tooth-shape .tooth-shadow {
+    fill: #f2e4cd;
+    stroke: none;
 }
 
-.tooth-shape .tooth-detail {
-    fill: none !important;
-    stroke: #cbb894 !important;
-    stroke-width: 1.1;
+.tooth-shape .tooth-highlight {
+    fill: none;
+    stroke: #cdbb98;
+    stroke-width: 1;
     stroke-linecap: round;
-    filter: none !important;
+    stroke-linejoin: round;
 }
 
-/* Quadrant tint: a faint wash on the crown so the quarter of the mouth is obvious
-   without the tooth looking like it has a colour code. */
-.tooth-button.quadrant-1 .tooth-shape .tooth-crown { fill: #fffdf7; }
-.tooth-button.quadrant-2 .tooth-shape .tooth-crown { fill: #fbfdff; }
-.tooth-button.quadrant-3 .tooth-shape .tooth-crown { fill: #fbfffd; }
-.tooth-button.quadrant-4 .tooth-shape .tooth-crown { fill: #fffbfb; }
+.tooth-button:hover .tooth-outline { fill: #eaf5ff; stroke: #3182ce; }
+.tooth-button:hover .tooth-shadow { fill: #d8ebff; }
+.tooth-button:hover .tooth-highlight { stroke: #7fb4e8; }
 
-.tooth-button:hover .tooth-shape .tooth-crown { fill: #e8f4ff; stroke: #3182ce; }
-.tooth-button:hover .tooth-shape .tooth-root { fill: #dbeaf8; stroke: #3182ce; }
-.tooth-button:hover .tooth-shape .tooth-detail { stroke: #4b94e8 !important; }
-
-.tooth-button.selected .tooth-shape .tooth-crown { fill: #bcdcff; stroke: #0969da; stroke-width: 1.9; }
-.tooth-button.selected .tooth-shape .tooth-root { fill: #8ec2ff; stroke: #1671e8; stroke-width: 1.6; }
-.tooth-button.selected .tooth-shape .tooth-detail { stroke: #2f7fd8 !important; }
+.tooth-button.selected .tooth-outline { fill: #cfe6ff; stroke: #0969da; stroke-width: 1.9; }
+.tooth-button.selected .tooth-shadow { fill: #a9d2ff; }
+.tooth-button.selected .tooth-highlight { stroke: #4b94e8; }
 .tooth-button.selected .tooth-number { color: #0b62c4; }
 
-/* The drawn views need a slightly wider hit area than the linear view. */
-.dental-view-anatomical .tooth-button,
-.dental-view-arch .tooth-button {
-    min-width: 46px !important;
+/* Quadrant tint, a faint wash so the four quarters are easy to tell apart. */
+.tooth-button.quadrant-2 .tooth-shape .tooth-outline { fill: #fcfeff; }
+.tooth-button.quadrant-3 .tooth-shape .tooth-outline { fill: #fbfffd; }
+.tooth-button.quadrant-4 .tooth-shape .tooth-outline { fill: #fffbfb; }
+
+/* --- arch view (class prefix "arch") --- */
+.arch-tooth .arch-outline {
+    fill: #fffdf8;
+    stroke: #a88d6d;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 2px 2px rgba(58, 42, 27, .22));
+    transition: fill .15s ease, stroke .15s ease;
+}
+.arch-tooth .arch-shadow { fill: #f1e3cb; stroke: none; }
+.arch-tooth .arch-highlight {
+    fill: none; stroke: #d2b98f; stroke-width: 1.4;
+    stroke-linecap: round; stroke-linejoin: round;
 }
 
-.dental-view-anatomical .dental-chart-row {
-    gap: 5px;
+.arch-tooth:hover .arch-outline { fill: #edf6ff; stroke: #2581dc; }
+.arch-tooth:hover .arch-shadow { fill: #dbeaf8; }
+.arch-tooth.selected .arch-outline {
+    fill: #a8d4ff; stroke: #0878e5; stroke-width: 2.4;
+    filter: drop-shadow(0 3px 5px rgba(0, 112, 230, .34));
 }
+.arch-tooth.selected .arch-shadow { fill: #7fbcf5; }
+.arch-tooth.selected .arch-highlight { stroke: #eaf5ff; }
+.arch-tooth:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+
+/* --- natural jaw (class prefix "jaw") --- */
+.jaw-tooth .jaw-outline {
+    fill: #fffdf8;
+    stroke: #a88d6d;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 2px 2px rgba(58, 42, 27, .22));
+    transition: fill .15s ease, stroke .15s ease;
+}
+.jaw-tooth .jaw-shadow { fill: #f1e3cb; stroke: none; }
+.jaw-tooth .jaw-highlight {
+    fill: none; stroke: #d2b98f; stroke-width: 1.3;
+    stroke-linecap: round; stroke-linejoin: round;
+}
+.jaw-tooth:hover .jaw-outline { fill: #eaf5ff; stroke: #2581dc; }
+.jaw-tooth:hover .jaw-shadow { fill: #dbeaf8; }
+.jaw-tooth.selected .jaw-outline { fill: #a8d4ff; stroke: #0878e5; stroke-width: 2.2; }
+.jaw-tooth.selected .jaw-shadow { fill: #7fbcf5; }
+.jaw-tooth.selected .jaw-highlight { stroke: #eaf5ff; }
+.jaw-tooth:focus-visible { outline: none; }
+.jaw-tooth:focus-visible .jaw-outline { stroke: #0b62c4; stroke-width: 2.4; }
+
+/* --- CBCT views (class prefix "cbct" and "cbct-vol") ---
+   The radiograph is grey on black, so the enamel is bright and the inner face is the
+   darker dentine. */
+.cbct-tooth .cbct-outline,
+.cbct-side .cbct-outline,
+.cbct-cor .cbct-outline {
+    fill: #eef2f7;
+    stroke: #93a0af;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+    transition: fill .15s ease, stroke .15s ease;
+}
+.cbct-tooth .cbct-shadow,
+.cbct-side .cbct-shadow,
+.cbct-cor .cbct-shadow { fill: #b9c2cd; stroke: none; }
+.cbct-tooth .cbct-highlight,
+.cbct-side .cbct-highlight,
+.cbct-cor .cbct-highlight {
+    fill: none; stroke: #8f9baa; stroke-width: 1;
+    stroke-linecap: round; stroke-linejoin: round;
+}
+
+.cbct-tooth:hover .cbct-outline,
+.cbct-side:hover .cbct-outline,
+.cbct-cor:hover .cbct-outline { fill: #bfe0ff; stroke: #58a6ff; }
+.cbct-tooth.selected .cbct-outline,
+.cbct-side.selected .cbct-outline,
+.cbct-cor.selected .cbct-outline { fill: #4b9bea; stroke: #7cc0ff; stroke-width: 2; }
+.cbct-tooth.selected .cbct-shadow,
+.cbct-side.selected .cbct-shadow,
+.cbct-cor.selected .cbct-shadow { fill: #3479c0; }
+.cbct-tooth:focus-visible, .cbct-side:focus-visible, .cbct-cor:focus-visible { outline: none; }
+.cbct-tooth:focus-visible .cbct-outline,
+.cbct-side:focus-visible .cbct-outline,
+.cbct-cor:focus-visible .cbct-outline { stroke: #7cc0ff; stroke-width: 2.2; }
+
+/* The volume is shaded by an opacity on the group, so its layers stay flat colours. */
+.cbct-vol-tooth .cbct-vol-outline { fill: #e8edf3; stroke: #a4b0bd; stroke-width: 1.2; }
+.cbct-vol-tooth .cbct-vol-shadow { fill: #b6bfca; stroke: none; }
+.cbct-vol-tooth .cbct-vol-highlight { fill: none; stroke: #98a4b2; stroke-width: .9; }
+.cbct-vol-tooth:hover .cbct-vol-outline { fill: #bfe0ff; stroke: #58a6ff; }
+.cbct-vol-tooth.selected .cbct-vol-outline { fill: #4b9bea; stroke: #7cc0ff; }
+.cbct-vol-tooth.selected .cbct-vol-shadow { fill: #3479c0; }
 
 @media (max-width: 700px) {
-    .tooth-shape { height: 42px; }
-
-    .dental-view-anatomical .tooth-button,
-    .dental-view-arch .tooth-button {
-        min-width: 40px !important;
-    }
+    /* The rows shrink with the screen; the proportions come from the variables. */
+    .tooth-button {  }
 }

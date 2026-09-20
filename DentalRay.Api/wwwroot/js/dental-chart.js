@@ -15,15 +15,17 @@
     [85, 84, 83, 82, 81, 71, 72, 73, 74, 75]
   ];
   const storageKey = "dentalray.dentalChartView";
+  // One factor for the row view. The tooth's own local units already carry the real
+  // proportions, so scaling them all by the same number is all that is needed.
+  const TOOTH_BOX_SCALE = 1.6;
 
-  // Falls back to a plain outline if the shapes module did not load, so the chart
-  // stays usable rather than throwing.
+  // The artwork comes from tooth-shapes.js, which is what makes a molar look like a
+  // molar. If it has not loaded yet the row still renders, just as a plain box so the
+  // chart stays usable rather than throwing.
   function toothSvg(n) {
     if (window.DentalRayToothShapes) return window.DentalRayToothShapes.svg(n);
-    return '<svg viewBox="10 6 20 34" preserveAspectRatio="none" aria-hidden="true">' +
-      '<path class="tooth-root" d="M13 25 L16.5 38 Q20 40 23.5 38 L27 25 Z"/>' +
-      '<path class="tooth-crown" d="M10 10 Q20 6 30 10 L29 25 Q20 29 11 25 Z"/>' +
-      '<path class="tooth-detail" d="M13 15 Q20 13 27 15"/></svg>';
+    return '<svg viewBox="0 0 20 40" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+      '<path class="tooth-outline" d="M10 0 Q20 0 20 14 L18 40 L2 40 L0 14 Q0 0 10 0 Z"/></svg>';
   }
 
   function toothButton(n, s) {
@@ -36,11 +38,12 @@
     b.dataset.tooth = n;
     b.title = "دندان " + n;
     if (shapes) {
-      // The SVG is cropped to the tooth and stretched to this box, so the width has
-      // to keep the crown's real proportions. The .tooth-shape box is 46px tall and
-      // a tooth is about 34 local units tall, which is the scale used here.
+      // The local units are the same for every tooth (one shared scale), so the box is
+      // the tooth's own size times one factor. That keeps a molar visibly larger than an
+      // incisor instead of the CSS making them all the same height.
       const shape = shapes.shapeOf(n);
-      b.style.setProperty("--tooth-width", Math.round(shape.crownWidth * 1.35) + "px");
+      b.style.setProperty("--tooth-width", Math.round(shape.width * TOOTH_BOX_SCALE) + "px");
+      b.style.setProperty("--tooth-height", Math.round(shape.height * TOOTH_BOX_SCALE) + "px");
     }
     b.setAttribute("aria-pressed", s.has(n) ? "true" : "false");
     b.innerHTML = '<span class="tooth-shape">' + toothSvg(n) + '</span><span class="tooth-number">' + n + "</span>";
@@ -87,7 +90,7 @@
     if (window.DentalRayArchOdontogram) {
       return withDeps(() => window.DentalRayArchOdontogram.render(box, selected(root)));
     }
-    load("script", "odontogramArchJs", "/js/odontogram-arch.js");
+    load("script", "odontogramArchJs", "/js/odontogram-arch.js?v=20260921.3");
     const s = document.getElementById("odontogramArchJs");
     s?.addEventListener("load", () => withDeps(() => window.DentalRayArchOdontogram?.render(box, selected(root))), { once: true });
   }
@@ -96,8 +99,8 @@
   // missing, load it and come back; the call sites do not have to care.
   function withDeps(done) {
     const missing = [];
-    if (!window.DentalRayToothShapes) missing.push({ id: "dentalrayToothShapes", src: "/js/tooth-shapes.js" });
-    if (!window.DentalRayToothArch) missing.push({ id: "dentalrayToothArch", src: "/js/tooth-arch.js" });
+    if (!window.DentalRayToothShapes) missing.push({ id: "dentalrayToothShapes", src: "/js/tooth-shapes.js?v=20260921.2" });
+    if (!window.DentalRayToothArch) missing.push({ id: "dentalrayToothArch", src: "/js/tooth-arch.js?v=20260921.3" });
     if (!missing.length) return done();
     let left = missing.length;
     missing.forEach(dep => {
@@ -120,7 +123,7 @@
     if (window.DentalRayNaturalOdontogram) {
       return withDeps(() => window.DentalRayNaturalOdontogram.render(box, selected(root)));
     }
-    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js");
+    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js?v=20260921.3");
     const s = document.getElementById("odontogramNaturalJs");
     s?.addEventListener("load", () => withDeps(() => window.DentalRayNaturalOdontogram?.render(box, selected(root))), { once: true });
   }
@@ -136,7 +139,7 @@
     if (window.DentalRayCbctOdontogram) {
       return withDeps(() => window.DentalRayCbctOdontogram.render(box, selected(root), cbctScheme));
     }
-    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js");
+    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260921.3");
     const s = document.getElementById("odontogramCbctJs");
     s?.addEventListener("load", () => withDeps(() => window.DentalRayCbctOdontogram?.render(box, selected(root), cbctScheme)), { once: true });
   }
@@ -165,14 +168,14 @@
   }
 
   function ensureAssets(done) {
-    load("link", "odontogramArchCss", "/css/odontogram-arch.css");
-    load("script", "odontogramArchJs", "/js/odontogram-arch.js");
-    load("link", "odontogramNaturalCss", "/css/odontogram-natural.css");
-    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js");
-    load("link", "odontogramCbctCss", "/css/odontogram-cbct.css");
-    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js");
-    load("script", "dentalrayToothArch", "/js/tooth-arch.js");
-    load("script", "dentalrayToothShapes", "/js/tooth-shapes.js");
+    load("link", "odontogramArchCss", "/css/odontogram-arch.css?v=20260921.3");
+    load("script", "odontogramArchJs", "/js/odontogram-arch.js?v=20260921.3");
+    load("link", "odontogramNaturalCss", "/css/odontogram-natural.css?v=20260921.2");
+    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js?v=20260921.3");
+    load("link", "odontogramCbctCss", "/css/odontogram-cbct.css?v=20260921.3");
+    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260921.3");
+    load("script", "dentalrayToothArch", "/js/tooth-arch.js?v=20260921.3");
+    load("script", "dentalrayToothShapes", "/js/tooth-shapes.js?v=20260921.2");
     // Nothing is waited for. index.html loads every one of these tags directly, so on
     // the real page they are already present; each view also re-checks its own file in
     // its sync function. Waiting here would only delay the first paint, and a chart

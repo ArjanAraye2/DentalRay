@@ -1,6 +1,7 @@
 /* Dentix natural jaw - the "فک طبیعی" view.
    A real dental arch with the two jaws facing each other, which can be spun in its
-   plane and tilted. The tooth artwork comes from tooth-shapes.js. */
+   plane and tilted. The teeth are painted in dental-graphic.css, which every view
+   shares. */
 
 .natural-odontogram {
     max-width: 660px;
@@ -8,8 +9,7 @@
     padding: 10px;
     border: 1px solid #dbe5f0;
     border-radius: 16px;
-    background:
-        radial-gradient(circle at 50% 46%, #ffffff, #f4f9fd 64%, #eaf3fa);
+    background: radial-gradient(circle at 50% 46%, #ffffff, #f4f9fd 64%, #eaf3fa);
     box-shadow: inset 0 1px 0 #fff;
 }
 
@@ -43,50 +43,14 @@
     filter: drop-shadow(0 4px 8px rgba(99, 45, 40, .16));
 }
 
-/* Teeth */
 .jaw-tooth { cursor: pointer; }
-.jaw-tooth .jaw-crown {
-    fill: #fffdf7;
-    stroke: #a88d6d;
-    stroke-width: 1.6;
-    stroke-linejoin: round;
-    filter: drop-shadow(0 2px 2px rgba(58, 42, 27, .22));
-    transition: fill .15s ease, stroke .15s ease;
-}
-.jaw-tooth .jaw-root {
-    fill: #ead7b6;
-    stroke: #ab9070;
-    stroke-width: 1.4;
-    transition: fill .15s ease, stroke .15s ease;
-}
-.jaw-tooth .jaw-detail {
-    fill: none !important;
-    stroke: #d2b98f !important;
-    stroke-width: 1.3 !important;
-    stroke-linecap: round;
-}
-
-.jaw-tooth:hover .jaw-crown { fill: #eaf5ff; stroke: #2581dc; }
-.jaw-tooth:hover .jaw-root { fill: #dbeaf8; stroke: #2581dc; }
-
-.jaw-tooth.selected .jaw-crown {
-    fill: #86c7ff;
-    stroke: #0878e5;
-    stroke-width: 2.4;
-    filter: drop-shadow(0 3px 5px rgba(0, 112, 230, .38));
-}
-.jaw-tooth.selected .jaw-root { fill: #6fb4f5; stroke: #0878e5; }
-.jaw-tooth.selected .jaw-detail { stroke: #fff !important; }
-.jaw-tooth.selected .jaw-tooth-number { fill: #0069cf; font-weight: 800; }
-
-.jaw-tooth:focus-visible { outline: none; }
-.jaw-tooth:focus-visible .jaw-crown { stroke: #0b62c4; stroke-width: 2.6; }
 
 .jaw-tooth-number {
     font: 700 15px Arial, sans-serif;
     fill: #26384c;
     pointer-events: none;
 }
+.jaw-tooth.selected .jaw-tooth-number { fill: #0069cf; }
 
 /* --- controls --- */
 .natural-controls {

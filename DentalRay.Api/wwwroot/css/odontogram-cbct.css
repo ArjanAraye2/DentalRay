@@ -1,7 +1,7 @@
 /* Dentix CBCT view - the "CBCT" view.
    A CBCT study is read on a dark screen, so this view is deliberately dark like the
    imaging software a dentist already knows, not like the light clinical UI.
-   The tooth artwork still comes from tooth-shapes.js. */
+   The teeth are painted in dental-graphic.css, which every view shares. */
 
 .cbct-odontogram {
     /* The panels are laid out left to right, so the svg must not be mirrored by the
@@ -16,7 +16,6 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 .cbct-odontogram svg { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; overflow: visible; }
-
 
 /* --- scheme switch --- */
 .cbct-toolbar {
@@ -52,7 +51,6 @@
     opacity: .55;
 }
 .cbct-bone.upper { fill: #3f4954; opacity: .48; }
-
 .cbct-ramus { fill: #3f4954; stroke: #66707d; stroke-width: 1.4; opacity: .5; }
 .cbct-canal { fill: none; stroke: #20262e; stroke-width: 5; opacity: .85; }
 
@@ -62,31 +60,7 @@
     text-anchor: middle;
 }
 
-/* Teeth read as brighter enamel inside darker bone. */
 .cbct-tooth { cursor: pointer; }
-.cbct-tooth .cbct-crown {
-    fill: #eef2f6;
-    stroke: #9aa6b4;
-    stroke-width: 1.5;
-    stroke-linejoin: round;
-    transition: fill .15s ease;
-}
-.cbct-tooth .cbct-root {
-    fill: #c9ced6;
-    stroke: #8b95a2;
-    stroke-width: 1.2;
-}
-.cbct-tooth .cbct-detail {
-    fill: none !important;
-    stroke: #aeb6c0 !important;
-    stroke-width: 1.1 !important;
-}
-.cbct-tooth:hover .cbct-crown { fill: #bfe0ff; stroke: #58a6ff; }
-.cbct-tooth.selected .cbct-crown { fill: #4b9bea; stroke: #7cc0ff; stroke-width: 2.2; }
-.cbct-tooth.selected .cbct-root { fill: #3878bd; stroke: #6fb4ff; }
-.cbct-tooth.selected .cbct-detail { stroke: #dff0ff !important; }
-.cbct-tooth:focus-visible { outline: none; }
-.cbct-tooth:focus-visible .cbct-crown { stroke: #7cc0ff; stroke-width: 2.4; }
 
 /* --- MPR --- */
 .cbct-panel-bg { fill: #121820; }
@@ -101,21 +75,12 @@
 .cbct-disc.selected text { fill: #fff; }
 
 .cbct-side, .cbct-cor { cursor: pointer; }
-.cbct-side .cbct-crown, .cbct-cor .cbct-crown { fill: #eef2f6; stroke: #9aa6b4; stroke-width: 1.4; }
-.cbct-side .cbct-root, .cbct-cor .cbct-root { fill: #c9ced6; stroke: #8b95a2; stroke-width: 1.1; }
-.cbct-side:hover .cbct-crown, .cbct-cor:hover .cbct-crown { fill: #bfe0ff; stroke: #58a6ff; }
-.cbct-side.selected .cbct-crown, .cbct-cor.selected .cbct-crown { fill: #4b9bea; stroke: #7cc0ff; }
 .cbct-sidebone, .cbct-corbone { fill: #4b5560; stroke: #6b7684; stroke-width: 1.3; opacity: .5; }
 
 /* --- 3D volume --- */
 .cbct-vol-scene { cursor: grab; }
 .cbct-vol-scene:active { cursor: grabbing; }
 .cbct-vol-tooth { cursor: pointer; }
-.cbct-vol-tooth .cbct-vol-crown { fill: #e8edf2; stroke: #a4b0bd; stroke-width: 1.3; }
-.cbct-vol-tooth .cbct-vol-root { fill: #b9c1cb; stroke: #8b95a2; stroke-width: 1.1; }
-.cbct-vol-tooth:hover .cbct-vol-crown { fill: #bfe0ff; stroke: #58a6ff; }
-.cbct-vol-tooth.selected .cbct-vol-crown { fill: #4b9bea; stroke: #7cc0ff; }
-.cbct-vol-tooth.selected .cbct-vol-root { fill: #3878bd; stroke: #6fb4ff; }
 .cbct-vol-bone { fill: #6b7684; stroke: #8b95a2; stroke-width: 1; }
 
 .cbct-vol-controls {
