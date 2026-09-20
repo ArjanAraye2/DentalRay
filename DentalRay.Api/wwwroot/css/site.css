@@ -1171,12 +1171,138 @@ button {
         grid-template-columns: repeat( auto-fill, minmax( 160px, 1fr ) );
     }
 /* Jalali calendar */
-.jalali-input-wrap{display:flex;gap:6px;align-items:center;width:100%}.jalali-input-wrap input{flex:1}.jalali-calendar-button{flex:0 0 42px;padding:9px}
-.jalali-picker-overlay{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(12,55,70,.55)}
-.jalali-picker-dialog{width:min(360px,100%);padding:16px;background:#ffffff;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.25);direction:rtl}
-.jalali-picker-header{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;margin-bottom:12px;text-align:center}.jalali-picker-header button{padding:8px;font-size:20px}
-.jalali-picker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;direction:rtl}.jalali-picker-grid button{aspect-ratio:1;padding:4px;background:#f1f6f8;color:#1f2d36}.jalali-picker-grid button:hover{background:var(--primary);color:#ffffff}
-.jalali-weekdays{margin-bottom:6px;color:var(--muted);font-size:12px;text-align:center}.jalali-weekdays span{padding:5px}.jalali-picker-footer{display:flex;justify-content:space-between;gap:8px;margin-top:12px}.jalali-picker-footer button:last-child{background:#eef4f6;color:#1f2d36}
+/* Jalali date picker: input wrapper + calendar button */
+.jalali-input-wrap{display:flex;gap:6px;align-items:center;width:100%}
+.jalali-input-wrap input{flex:1;min-width:0}
+.jalali-calendar-button{
+  flex:0 0 44px;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  background:var(--brand-50);
+  color:var(--brand-600);
+  border:1px solid var(--border-strong,#c3dae1);
+  border-radius:var(--radius-sm);
+}
+.jalali-calendar-button:hover:not(:disabled){background:var(--brand-100);border-color:var(--brand-300)}
+.jalali-calendar-button svg{width:20px;height:20px;display:block}
+.jalali-picker-overlay{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,53,64,.58);backdrop-filter:blur(3px)}
+.jalali-picker-dialog{
+  width:min(380px,100%);
+  padding:18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);
+  direction:rtl;
+}
+.jalali-picker-header{
+  display:grid;
+  grid-template-columns:38px 38px 1fr 38px 38px;
+  align-items:center;
+  gap:6px;
+  margin-bottom:14px;
+}
+.jalali-picker-header button{
+  min-height:38px;
+  padding:0;
+  background:var(--brand-50);
+  color:var(--brand-600);
+  border:1px solid transparent;
+  border-radius:var(--radius-sm);
+  font-size:18px;
+  line-height:1;
+}
+.jalali-picker-header button:hover:not(:disabled){background:var(--brand-100);border-color:var(--brand-200)}
+.jalali-nav-year{font-size:15px}
+.jalali-picker-title{
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:7px;
+  color:var(--heading);
+  font-size:var(--fs-md);
+  font-weight:700;
+}
+.jalali-picker-year{color:var(--muted);font-size:var(--fs-sm);font-weight:600;direction:ltr}
+.jalali-picker-weekdays{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:4px;
+  margin-bottom:6px;
+  color:var(--muted);
+  font-size:var(--fs-xs);
+  text-align:center;
+}
+.jalali-picker-weekdays span{padding:5px 0;font-weight:600}
+.jalali-picker-weekdays .is-weekend{color:var(--danger)}
+.jalali-picker-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:4px;
+}
+.jalali-picker-grid button{
+  aspect-ratio:1;
+  min-height:38px;
+  padding:0;
+  background:var(--brand-25);
+  color:var(--text);
+  border:1px solid transparent;
+  border-radius:var(--radius-sm);
+  font-size:var(--fs-sm);
+  font-weight:600;
+}
+.jalali-picker-grid button:hover:not(:disabled){background:var(--brand-100);border-color:var(--brand-300);color:var(--brand-700)}
+.jalali-picker-grid .jalali-pad{aspect-ratio:1}
+.jalali-picker-grid button.is-weekend{color:var(--danger);background:#fdf3f2}
+.jalali-picker-grid button.is-weekend:hover{background:#fbe6e3}
+.jalali-picker-grid button.is-today{box-shadow:inset 0 0 0 2px var(--brand-300)}
+.jalali-picker-grid button.is-selected{
+  background:var(--primary);
+  border-color:var(--primary-dark);
+  color:#ffffff;
+  box-shadow:0 4px 10px rgba(12,104,126,.28);
+}
+.jalali-picker-grid button.is-selected:hover{background:var(--primary-dark);color:#ffffff}
+.jalali-picker-time{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--border);
+  color:var(--muted);
+  font-size:var(--fs-xs);
+}
+.jalali-picker-time input{
+  width:64px;
+  min-height:38px;
+  padding:6px 8px;
+  border:1px solid var(--border-strong,#c3dae1);
+  border-radius:var(--radius-sm);
+  text-align:center;
+  font-family:inherit;
+  font-size:var(--fs-sm);
+  direction:ltr;
+}
+.jalali-picker-time input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(12,55,70,.10);outline:none}
+.jalali-picker-footer{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:16px;
+  padding-top:12px;
+  border-top:1px solid var(--border);
+}
+.jalali-picker-footer button{min-height:40px;padding:8px 14px;border-radius:var(--radius-sm);font-size:var(--fs-sm)}
+.jalali-picker-footer .jalali-today{margin-inline-start:auto;background:var(--primary);color:#ffffff}
+.jalali-picker-footer .jalali-cancel{background:var(--surface-soft);color:var(--muted-strong);border:1px solid var(--border)}
+.jalali-picker-footer .jalali-clear{background:transparent;color:var(--danger);border:1px solid transparent}
+.jalali-picker-footer .jalali-clear:hover:not(:disabled){background:var(--danger-soft);border-color:#f7d2ce}
+
 
 
 .study-header {
@@ -1954,20 +2080,11 @@ table button {
     box-shadow:0 14px 40px rgba(10,53,64,.16);
 }
 
-/* Calendar */
-.jalali-picker-dialog {
-    border:1px solid #d8e7ec;
-    border-radius:17px;
-    box-shadow:0 28px 80px rgba(10,53,64,.25);
-}
-.jalali-picker-header { color:#0d3f4f; font-weight:700; }
-.jalali-picker-grid button { border-radius:8px; }
-.jalali-picker-grid button:hover {
-    background:linear-gradient(135deg,#0e7f95,#0c687e);
-}
-.jalali-calendar-button {
-    background:#eef8fb;
-    color:#0e7f95;
+/* Calendar: the picker styles live with the picker markup further up, so these
+   earlier Design D overrides are kept minimal and non-conflicting. */
+.jalali-picker-grid button:hover:not(:disabled) {
+    background: var( --brand-100 );
+    color: var( --brand-700 );
 }
 
 /* Image viewer follows the navy Design D shell. */
