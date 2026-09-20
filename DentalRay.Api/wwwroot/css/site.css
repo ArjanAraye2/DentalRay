@@ -1583,6 +1583,65 @@ button {
     .sidebar-link .nav-icon svg { width:22px; height:22px; }
     .header-brand p { display:none; }
 }
+
+
+/* ==========================================================
+   Mobile header
+   On a phone the header was a single cramped row: the search box was
+   squeezed to ~140px and the placeholder was cut off. It now stacks into
+   two rows - brand and account on top, full-width search below - which
+   also matches the bottom navigation bar.
+   ========================================================== */
+
+@media (max-width: 700px) {
+    .main-header {
+        padding: 10px 12px;
+        min-height: 0;
+    }
+    .header-content {
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 8px;
+    }
+    /* Brand first, account control pushed to the far edge. */
+    .header-brand { order: 1; }
+    .header-user-control {
+        order: 2;
+        margin-right: auto;
+        gap: 7px;
+    }
+    .header-user-name {
+        font-size: 12px;
+        max-width: 34vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .header-logout-button { min-height: 38px; padding: 7px 12px; }
+
+    /* Search takes the whole second row. */
+    .header-search {
+        order: 3;
+        flex: 1 0 100%;
+        width: 100%;
+        margin-top: 2px;
+    }
+    .header-search input {
+        height: 44px;
+        font-size: 16px;   /* stops iOS from zooming on focus */
+    }
+    .header-search .search-icon svg { width: 18px; height: 18px; }
+
+    .brand-mark { width: 38px; height: 38px; border-radius: 11px; font-size: 14px; }
+    .header-brand h1 { font-size: 17px; }
+    .header-brand { gap: 9px; }
+
+    /* Results open right under the full-width field. */
+    .global-search-results {
+        top: calc(100% + 6px);
+        max-height: 55vh;
+    }
+}
 @media (max-width: 700px) {
     .app-sidebar {
         top:auto;
