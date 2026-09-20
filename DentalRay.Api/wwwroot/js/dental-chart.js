@@ -90,26 +90,25 @@
     s?.addEventListener("load", () => window.DentalRayArchOdontogram?.render(box, selected(root)), { once: true });
   }
 
-  // The wheel view is a second self-contained renderer. Each drawn view loads its
-  // own file and waits only for that one, so a missing renderer never blocks the
-  // other view.
-  function syncFan(root) {
-    const box = root.querySelector(".dental-integrated-fan");
+  // The natural jaw is a third self-contained renderer. Each drawn view loads its own
+  // file and waits only for that one, so a missing renderer never blocks the others.
+  function syncNatural(root) {
+    const box = root.querySelector(".dental-integrated-natural");
     if (!box) return;
-    if (window.DentalRayFanOdontogram) return window.DentalRayFanOdontogram.render(box, selected(root));
-    load("script", "odontogramFanJs", "/js/odontogram-fan.js");
-    const s = document.getElementById("odontogramFanJs");
-    s?.addEventListener("load", () => window.DentalRayFanOdontogram?.render(box, selected(root)), { once: true });
+    if (window.DentalRayNaturalOdontogram) return window.DentalRayNaturalOdontogram.render(box, selected(root));
+    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js");
+    const s = document.getElementById("odontogramNaturalJs");
+    s?.addEventListener("load", () => window.DentalRayNaturalOdontogram?.render(box, selected(root)), { once: true });
   }
 
-  const VIEWS = ["linear", "anatomical", "arch", "fan"];
+  const VIEWS = ["linear", "anatomical", "arch", "natural"];
 
   function setMode(root, m) {
     VIEWS.forEach(x => root.classList.remove("dental-view-" + x));
     root.classList.add("dental-view-" + m);
     root.querySelectorAll(".dental-view-button").forEach(b => b.classList.toggle("active", b.dataset.view === m));
     if (m === "arch") syncArch(root);
-    if (m === "fan") syncFan(root);
+    if (m === "natural") syncNatural(root);
     try { localStorage.setItem(storageKey, m); } catch (_) { }
   }
 
@@ -121,15 +120,15 @@
       '<button type="button" class="dental-view-button" data-view="linear">خطی</button>' +
       '<button type="button" class="dental-view-button" data-view="anatomical">آناتومیک</button>' +
       '<button type="button" class="dental-view-button" data-view="arch">قوسی</button>' +
-      '<button type="button" class="dental-view-button" data-view="fan">نمای جدید</button>';
+      '<button type="button" class="dental-view-button" data-view="natural">فک طبیعی</button>';
     return b;
   }
 
   function ensureAssets(done) {
     load("link", "odontogramArchCss", "/css/odontogram-arch.css");
     load("script", "odontogramArchJs", "/js/odontogram-arch.js");
-    load("link", "odontogramFanCss", "/css/odontogram-fan.css");
-    load("script", "odontogramFanJs", "/js/odontogram-fan.js");
+    load("link", "odontogramNaturalCss", "/css/odontogram-natural.css");
+    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js");
     // The tooth library feeds both drawn views, so make sure it is present.
     if (!window.DentalRayToothShapes) {
       const lib = document.getElementById("dentalrayToothShapes");
@@ -170,9 +169,9 @@
       const arch = document.createElement("div");
       arch.className = "dental-integrated-arch";
       container.appendChild(arch);
-      const fan = document.createElement("div");
-      fan.className = "dental-integrated-fan";
-      container.appendChild(fan);
+      const natural = document.createElement("div");
+      natural.className = "dental-integrated-natural";
+      container.appendChild(natural);
       const body = document.createElement("div");
       body.className = "dental-chart-body";
       addSection(body, "دندان‌های دائمی", permanentRows, s);
@@ -184,7 +183,7 @@
       bar.querySelectorAll(".dental-view-button").forEach(b => b.onclick = () => setMode(container, b.dataset.view));
       let mode = "arch";
       try { mode = localStorage.getItem(storageKey) || mode; } catch (_) { }
-      if (!["linear", "anatomical", "arch", "fan"].includes(mode)) mode = "arch";
+      if (!["linear", "anatomical", "arch", "natural"].includes(mode)) mode = "arch";
       ensureAssets(() => setMode(container, mode));
       summary(container);
     },

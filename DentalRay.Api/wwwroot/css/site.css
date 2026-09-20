@@ -3485,8 +3485,12 @@ table button {
 .study-card-dental-chart .dental-chart-toolbar { pointer-events: auto; }
 .study-card-dental-chart .dental-chart-body,
 .study-card-dental-chart .dental-integrated-arch,
-.study-card-dental-chart .dental-integrated-fan,
+.study-card-dental-chart .dental-integrated-natural,
 .study-card-dental-chart .dental-chart-selected { pointer-events: none; }
+
+/* The natural jaw is turned by dragging, so it must keep receiving pointer events
+   even inside a read-only Study card. */
+.study-card-dental-chart .dental-integrated-natural { pointer-events: auto; }
 
 .study-card-dental-chart .dental-chart-selected { display: none; }
 .study-card-dental-chart .dental-chart-toolbar strong { font-size: 13px; }

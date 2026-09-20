@@ -37,7 +37,7 @@
     function createDentalChartField(containerId){const panel=document.createElement("div");panel.className="study-dental-panel";const chart=document.createElement("div");chart.id=containerId;const hint=document.createElement("small");hint.className="field-hint";hint.textContent="دندان‌های مربوط به این Study را انتخاب کنید.";panel.append(chart,hint);return panel;}
     function injectDentalCharts(){if(!window.DentalRayDentalChart)return;const newGrid=document.querySelector("#newStudyForm .form-grid");if(newGrid&&!document.getElementById("newStudyDentalChart")){const f=createDentalChartField("newStudyDentalChart");newGrid.appendChild(f);window.DentalRayDentalChart.render(f.querySelector("#newStudyDentalChart"),[]);}}
 
-    function loadDentalChart(){installStudyDentalStyles();const ready=()=>{injectDentalCharts();};if(window.DentalRayDentalChart){ready();return;}const script=document.createElement("script");script.src="/js/dental-chart.js";script.onload=ready;script.onerror=()=>console.error("Dentix: dental-chart.js could not be loaded.");document.body.appendChild(script);}
+    function loadDentalChart(){installStudyDentalStyles();const ready=()=>{injectDentalCharts();};if(window.DentalRayDentalChart){ready();return;}const script=document.createElement("script");script.src="/js/dental-chart.js?v=20260921.2";script.onload=ready;script.onerror=()=>console.error("Dentix: dental-chart.js could not be loaded.");document.body.appendChild(script);}
 
     const container=document.getElementById("studiesContainer");
     if(container){
