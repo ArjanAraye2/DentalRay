@@ -18,7 +18,7 @@
         if (!nav || nav.querySelector('[data-nav="communications"]')) return;
         const link = document.createElement("a");
         link.href="#"; link.className="sidebar-link"; link.dataset.nav="communications";
-        link.innerHTML="<span>✉</span>ارتباطات";
+        link.innerHTML='<span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7 7.4 5.4a2 2 0 0 0 2.2 0L20.5 7"/></svg></span>ارتباطات';
         nav.insertBefore(link, nav.querySelector('[data-nav="settings"]'));
 
         const main = document.querySelector(".page-container");
@@ -64,13 +64,29 @@
             document.getElementById("commSmsStatus").textContent=s.smsEnabled?"فعال":"غیرفعال";
         }
         async function saveSettings(){
+            const status=document.getElementById("commStatus");
+            const button=document.getElementById("commSaveButton");
             const body={smsProvider:document.getElementById("commSmsProvider").value,smsApiUrl:document.getElementById("commSmsApiUrl").value,smsApiKey:document.getElementById("commSmsApiKey").value,smsSender:document.getElementById("commSmsSender").value,smsOtpTemplate:document.getElementById("commSmsOtpTemplate").value,smsEnabled:document.getElementById("commSmsEnabled").checked,pushEnabled:true,emailEnabled:false,whatsAppEnabled:false,telegramEnabled:false};
-            const r=await fetch("/api/communications/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-            const d=await r.json(); document.getElementById("commStatus").textContent=d.message|| (r.ok?"تنظیمات ذخیره شد.":"ذخیره تنظیمات ناموفق بود.");
-            if(r.ok) document.getElementById("commSmsStatus").textContent=body.smsEnabled?"فعال":"غیرفعال";
+            button.disabled=true;status.classList.remove("error");status.textContent="در حال ذخیره...";
+            try{
+                const r=await fetch("/api/communications/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+                let d={};try{d=await r.json();}catch{}
+                if(!r.ok||d.success===false){
+                    /* The server explains the real cause, for example a missing
+                       write permission on the settings folder. */
+                    status.textContent=d.message||`ذخیره تنظیمات ناموفق بود. (HTTP ${r.status})`;
+                    status.classList.add("error");
+                    return;
+                }
+                status.textContent=d.message||"تنظیمات ذخیره شد.";
+                document.getElementById("commSmsStatus").textContent=body.smsEnabled?"فعال":"غیرفعال";
+            }catch(e){
+                status.textContent="ارتباط با سرور برقرار نشد. دوباره تلاش کنید.";
+                status.classList.add("error");
+            }finally{button.disabled=false;}
         }
         document.getElementById("commSaveButton").onclick=saveSettings;
-        document.getElementById("commTestButton").onclick=async()=>{const mobile=prompt("شماره موبایل تست را وارد کنید:");if(!mobile)return;const r=await fetch("/api/communications/sms/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mobile,message:"تست اتصال DentalRay"})});const d=await r.json();document.getElementById("commStatus").textContent=d.message||"نتیجه تست دریافت نشد.";};
+        document.getElementById("commTestButton").onclick=async()=>{const mobile=prompt("شماره موبایل تست را وارد کنید:");if(!mobile)return;const status=document.getElementById("commStatus");status.classList.remove("error");status.textContent="در حال ارسال پیام تست...";try{const r=await fetch("/api/communications/sms/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mobile,message:"تست اتصال Dentix"})});let d={};try{d=await r.json();}catch{}status.textContent=d.message||"نتیجه تست دریافت نشد.";if(!r.ok||d.success===false)status.classList.add("error");}catch(e){status.textContent="ارتباط با سرور برقرار نشد.";status.classList.add("error");}};
         document.getElementById("commRecoverySave").onclick=async()=>{const nationalCode=document.getElementById("commRecoveryNationalCode").value.trim(),mobile=document.getElementById("commRecoveryMobile").value.trim();const r=await fetch("/api/communications/recovery-mobile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({nationalCode,mobile})});const d=await r.json();document.getElementById("commRecoveryStatus").textContent=d.message||(r.ok?"شماره بازیابی ذخیره شد.":"ذخیره انجام نشد.");};
         link.addEventListener("click",e=>{e.preventDefault();document.querySelectorAll(".page-container > section").forEach(x=>x.classList.add("hidden"));section.classList.remove("hidden");document.querySelectorAll(".sidebar-link").forEach(x=>x.classList.toggle("active",x===link));loadSettings();window.scrollTo(0,0);});
     }

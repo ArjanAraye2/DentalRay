@@ -36,8 +36,18 @@ namespace DentalRay.Api.Controllers
             if (!IsSuperAdmin()) return Forbid();
             var current = _communication.GetSettings();
             if (settings.SmsApiKey == "••••••••") settings.SmsApiKey = current.SmsApiKey;
-            await _communication.SaveSettingsAsync(settings);
-            return Ok(new { success = true });
+            try
+            {
+                await _communication.SaveSettingsAsync(settings);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // The service already phrased this for the user (for example a
+                // missing write permission), so pass it straight through instead
+                // of letting it surface as a raw 500.
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            return Ok(new { success = true, message = "تنظیمات ذخیره شد." });
         }
 
         public sealed class RecoveryMobileRequest { public string NationalCode { get; set; } = string.Empty; public string Mobile { get; set; } = string.Empty; }

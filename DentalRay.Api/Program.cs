@@ -100,7 +100,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js\"></script>\n" +
                 "<script src=\"/js/card-extraction.js?v=20260919.2\"></script>\n" +
-                "<script src=\"/js/login-ui.js?v=20260920.4\"></script>";
+                "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             await context.Response.WriteAsync(html);
