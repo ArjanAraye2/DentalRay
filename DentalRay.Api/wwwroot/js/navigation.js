@@ -14,7 +14,7 @@
     dashboard.id = "dashboardSection";
     dashboard.className = "card hidden shell-page";
     dashboard.innerHTML = `
-      <div class="section-header"><div><h2>داشبورد</h2><p>نمای کلی سامانه DentalRay</p></div></div>
+      <div class="section-header"><div><h2>داشبورد</h2><p>نمای کلی سامانه Dentix</p></div></div>
       <h3 class="dashboard-group-title">آمار کلی</h3>
       <div class="dashboard-summary-grid dashboard-overall-grid">
         <div class="dashboard-summary-card metric-blue"><span class="dashboard-metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.2 5.2a3.4 3.4 0 0 1 0 6.5"/><path d="M17.6 14.7c2.2.6 3.6 2.3 3.6 4.5"/></svg></span><strong id="dashboardTotalPatients">-</strong><span>کل بیماران</span></div>
@@ -51,9 +51,9 @@
     settings.id = "settingsSection";
     settings.className = "card hidden shell-page";
     settings.innerHTML = `
-      <div class="section-header"><div><h2>تنظیمات و مدیریت سیستم</h2><p>تعاریف پایه و دسترسی‌های مدیریتی DentalRay</p></div></div>
+      <div class="section-header"><div><h2>تنظیمات و مدیریت سیستم</h2><p>تعاریف پایه و دسترسی‌های مدیریتی Dentix</p></div></div>
       <section id="networkAccessSettings" class="network-settings-card">
-        <div class="dashboard-panel-title"><strong>تنظیمات دسترسی شبکه</strong><span>اجرای DentalRay در کامپیوتر و موبایل</span></div>
+        <div class="dashboard-panel-title"><strong>تنظیمات دسترسی شبکه</strong><span>اجرای Dentix در کامپیوتر و موبایل</span></div>
         <div class="network-settings-steps">
           <div><strong>۱. آدرس برنامه</strong><span>برای دستگاه‌های شبکه از لینک نام سرور یا IP محلی استفاده کنید.</span></div>
           <div><strong>۲. Windows Firewall</strong><span>پورت TCP شماره 5202 باید برای شبکه Private باز باشد.</span><code>netsh advfirewall firewall add rule name="DentalRay Port 5202" dir=in action=allow protocol=TCP localport=5202 profile=private</code></div>

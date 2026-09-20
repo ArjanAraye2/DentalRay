@@ -69,10 +69,10 @@
         <section class="login-form-panel" aria-label="فرم ورود">
           <div class="login-form-logo">
             <span class="login-logo-tooth">${toothSvg()}</span>
-            <span class="login-logo-name"><strong>Dental<span style="color:#1ba7c0">Ray</span></strong><small>Dental Imaging System</small></span>
+            <span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span>
           </div>
           <div class="login-form-heading">
-            <h2>ورود به DentalRay</h2>
+            <h2>ورود به Dentix</h2>
             <p>برای ورود، اطلاعات حساب خود را وارد کنید.</p>
           </div>
           <form id="dentalRayLoginForm" autocomplete="on">
@@ -93,17 +93,17 @@
             <button id="loginSubmit" class="login-submit" type="submit"><span>ورود</span><span class="login-submit-arrow">←</span></button>
           </form>
           <button id="forgotPasswordButton" type="button" class="login-recovery-link"><span class="login-recovery-help">؟</span><span>رمز عبور را فراموش کرده‌اید؟</span></button>
-          <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات DentalRay است.</p>
+          <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات Dentix است.</p>
         </section>
 
-        <section class="login-brand-panel" aria-label="DentalRay">
+        <section class="login-brand-panel" aria-label="Dentix">
           <div class="login-brand-top">
             <span class="login-logo-tooth">${toothSvg()}</span>
-            <span class="login-logo-name"><strong>Dental<span style="color:#1ba7c0">Ray</span></strong><small>Dental Imaging System</small></span>
+            <span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span>
           </div>
           <img class="login-clinic-art" src="/images/login-prosthodontic-visual.svg?v=20260920.3" alt="محیط حرفه‌ای دندانپزشکی و کار با تصاویر دندانی" />
           <div class="login-brand-footer">
-            <span class="login-logo-name"><strong>Dental<span style="color:#1ba7c0">Ray</span></strong><small>Dental Imaging System</small></span>
+            <span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span>
             <span class="login-logo-tooth">${toothSvg()}</span>
           </div>
         </section>
@@ -150,7 +150,7 @@
   function showRecovery(screen,nationalCode){
     const panel=screen.querySelector('.login-form-panel');
     panel.innerHTML=`
-      <div class="login-form-logo"><span class="login-logo-tooth">${toothSvg()}</span><span class="login-logo-name"><strong>Dental<span style="color:#1ba7c0">Ray</span></strong><small>Dental Imaging System</small></span></div>
+      <div class="login-form-logo"><span class="login-logo-tooth">${toothSvg()}</span><span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span></div>
       <div class="login-form-heading"><h2>بازیابی رمز عبور</h2><p>کد ملی خود را وارد کنید. اگر شماره بازیابی معتبر ثبت شده باشد، کد برای شما ارسال می‌شود.</p></div>
       <form id="recoveryRequestForm">
         <div class="login-field"><label for="recoveryNationalCode">کد ملی</label><span class="login-field-icon">${iconSvg('id')}</span><input id="recoveryNationalCode" type="text" inputmode="numeric" maxlength="10" value="${String(nationalCode).replace(/"/g,'&quot;')}" required /></div>
@@ -158,7 +158,7 @@
         <button class="login-submit" type="submit"><span>ارسال کد بازیابی</span></button>
       </form>
       <button id="backToLogin" type="button" class="login-recovery-link">بازگشت به ورود</button>
-      <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات DentalRay است.</p>`;
+      <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات Dentix است.</p>`;
     const input=document.getElementById('recoveryNationalCode');
     input.addEventListener('input',()=>input.value=input.value.replace(/\D/g,'').slice(0,10));
     document.getElementById('backToLogin').onclick=()=>{screen.remove();createLogin();};
@@ -177,7 +177,7 @@
   function showVerify(screen,nationalCode){
     const panel=screen.querySelector('.login-form-panel');
     panel.innerHTML=`
-      <div class="login-form-logo"><span class="login-logo-tooth">${toothSvg()}</span><span class="login-logo-name"><strong>Dental<span style="color:#1ba7c0">Ray</span></strong><small>Dental Imaging System</small></span></div>
+      <div class="login-form-logo"><span class="login-logo-tooth">${toothSvg()}</span><span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span></div>
       <div class="login-form-heading"><h2>تأیید بازیابی</h2><p>کد ۶ رقمی ارسال‌شده را وارد کنید و سپس رمز جدید را تعیین کنید.</p></div>
       <form id="verifyRecoveryForm">
         <div class="login-field"><label for="recoveryCode">کد تأیید</label><input id="recoveryCode" type="text" inputmode="numeric" maxlength="6" required /></div>

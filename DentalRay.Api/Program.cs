@@ -59,7 +59,13 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.Configure<RadiologyStorageOptions>(builder.Configuration.GetSection("RadiologyStorage"));
-builder.Services.AddDbContext<DentalRayDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DentalRay")));
+// The connection string key used to be "DentalRay". Existing installations still
+// carry that key in their config file, so both names are accepted; "Dentix" wins
+// when present.
+builder.Services.AddDbContext<DentalRayDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("Dentix")
+        ?? builder.Configuration.GetConnectionString("DentalRay")));
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

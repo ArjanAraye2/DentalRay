@@ -1,4 +1,4 @@
-#define MyAppName "DentalRay"
+#define MyAppName "Dentix"
 #define MyAppVersion "1.1.0"
 #define MyAppPublisher "Rahim Namazi"
 #define MyAppExeName "DentalRay.Api.exe"
@@ -199,13 +199,13 @@ begin
     CheckFile := ExpandConstant('{tmp}\DentalRay.DatabaseState.txt');
     CreateDatabaseConfirmed := False;
 
-    if not FileExists(HelperExe) then begin MsgBox('ابزار آماده‌سازی DentalRay پیدا نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
-    if not FileExists(ScriptPath) then begin MsgBox('اسکریپت پایگاه داده DentalRay در بسته نصب وجود ندارد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
+    if not FileExists(HelperExe) then begin MsgBox('ابزار آماده‌سازی Dentix پیدا نشد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
+    if not FileExists(ScriptPath) then begin MsgBox('اسکریپت پایگاه داده Dentix در بسته نصب وجود ندارد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
 
     DeleteFile(CheckFile);
     Params := '--server "' + Trim(SqlPage.Values[0]) + '" --check-database --output "' + CheckFile + '"';
-    if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) then begin MsgBox('بررسی دیتابیس DentalRay با خطا مواجه شد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
-    if (ResultCode = 20) or (ResultCode = 21) then begin MsgBox('SQL Server روی این رایانه نصب نیست یا قابل دسترسی نیست.' + CRLF + CRLF + 'نصب DentalRay خاتمه یافت.', mbError, MB_OK); Exit; end;
+    if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) then begin MsgBox('بررسی دیتابیس Dentix با خطا مواجه شد.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
+    if (ResultCode = 20) or (ResultCode = 21) then begin MsgBox('SQL Server روی این رایانه نصب نیست یا قابل دسترسی نیست.' + CRLF + CRLF + 'نصب Dentix خاتمه یافت.', mbError, MB_OK); Exit; end;
     if ResultCode <> 0 then begin MsgBox('بررسی SQL Server موفق نبود.' + CRLF + 'کد خطا: ' + IntToStr(ResultCode) + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
 
     StateAnsi := '';
@@ -213,18 +213,26 @@ begin
     StateText := Trim(String(StateAnsi));
 
     if Pos('MISSING', UpperCase(StateText)) > 0 then begin
-        if MsgBox('دیتابیس DentalRay در SQL Server انتخاب‌شده پیدا نشد.' + CRLF + CRLF + 'آیا می‌خواهید دیتابیس DentalRay ایجاد و آماده‌سازی شود؟', mbConfirmation, MB_YESNO) <> IDYES then begin MsgBox('نصب توسط کاربر لغو شد.', mbInformation, MB_OK); Exit; end;
+        { MISSING means neither Dentix nor the older DentalRay database was found. }
+        if MsgBox('دیتابیس Dentix در SQL Server انتخاب‌شده پیدا نشد.' + CRLF + CRLF + 'آیا می‌خواهید دیتابیس Dentix ایجاد و آماده‌سازی شود؟', mbConfirmation, MB_YESNO) <> IDYES then begin MsgBox('نصب توسط کاربر لغو شد.', mbInformation, MB_OK); Exit; end;
         CreateDatabaseConfirmed := True;
+    end else if Pos('LEGACY', UpperCase(StateText)) > 0 then begin
+        { A pre-rename installation: the old database holds the patient data and
+          the upgrade script renames it in place, so nothing is lost. }
+        if MsgBox('یک نصب قدیمی DentalRay روی این سرور پیدا شد.' + CRLF + CRLF +
+                  'داده‌های بیماران در همان دیتابیس نگهداری می‌شود و در جریان نصب فقط نام آن به Dentix تغییر می‌کند.' + CRLF +
+                  'هیچ اطلاعاتی حذف یا کپی نمی‌شود.' + CRLF + CRLF +
+                  'آیا ادامه می‌دهید؟', mbConfirmation, MB_YESNO) <> IDYES then begin MsgBox('نصب توسط کاربر لغو شد.', mbInformation, MB_OK); Exit; end;
     end else if Pos('EXISTS', UpperCase(StateText)) = 0 then begin MsgBox('وضعیت دیتابیس قابل تشخیص نیست.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK); Exit; end;
 
-    ErrorFile := ExpandConstant('{tmp}\DentalRay.DatabaseError.txt');
+    ErrorFile := ExpandConstant('{tmp}\Dentix.DatabaseError.txt');
     DeleteFile(ErrorFile);
     Params := '--server "' + Trim(SqlPage.Values[0]) + '" --script "' + ScriptPath + '" --error-output "' + ErrorFile + '"';
     if CreateDatabaseConfirmed then Params := Params + ' --create-database true';
 
     if not RunHiddenAndWait(HelperExe, Params, HelperDirectory, ResultCode) or (ResultCode <> 0) then begin
         if ResultCode = 20 then MsgBox('SQL Server قابل دسترسی نیست.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
-        else if ResultCode = 30 then MsgBox('دیتابیس DentalRay وجود ندارد و ایجاد آن تأیید نشده است.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
+        else if ResultCode = 30 then MsgBox('دیتابیس Dentix وجود ندارد و ایجاد آن تأیید نشده است.' + CRLF + 'نصب متوقف شد.', mbError, MB_OK)
         else begin
             ErrorText := '';
             ErrorAnsi := '';
@@ -313,7 +321,7 @@ begin
 
     ConfigText := '{' + CRLF +
         '  "ConnectionStrings": {' + CRLF +
-        '    "DentalRay": "Server=' + JsonEscape(SqlServer) + ';Database=DentalRay;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;"' + CRLF +
+        '    "Dentix": "Server=' + JsonEscape(SqlServer) + ';Database=Dentix;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;"' + CRLF +
         '  },' + CRLF +
         '  "RadiologyStorage": {' + CRLF +
         '    "RootPath": "' + JsonEscape(StoragePath) + '"' + CRLF +
@@ -340,7 +348,7 @@ begin
         '}' + CRLF;
 
     if not SaveStringToFile(ConfigFile, ConfigText, False) then RaiseException('فایل تنظیمات DentalRay ساخته نشد.');
-    if not RunHiddenAndWait(ExpandConstant('{sys}\icacls.exe'), '"' + ConfigFile + '" /inheritance:r /grant:r "*S-1-5-18:F" "*S-1-5-32-544:F"', '', ResultCode) then RaiseException('امکان تنظیم دسترسی فایل DentalRay.config.json وجود ندارد.');
+    if not RunHiddenAndWait(ExpandConstant('{sys}\icacls.exe'), '"' + ConfigFile + '" /inheritance:r /grant:r "*S-1-5-18:F" "*S-1-5-32-544:F"', '', ResultCode) then RaiseException('امکان تنظیم دسترسی فایل Dentix.config.json وجود ندارد.');
     if ResultCode <> 0 then RaiseException('تنظیم دسترسی فایل DentalRay.config.json ناموفق بود.' + CRLF + 'Exit Code: ' + IntToStr(ResultCode));
 
     DentalRayExe := ExpandConstant('{app}\DentalRay.Api.exe');

@@ -34,11 +34,18 @@ namespace DentalRay.SetupHelper
                     return 20;
                 }
 
-                bool databaseExists = await DatabaseExistsAsync(masterConnectionString, "DentalRay");
+                bool databaseExists = await DatabaseExistsAsync(masterConnectionString, "Dentix");
+                // An installation created before the rename still has the old
+                // database. Detecting it lets the installer tell the user that the
+                // rename will happen instead of offering to create an empty one.
+                bool legacyDatabaseExists = !databaseExists
+                    && await DatabaseExistsAsync(masterConnectionString, "DentalRay");
 
                 if (checkDatabase)
                 {
-                    string state = databaseExists ? "EXISTS" : "MISSING";
+                    string state = databaseExists ? "EXISTS"
+                                 : legacyDatabaseExists ? "LEGACY"
+                                 : "MISSING";
                     if (!string.IsNullOrWhiteSpace(checkOutput))
                         await File.WriteAllTextAsync(checkOutput, state);
                     Console.WriteLine(state);
@@ -51,9 +58,11 @@ namespace DentalRay.SetupHelper
                     return 10;
                 }
 
-                if (!databaseExists && !createDatabase)
+                // A legacy database is upgraded in place by the script, so it does
+                // not need the explicit "create" confirmation.
+                if (!databaseExists && !legacyDatabaseExists && !createDatabase)
                 {
-                    Console.WriteLine("DentalRay database does not exist.");
+                    Console.WriteLine("Dentix database does not exist.");
                     return 30;
                 }
 
@@ -61,7 +70,7 @@ namespace DentalRay.SetupHelper
                 await ExecuteSqlScriptAsync(masterConnectionString, sqlScript);
                 await ConfigureServiceDatabaseAccessAsync(masterConnectionString);
 
-                Console.WriteLine("DentalRay database is ready.");
+                Console.WriteLine("Dentix database is ready.");
                 return 0;
             }
             catch (SqlException ex)
@@ -121,7 +130,10 @@ namespace DentalRay.SetupHelper
                     if (!await CanConnectAsync(cs))
                         continue;
 
-                    bool hasDb = await DatabaseExistsAsync(cs, "DentalRay");
+                    // Accept the current name and the legacy one, so an installation
+                    // created before the rename is still discovered.
+                    bool hasDb = await DatabaseExistsAsync(cs, "Dentix")
+                              || await DatabaseExistsAsync(cs, "DentalRay");
                     results.Add((server, true, hasDb));
                 }
                 catch
@@ -250,7 +262,7 @@ BEGIN
     CREATE LOGIN [NT AUTHORITY\SYSTEM] FROM WINDOWS;
 END;
 
-USE [DentalRay];
+USE [Dentix];
 
 IF NOT EXISTS
 (

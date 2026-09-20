@@ -1,13 +1,34 @@
-/* DentalRay database initialization / upgrade - authoritative schema
+/* Dentix database initialization / upgrade - authoritative schema
    Source: verified DentalRay database schema export (15 user tables).
    Non-destructive: existing data and legacy columns are preserved.
+
+   The product was renamed DentalRay -> Dentix. The database follows the new
+   name, and an existing installation is renamed in place so patient data is
+   never copied or lost.
 */
 SET NOCOUNT ON;
-SET XACT_ABORT ON;
 
-IF DB_ID(N'DentalRay') IS NULL CREATE DATABASE [DentalRay];
+IF DB_ID(N'Dentix') IS NULL
+BEGIN
+    IF DB_ID(N'DentalRay') IS NOT NULL
+    BEGIN
+        /* ALTER DATABASE ... MODIFY NAME cannot run inside a transaction, so the
+           name change happens here before XACT_ABORT is enabled for the schema
+           work below. */
+        PRINT N'Renaming DentalRay database to Dentix (patient data is preserved).';
+        ALTER DATABASE [DentalRay] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+        ALTER DATABASE [DentalRay] MODIFY NAME = [Dentix];
+        ALTER DATABASE [Dentix] SET MULTI_USER;
+    END
+    ELSE
+        CREATE DATABASE [Dentix];
+END;
 GO
-USE [DentalRay];
+
+SET XACT_ABORT ON;
+GO
+
+USE [Dentix];
 GO
 
 /* =========================
@@ -428,5 +449,5 @@ IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblStudyPayments_StudyID
     CREATE INDEX IX_tblStudyPayments_StudyID_PaymentDate ON dbo.tblStudyPayments(StudyID,PaymentDate DESC);
 GO
 
-PRINT N'DentalRay: complete 15-table schema initialization/upgrade completed successfully.';
+PRINT N'Dentix: complete 15-table schema initialization/upgrade completed successfully.';
 GO

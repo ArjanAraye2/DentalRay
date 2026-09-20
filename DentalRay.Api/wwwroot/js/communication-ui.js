@@ -25,7 +25,7 @@
         const section=document.createElement("section");
         section.id="communicationsSection"; section.className="card hidden shell-page";
         section.innerHTML=`
-          <div class="section-header"><div><h2>ارتباطات با بیماران</h2><p>مدیریت پیامک و کانال‌های ارتباطی DentalRay</p></div></div>
+          <div class="section-header"><div><h2>ارتباطات با بیماران</h2><p>مدیریت پیامک و کانال‌های ارتباطی Dentix</p></div></div>
           <div class="communication-channel-grid">
             <div class="communication-channel-card"><strong>SMS</strong><span id="commSmsStatus">در حال دریافت وضعیت...</span></div>
             <div class="communication-channel-card"><strong>Push Notification</strong><span id="commPushStatus">آماده برای دستگاه‌های ثبت‌شده</span></div>
