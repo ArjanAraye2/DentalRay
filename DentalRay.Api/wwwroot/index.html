@@ -14,7 +14,7 @@
     <link id="odontogramArchCss" rel="stylesheet" href="/css/odontogram-arch.css?v=20260920.1" />
     <link rel="stylesheet" href="/css/pos-settings.css?v=20260921.1" />
     <link rel="stylesheet" href="/css/patient-messages.css?v=20260921.2" />
-    <link rel="stylesheet" href="/css/study-status.css?v=20260921.1" />
+    <link rel="stylesheet" href="/css/study-status.css?v=20260921.2" />
 </head>
 <body>
 <aside class="app-sidebar">
@@ -82,7 +82,91 @@
   <div class="subsection-header study-list-header"><div><h3>مطالعات بیمار</h3><p>مرتب‌شده از جدیدترین به قدیمی‌ترین</p></div><button id="newStudyButton" type="button" class="primary-button">+ مطالعه جدید</button></div>
   <div id="studiesContainer" class="studies-container"></div>
 </section>
-<section id="studyDetailsSection" class="card hidden"><form id="studyDetailsForm"><div class="details-toolbar"><button id="backToPatientDetailsButton" type="button" class="secondary-button">← بازگشت به پرونده بیمار</button><button id="studyDetailsEditButton" type="button" class="secondary-button">ویرایش Study</button><button id="studyDetailsImagesButton" type="button">تصاویر</button><button id="studyDetailsSaveButton" type="button" class="hidden">ذخیره تغییرات</button><button id="studyDetailsCancelButton" type="button" class="secondary-button hidden">انصراف</button></div><div class="section-header study-header"><div><h2 id="studyDetailsTitle">Study</h2><p id="studyDetailsDate"></p></div></div><div class="form-grid"><div class="form-field"><label for="studyDetailsType">نوع رادیولوژی</label><select id="studyDetailsType" disabled></select></div><div class="form-field"><label for="studyDetailsBodyPart">ناحیه</label><input id="studyDetailsBodyPart" type="text" maxlength="100" readonly /></div><div class="form-field"><label for="studyDetailsStudyDate">تاریخ و زمان شمسی</label><input id="studyDetailsStudyDate" data-jalali-datetime type="text" maxlength="16" readonly /></div><div class="form-field full-width"><label for="studyDetailsDescription">توضیحات</label><textarea id="studyDetailsDescription" maxlength="1000" rows="3" readonly></textarea></div><div class="form-field full-width"><label for="studyDetailsReport">گزارش</label><textarea id="studyDetailsReport" rows="4" readonly></textarea></div><div class="form-field full-width"><label>شمای دندان‌ها</label><div id="studyDetailsDentalChart"></div></div></div><div id="studyDetailsStatus" class="status-message"></div></form></section><section id="studyImagesSection" class="card hidden"><div class="details-toolbar"><button id="backToStudyDetailsButton" type="button" class="secondary-button">← بازگشت به Study</button><button id="studyDetailsUploadButton" type="button">افزودن تصویر</button></div><div class="section-header"><div><h2 id="studyImagesTitle">تصاویر Study</h2></div></div><div id="studyDetailsImagesStatus" class="status-message"></div><div id="studyDetailsImagesGrid" class="images-grid"></div></section>
+<section id="studyDetailsSection" class="card hidden">
+  <form id="studyDetailsForm">
+    <div class="details-toolbar">
+      <button id="backToPatientDetailsButton" type="button" class="secondary-button">← بازگشت به پرونده بیمار</button>
+      <button id="studyDetailsEditButton" type="button" class="secondary-button">ویرایش Study</button>
+      <button id="studyDetailsImagesButton" type="button">تصاویر</button>
+      <button id="studyDetailsSaveButton" type="button" class="hidden">ذخیره تغییرات</button>
+      <button id="studyDetailsCancelButton" type="button" class="secondary-button hidden">انصراف</button>
+    </div>
+
+    <div class="section-header study-header">
+      <div><h2 id="studyDetailsTitle">Study</h2><p id="studyDetailsDate"></p></div>
+      <div id="studyDetailsStatusBadge" class="study-details-badge"></div>
+    </div>
+
+    <section class="study-form-card">
+      <h3 class="study-form-card-title">اطلاعات اصلی</h3>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="studyDetailsType">نوع رادیولوژی</label>
+          <select id="studyDetailsType" disabled></select>
+        </div>
+        <div class="form-field">
+          <label for="studyDetailsStudyDate">تاریخ و زمان شمسی</label>
+          <input id="studyDetailsStudyDate" data-jalali-datetime type="text" maxlength="16" readonly />
+        </div>
+        <div class="form-field">
+          <label for="studyDetailsDentist">دندانپزشک</label>
+          <select id="studyDetailsDentist"></select>
+          <small class="field-hint">مرحله انتظار از تخصص دندانپزشک پیشنهاد می‌شود.</small>
+        </div>
+        <div class="form-field">
+          <label for="studyDetailsBodyPart">ناحیه</label>
+          <input id="studyDetailsBodyPart" type="text" maxlength="100" readonly />
+        </div>
+      </div>
+    </section>
+
+    <section class="study-form-card">
+      <h3 class="study-form-card-title">وضعیت کار</h3>
+      <div class="form-grid">
+        <div class="form-field full-width">
+          <label for="studyDetailsStatus2">وضعیت مطالعه</label>
+          <select id="studyDetailsStatus2" class="study-status-select" disabled>
+            <option value="1">باز — کار مطالعه در جریان است</option>
+            <option value="2">تمام‌شده</option>
+            <option value="3">در انتظار</option>
+          </select>
+        </div>
+        <div class="form-field full-width study-followup-field hidden" id="studyDetailsWaitBox">
+          <label for="studyDetailsWaitStage">مرحله انتظار</label>
+          <select id="studyDetailsWaitStage" disabled></select>
+        </div>
+        <div class="form-field full-width study-followup-field hidden" id="studyDetailsFollowUpBox">
+          <label for="studyDetailsFollowUpDate">تاریخ پیگیری</label>
+          <input id="studyDetailsFollowUpDate" data-jalali-date type="text" maxlength="10" inputmode="numeric" placeholder="مثال: 1405/07/15" readonly />
+          <small class="field-hint">در این تاریخ، مطالعه در فهرست پیگیری‌ها ظاهر می‌شود.</small>
+          <label for="studyDetailsFollowUpNote" style="margin-top:8px">یادداشت پیگیری</label>
+          <input id="studyDetailsFollowUpNote" type="text" maxlength="500" readonly />
+        </div>
+      </div>
+    </section>
+
+    <section class="study-form-card">
+      <h3 class="study-form-card-title">شرح و گزارش</h3>
+      <div class="form-grid">
+        <div class="form-field full-width">
+          <label for="studyDetailsDescription">توضیحات</label>
+          <textarea id="studyDetailsDescription" maxlength="1000" rows="3" readonly></textarea>
+        </div>
+        <div class="form-field full-width">
+          <label for="studyDetailsReport">گزارش</label>
+          <textarea id="studyDetailsReport" rows="4" readonly></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="study-form-card">
+      <h3 class="study-form-card-title">شمای دندان‌ها</h3>
+      <div id="studyDetailsDentalChart"></div>
+    </section>
+
+    <div id="studyDetailsStatus" class="status-message"></div>
+  </form>
+</section><section id="studyImagesSection" class="card hidden"><div class="details-toolbar"><button id="backToStudyDetailsButton" type="button" class="secondary-button">← بازگشت به Study</button><button id="studyDetailsUploadButton" type="button">افزودن تصویر</button></div><div class="section-header"><div><h2 id="studyImagesTitle">تصاویر Study</h2></div></div><div id="studyDetailsImagesStatus" class="status-message"></div><div id="studyDetailsImagesGrid" class="images-grid"></div></section>
 <section id="newPatientSection" class="card hidden"><div class="details-toolbar"><button id="cancelNewPatientButton" type="button" class="secondary-button">انصراف</button></div><div class="section-header"><div><h2>ثبت بیمار جدید</h2><p>اطلاعات اصلی بیمار را وارد کنید.</p></div></div><form id="newPatientForm"><div class="form-grid"><div class="form-field"><label for="newFirstName">نام</label><input id="newFirstName" type="text" maxlength="100" required /></div><div class="form-field"><label for="newLastName">نام خانوادگی</label><input id="newLastName" type="text" maxlength="100" required /></div><div class="form-field"><label for="newNationalCode">کد ملی</label><input id="newNationalCode" type="text" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required /><small class="field-hint">کد ملی معتبر ۱۰ رقمی</small></div><div class="form-field"><label for="newMobile">موبایل</label><input id="newMobile" type="text" maxlength="30" inputmode="tel" /></div><div class="form-field"><label for="newBirthDate">تاریخ تولد شمسی</label><input id="newBirthDate" data-jalali-date type="text" maxlength="10" inputmode="numeric" placeholder="مثال: 1363/07/15" /><small class="field-hint">فرمت: سال/ماه/روز</small></div><div class="form-field"><label for="newGender">جنسیت</label><select id="newGender"><option value="">انتخاب نشده</option><option value="1">مرد</option><option value="2">زن</option></select></div><div class="form-field full-width"><label for="newAddress">آدرس</label><textarea id="newAddress" maxlength="500" rows="3"></textarea></div><div class="form-field full-width"><label for="newDescription">توضیحات</label><textarea id="newDescription" maxlength="1000" rows="4"></textarea></div></div><div id="newPatientStatus" class="status-message"></div><div class="form-actions"><button type="submit">ثبت بیمار</button><button id="cancelNewPatientButtonBottom" type="button" class="secondary-button">انصراف</button></div></form></section>
 <section id="editPatientSection" class="card hidden"><div class="details-toolbar"><button id="cancelEditPatientButton" type="button" class="secondary-button">انصراف</button></div><div class="section-header"><div><h2>ویرایش بیمار</h2><p>اطلاعات پرونده را اصلاح کنید.</p></div></div><form id="editPatientForm"><div class="form-grid"><div class="form-field"><label for="editFirstName">نام</label><input id="editFirstName" type="text" maxlength="100" required /></div><div class="form-field"><label for="editLastName">نام خانوادگی</label><input id="editLastName" type="text" maxlength="100" required /></div><div class="form-field"><label for="editNationalCode">کد ملی</label><input id="editNationalCode" type="text" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required /><small class="field-hint">کد ملی معتبر ۱۰ رقمی؛ تغییر آن نام فایل‌های تصاویر بیمار را نیز هماهنگ می‌کند.</small></div><div class="form-field"><label for="editMobile">موبایل</label><input id="editMobile" type="text" maxlength="30" inputmode="tel" /></div><div class="form-field"><label for="editBirthDate">تاریخ تولد شمسی</label><input id="editBirthDate" data-jalali-date type="text" maxlength="10" inputmode="numeric" placeholder="مثال: 1363/07/15" /><small class="field-hint">فرمت: سال/ماه/روز</small></div><div class="form-field"><label for="editGender">جنسیت</label><select id="editGender"><option value="">انتخاب نشده</option><option value="1">مرد</option><option value="2">زن</option></select></div><div class="form-field full-width"><label for="editAddress">آدرس</label><textarea id="editAddress" maxlength="500" rows="3"></textarea></div><div class="form-field full-width"><label for="editDescription">توضیحات</label><textarea id="editDescription" maxlength="1000" rows="4"></textarea></div></div><div id="editPatientStatus" class="status-message"></div><div class="form-actions"><button type="submit">ذخیره تغییرات</button><button id="cancelEditPatientButtonBottom" type="button" class="secondary-button">انصراف</button></div></form></section>
 <section id="newStudySection" class="card hidden"><div class="details-toolbar"><button id="cancelNewStudyButton" type="button" class="secondary-button">انصراف</button></div><div class="section-header"><div><h2>ثبت رادیولوژی جدید</h2><p>تاریخ و زمان پیش‌فرض، زمان فعلی است.</p></div></div><form id="newStudyForm"><div class="form-grid"><div class="form-field"><label for="newStudyType">نوع رادیولوژی</label><select id="newStudyType" required><option value="">در حال دریافت انواع مطالعه...</option></select></div><div class="form-field"><label for="newBodyPart">ناحیه</label><input id="newBodyPart" type="text" maxlength="100" /></div><div class="form-field"><label for="newStudyDate">تاریخ و زمان شمسی</label><input id="newStudyDate" data-jalali-datetime type="text" maxlength="16" placeholder="مثال: 1405/06/22 14:30" /><small class="field-hint">فرمت: سال/ماه/روز ساعت:دقیقه</small></div><div class="form-field full-width"><label for="newStudyDescription">توضیحات</label><textarea id="newStudyDescription" maxlength="1000" rows="3"></textarea></div><div class="form-field full-width"><label for="newStudyReport">گزارش</label><textarea id="newStudyReport" rows="4"></textarea></div></div><div class="form-field full-width study-status-field">
@@ -110,7 +194,7 @@
 <div id="toastContainer" class="toast-container"></div>
 <script src="/js/jalali-picker.js?v=20260921.2"></script>
 <script src="/js/input-language.js"></script>
-<script src="/js/app.js?v=20260921.4"></script>
+<script src="/js/app.js?v=20260921.5"></script>
 <script src="/js/study-delete.js"></script>
 <script src="/js/study-finance.js?v=20260921.3"></script>
 <script src="/js/staff-ui.js"></script>

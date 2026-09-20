@@ -270,6 +270,10 @@ namespace DentalRay.Api.Controllers
                     s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID,
                     StudyTypeName = st.StudyTypeName,
                     s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
+                    s.DentistStaffID,
+                    DentistName = _context.Staff.AsNoTracking()
+                        .Where(st => st.StaffID == s.DentistStaffID)
+                        .Select(st => st.FirstName + " " + st.LastName).FirstOrDefault(),
                     s.Status, s.FollowUpDate, s.FollowUpNote, s.WaitStageID,
                     WaitStageName = _context.WaitStages.AsNoTracking()
                         .Where(w => w.WaitStageID == s.WaitStageID)

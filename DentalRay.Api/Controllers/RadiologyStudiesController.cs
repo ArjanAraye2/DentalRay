@@ -110,6 +110,10 @@ namespace DentalRay.Api.Controllers
                 var followUpNote = NormalizeOptionalText(request.FollowUpNote);
                 study.StudyDate=request.StudyDate;study.StudyTypeID=request.StudyTypeID;study.BodyPart=body;study.Description=desc;study.Report=report;
                 study.Status=request.Status;
+                // The dentist identifies the specialty, which drives waiting stages.
+                if(request.DentistStaffID.HasValue&&!await _context.Staff.AnyAsync(s=>s.StaffID==request.DentistStaffID.Value&&s.StaffType==2))
+                    return BadRequest(new{success=false,message="دندانپزشک انتخاب‌شده معتبر نیست."});
+                study.DentistStaffID=request.DentistStaffID;
                 // A follow-up date only makes sense for status 3, so it is cleared
                 // when the Study is completed or simply open.
                 study.FollowUpDate=request.Status==3?request.FollowUpDate:null;
