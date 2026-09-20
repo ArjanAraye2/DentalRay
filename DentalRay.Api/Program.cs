@@ -1,6 +1,7 @@
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
+using DentalRay.Api.Services.Pos;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -18,6 +19,10 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
 builder.Services.AddScoped<StudyAccessService>();
+// POS terminals: the registry resolves the protocol named in the settings, so a
+// new vendor only needs a new IPosProtocol implementation registered here.
+builder.Services.AddSingleton<IPosProtocol, GenericTcpPosProtocol>();
+builder.Services.AddSingleton<PosProtocolRegistry>();
 // Central communication service: Kavenegar is the default SMS provider, while the provider remains configurable.
 builder.Services.AddSingleton<ICommunicationService, CommunicationService>();
 builder.Services.AddHttpClient();

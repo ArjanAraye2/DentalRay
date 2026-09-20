@@ -56,10 +56,15 @@
         <div class="dashboard-panel-title"><strong>تنظیمات دسترسی شبکه</strong><span>اجرای Dentix در کامپیوتر و موبایل</span></div>
         <div class="network-settings-steps">
           <div><strong>۱. آدرس برنامه</strong><span>برای دستگاه‌های شبکه از لینک نام سرور یا IP محلی استفاده کنید.</span></div>
-          <div><strong>۲. Windows Firewall</strong><span>پورت TCP شماره 5202 باید برای شبکه Private باز باشد.</span><code>netsh advfirewall firewall add rule name="DentalRay Port 5202" dir=in action=allow protocol=TCP localport=5202 profile=private</code></div>
-          <div><strong>۳. IP استاتیک اینترنت</strong><span>PublicHost را در فایل DentalRay.config.json تنظیم و Port Forwarding روتر را به سرور هدایت کنید.</span></div>
+          <div><strong>۲. Windows Firewall</strong><span>پورت TCP شماره 5202 باید برای شبکه Private باز باشد.</span><code>netsh advfirewall firewall add rule name="Dentix Port 5202" dir=in action=allow protocol=TCP localport=5202 profile=private</code></div>
+          <div><strong>۳. IP استاتیک اینترنت</strong><span>PublicHost را در فایل پیکربندی Dentix تنظیم و Port Forwarding روتر را به سرور هدایت کنید.</span></div>
         </div>
         <div id="settingsNetworkLinks" class="dashboard-access-links"></div>
+      </section>
+      <section id="posSettingsEntry" class="network-settings-card">
+        <div class="dashboard-panel-title"><strong>دستگاه پوز (کارتخوان)</strong><span>ارسال مبلغ دریافت به پوز</span></div>
+        <p class="pos-note">آدرس و پورت پوز را ثبت کنید و با «تست اتصال» بررسی کنید دستگاه در شبکه در دسترس است یا نه.</p>
+        <div class="pos-actions"><button type="button" id="openPosSettingsButton">مدیریت پوز</button></div>
       </section>
       <div id="settingsAdminActions" class="settings-admin-actions"></div>`;
     main.appendChild(settings);
@@ -175,7 +180,7 @@
         if (!network.serverNameUrl && !(network.localUrls || []).length) lanRoot.textContent = "لینک شبکه محلی شناسایی نشد.";
         const publicRoot = document.getElementById("dashboardPublicLink"); publicRoot.replaceChildren();
         if (network.publicUrl) publicRoot.appendChild(createAccessLink(network.publicUrl, "اینترنت / IP استاتیک"));
-        else publicRoot.textContent = "برای لینک اینترنتی، PublicHost را در DentalRay.config.json تنظیم کنید.";
+        else publicRoot.textContent = "برای لینک اینترنتی، PublicHost را در فایل پیکربندی Dentix تنظیم کنید.";
         document.getElementById("dashboardNetworkNote").textContent = network.note || "";
     }
     function renderSettingsNetworkLinks(network) {
@@ -410,6 +415,11 @@
 
     // Admin scripts run before this file and create their own working buttons.
     // Moving those same nodes preserves every original click handler.
+    // The POS panel is its own card; the button reveals it and loads the settings.
+    document.getElementById("openPosSettingsButton")?.addEventListener("click", () => {
+        window.DentalRayPosSettings?.show();
+        document.getElementById("posSettingsCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     moveAdministrativeButtons();
     setupGlobalSearch();
     window.DentalRayNavigation = { navigate, moveAdministrativeButtons };

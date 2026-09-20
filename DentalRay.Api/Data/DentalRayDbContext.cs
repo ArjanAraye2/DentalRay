@@ -23,6 +23,7 @@ namespace DentalRay.Api.Data
         public DbSet<UserDentist> UserDentists { get; set; }
         public DbSet<StudyAction> StudyActions { get; set; }
         public DbSet<StudyPayment> StudyPayments { get; set; }
+        public DbSet<PosSetting> PosSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

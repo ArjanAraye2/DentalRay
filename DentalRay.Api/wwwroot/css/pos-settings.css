@@ -1,0 +1,110 @@
+/* Dentix - POS (card reader) settings panel. */
+
+.pos-note {
+    margin-bottom: 14px;
+    padding: 11px 13px;
+    border: 1px solid var( --border );
+    border-radius: var( --radius-sm );
+    background: var( --brand-25 );
+    color: var( --muted-strong );
+    font-size: var( --fs-xs );
+    line-height: 1.9;
+}
+.pos-note strong { color: var( --heading ); }
+
+.pos-list { display: grid; gap: 10px; margin-bottom: 14px; }
+
+.pos-item {
+    padding: 12px 14px;
+    border: 1px solid var( --border );
+    border-radius: var( --radius );
+    background: var( --surface );
+}
+.pos-item.is-default { border-color: var( --brand-300 ); box-shadow: inset 3px 0 0 var( --brand-500 ); }
+
+.pos-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.pos-item-head strong { color: var( --heading ); font-size: var( --fs-base ); }
+.pos-badges { display: flex; gap: 6px; }
+.pos-badge {
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.pos-badge.default { background: var( --brand-100 ); color: var( --brand-700 ); }
+.pos-badge.off { background: #fdf3f2; color: var( --danger ); }
+
+.pos-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-bottom: 10px;
+    color: var( --muted );
+    font-size: var( --fs-xs );
+}
+.pos-item-meta bdi { color: var( --heading ); font-weight: 700; }
+.pos-test-result.ok { color: var( --success ); }
+.pos-test-result.err { color: var( --danger ); }
+
+.pos-item-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.pos-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.pos-empty {
+    padding: 20px;
+    border: 1px dashed var( --border-strong, #c3dae1 );
+    border-radius: var( --radius );
+    color: var( --muted );
+    text-align: center;
+    font-size: var( --fs-xs );
+}
+
+#posForm {
+    padding: 16px;
+    border: 1px solid var( --border );
+    border-radius: var( --radius );
+    background: var( --brand-25 );
+}
+#posForm h6 { margin: 0 0 14px; color: var( --heading ); font-size: var( --fs-sm ); }
+
+.pos-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+    margin-bottom: 8px;
+}
+.pos-form-grid .full-width { grid-column: 1 / -1; }
+.pos-toggles {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+}
+.pos-toggles .checkbox-row { margin-top: 0; }
+
+.pos-form-grid code {
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: var( --brand-100 );
+    color: var( --brand-700 );
+    direction: ltr;
+    display: inline-block;
+}
+
+@media (max-width: 700px) {
+    .pos-form-grid { grid-template-columns: 1fr; }
+    .pos-form-grid .full-width { grid-column: auto; }
+    .pos-item-actions button { flex: 1; min-height: 44px; }
+    .pos-actions button { flex: 1; min-height: 44px; }
+}
