@@ -1,0 +1,108 @@
+/* Dentix circular dental wheel - the "نمای جدید" view.
+   The teeth sit on a circle with their crowns towards the middle, and each quadrant
+   has its own colour band. The artwork comes from tooth-shapes.js. */
+
+.fan-odontogram {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid #dbe5f0;
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at 50% 42%, #ffffff, #f4f9fd 62%, #eaf3fa);
+    box-shadow: inset 0 1px 0 #fff;
+}
+.fan-odontogram svg { display: block; width: 100%; height: auto; }
+
+/* Quadrant bands behind the teeth. */
+.fan-band { stroke: none; }
+
+/* The gum ring and the mouth. The wheel is round, so these are circles rather than
+   the curved paths the arch view uses. */
+.fan-gum {
+    fill: none;
+    stroke: url(#fanGum);
+    stroke-width: 60;
+    filter: drop-shadow(0 6px 10px rgba(99, 45, 40, .16));
+}
+.fan-mouth {
+    fill: url(#fanMouth);
+    stroke: #e3a99e;
+    stroke-width: 1.5;
+}
+/* Thin decorative ring between the numbers and the coloured bands. */
+.fan-inner {
+    fill: none;
+    stroke: #e7c9c1;
+    stroke-width: 1.5;
+    stroke-dasharray: 5 6;
+}
+.fan-label {
+    font: 700 16px Tahoma, Arial, sans-serif;
+    fill: #8a4d48;
+    text-anchor: middle;
+}
+
+/* Teeth */
+.fan-tooth { cursor: pointer; }
+.fan-tooth .fan-crown {
+    fill: #fffdf7;
+    stroke: #a88d6d;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 2px 2px rgba(58, 42, 27, .22));
+    transition: fill .15s ease, stroke .15s ease;
+}
+.fan-tooth .fan-root {
+    fill: #ead7b6;
+    stroke: #ab9070;
+    stroke-width: 1.4;
+    transition: fill .15s ease, stroke .15s ease;
+}
+.fan-tooth .fan-detail {
+    fill: none !important;
+    stroke: #d2b98f !important;
+    stroke-width: 1.3 !important;
+    stroke-linecap: round;
+}
+
+/* Quadrant tint, matching the other views. */
+.fan-tooth.quadrant-2 .fan-crown { fill: #fbfdff; }
+.fan-tooth.quadrant-3 .fan-crown { fill: #fbfffd; }
+.fan-tooth.quadrant-4 .fan-crown { fill: #fffbfb; }
+
+.fan-tooth:hover .fan-crown { fill: #eaf5ff; stroke: #2581dc; }
+.fan-tooth:hover .fan-root { fill: #dbeaf8; stroke: #2581dc; }
+
+.fan-tooth.selected .fan-crown {
+    fill: #86c7ff;
+    stroke: #0878e5;
+    stroke-width: 2.4;
+    filter: drop-shadow(0 3px 5px rgba(0, 112, 230, .38));
+}
+.fan-tooth.selected .fan-root { fill: #6fb4f5; stroke: #0878e5; }
+.fan-tooth.selected .fan-detail { stroke: #fff !important; }
+.fan-tooth.selected .fan-tooth-number { fill: #0069cf; font-weight: 800; }
+
+.fan-tooth:focus-visible { outline: none; }
+.fan-tooth:focus-visible .fan-crown { stroke: #0b62c4; stroke-width: 2.6; }
+
+.fan-tooth-number {
+    font: 700 15px Arial, sans-serif;
+    fill: #26384c;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+}
+
+/* Visibility per view: a chart shows exactly one of the three drawn views. */
+.dental-integrated-fan { display: none; }
+.dental-view-fan .dental-integrated-fan { display: block; }
+.dental-view-fan .dental-integrated-arch,
+.dental-view-fan .dental-chart-body > .dental-chart-group { display: none; }
+
+@media (max-width: 700px) {
+    .fan-odontogram { padding: 4px; }
+    .fan-odontogram svg { min-width: 420px; }
+    .fan-odontogram { overflow: auto; }
+}

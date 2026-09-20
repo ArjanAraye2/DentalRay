@@ -1,23 +1,82 @@
 /* DentalRay - Study finance panel
    Uses the shared design tokens and the app type scale, and adds the row style
-   used when a payment is edited inline (with the Jalali date picker). */
+   used when a payment is edited inline (with the Jalali date picker).
+
+   The panel is collapsible, so the head carries a summary and the forms and rows
+   live in the body. A matching chip in the Study header shows the money state
+   while everything is closed. */
 
 .study-finance {
     margin: 0 12px 12px;
-    padding: 14px;
     border: 1px solid var( --border );
     border-radius: var( --radius );
     background: var( --brand-25 );
+    overflow: hidden;
 }
-.study-finance-title {
+
+/* --- collapsible head --- */
+.study-finance-head { margin: 0; }
+.study-finance-toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 9px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 0;
+    background: linear-gradient(180deg, #fbfdff, #f3f7fb);
     color: var( --heading );
+    text-align: start;
+    cursor: pointer;
 }
-.study-finance-title h5 { margin: 0; font-size: var( --fs-md ); }
+.study-finance-toggle:hover { background: #eef6ff; }
+.study-finance-toggle:focus-visible { outline: 2px solid var( --primary ); outline-offset: -2px; }
+.study-finance-arrow {
+    color: var( --primary );
+    font-size: 20px;
+    line-height: 1;
+    flex: 0 0 auto;
+}
+.study-finance-head-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-width: 0;
+}
+.study-finance-head-text strong { font-size: var( --fs-md ); }
+
+/* The one-line summary, tinted by state so a balance stands out. */
+.study-finance-head-summary {
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var( --surface );
+    border: 1px solid var( --border );
+    color: var( --muted-strong );
+    font-size: var( --fs-xs );
+    font-weight: 700;
+}
+.study-finance.is-due .study-finance-head-summary { background: var( --warning-soft ); border-color: #e8cf9a; color: var( --warning ); }
+.study-finance.is-settled .study-finance-head-summary { background: var( --success-soft ); border-color: #b6e0c6; color: var( --success ); }
+.study-finance.is-ok .study-finance-head-summary { background: var( --brand-50, #eef7ff ); border-color: var( --border ); color: var( --primary ); }
+
+.study-finance-body { padding: 14px; }
+
+/* --- the chip in the Study header --- */
+.study-finance-chip {
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid var( --border );
+    background: var( --surface );
+    color: var( --muted-strong );
+    font-size: var( --fs-xs );
+    font-weight: 700;
+    white-space: nowrap;
+}
+.study-finance-chip.is-due { background: var( --warning-soft ); border-color: #e8cf9a; color: var( --warning ); }
+.study-finance-chip.is-settled { background: var( --success-soft ); border-color: #b6e0c6; color: var( --success ); }
+.study-finance-chip.is-ok { background: var( --brand-50, #eef7ff ); color: var( --primary ); }
+.study-finance-chip.is-none { display: none; }
 
 .study-finance-summary {
     display: grid;

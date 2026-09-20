@@ -243,6 +243,13 @@
 .study-scroll-body .study-scroll-details,
 .study-scroll-body .study-scroll-chart { margin-bottom: 12px; }
 
+/* The money chip sits with the status badge on the first header line, so adding it
+   does not add a whole extra line to the collapsed row. */
+.study-finance-chip { align-self: center; }
+@media (max-width: 700px) {
+    .study-finance-chip { font-size: 11px; }
+}
+
 @media (max-width: 700px) {
     .patient-reminder-filters { flex-direction: column; gap: 6px; }
     .study-status-select { max-width: none; }

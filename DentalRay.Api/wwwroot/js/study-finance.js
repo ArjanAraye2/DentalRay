@@ -1,4 +1,8 @@
 // Dentix Study finance: multiple billable actions and multiple payments per Study.
+//
+// The panel is collapsible, like the rest of a Study, and a compact summary is
+// published to the Study header so the money state is visible without opening
+// anything. The full detail (forms and rows) stays one click away.
 (() => {
  "use strict";
  const money=value=>Number(value||0).toLocaleString("fa-IR",{maximumFractionDigits:2});
@@ -8,11 +12,37 @@
  const paymentMethodName=value=>({1:"پوز",2:"کارت به کارت",3:"نقدی"})[Number(value)]||"تعیین نشده";
  const button=(text,className="")=>{const b=document.createElement("button");b.type="button";b.textContent=text;if(className)b.className=className;return b;};
 
+ // What the money adds up to, in one phrase. "No charge" and "settled" are different
+ // states from "owes money", and the header chip should say which one applies.
+ function summaryState(s){
+  const gross=Number(s?.grossAmount||0),net=Number(s?.netAmount||0),received=Number(s?.receivedAmount||0),balance=Number(s?.balanceAmount||0);
+  if(!gross&&!net&&!received&&!balance)return {kind:"none",text:"بدون هزینه"};
+  if(balance>0)return {kind:"due",text:`مانده ${money(balance)}`};
+  if(received>0)return {kind:"settled",text:"تسویه شده"};
+  return {kind:"ok",text:`خالص ${money(net)}`};
+ }
+
  function createPanel(studyID){
   const root=document.createElement("section");root.className="study-finance";root.dataset.studyId=studyID;
-  root.innerHTML='<div class="study-finance-title"><h5>امور مالی مطالعه</h5><span>اقدامات، تخفیف‌ها و دریافت‌ها</span></div><div class="study-finance-summary"><div><span>جمع هزینه</span><strong data-s="gross">۰</strong></div><div><span>جمع تخفیف</span><strong data-s="discount">۰</strong></div><div><span>مبلغ خالص</span><strong data-s="net">۰</strong></div><div><span>دریافتی</span><strong data-s="received">۰</strong></div><div class="finance-balance"><span>مانده</span><strong data-s="balance">۰</strong></div></div><div class="study-finance-columns"></div><div class="study-finance-status"></div>';
+  // A collapsible head carries the summary, so the panel reads without opening it.
+  root.innerHTML='<header class="study-finance-head"><button type="button" class="study-finance-toggle" aria-expanded="false"><span class="study-finance-arrow" aria-hidden="true">⌄</span><span class="study-finance-head-text"><strong>امور مالی مطالعه</strong><span class="study-finance-head-summary" data-head-summary>بدون هزینه</span></span></button></header>'
+   +'<div class="study-finance-body hidden">'
+   +'<div class="study-finance-summary"><div><span>جمع هزینه</span><strong data-s="gross">۰</strong></div><div><span>جمع تخفیف</span><strong data-s="discount">۰</strong></div><div><span>مبلغ خالص</span><strong data-s="net">۰</strong></div><div><span>دریافتی</span><strong data-s="received">۰</strong></div><div class="finance-balance"><span>مانده</span><strong data-s="balance">۰</strong></div></div>'
+   +'<div class="study-finance-columns"></div><div class="study-finance-status"></div></div>';
   const cols=root.querySelector(".study-finance-columns");
-  cols.append(createActionBox(root),createPaymentBox(root));return root;
+  cols.append(createActionBox(root),createPaymentBox(root));
+
+  // Open/close. The whole head is the hit area, with the keyboard covered too.
+  const toggle=root.querySelector(".study-finance-toggle");
+  const body=root.querySelector(".study-finance-body");
+  const setOpen=open=>{
+    body.classList.toggle("hidden",!open);
+    root.classList.toggle("is-open",open);
+    toggle.setAttribute("aria-expanded",open?"true":"false");
+    root.querySelector(".study-finance-arrow").textContent=open?"⌃":"⌄";
+  };
+  toggle.addEventListener("click",()=>setOpen(body.classList.contains("hidden")));
+  return root;
  }
  function createActionBox(root){
   const box=document.createElement("section");box.className="study-finance-box";box.innerHTML="<h6>اقدامات Study</h6>";
@@ -132,7 +162,66 @@
   finally{buttonEl.disabled=false;buttonEl.textContent=original;}
  }
  async function remove(root,path){if(!confirm("این رکورد مالی حذف شود؟"))return;try{await api(`/api/studies/${root.dataset.studyId}/finance/${path}`,{method:"DELETE"});await load(root);}catch(e){setStatus(root,e.message,true);}}
- async function load(root){try{setStatus(root,"در حال دریافت اطلاعات مالی...");const x=await api(`/api/studies/${root.dataset.studyId}/finance`),s=x.summary||{};root.querySelector('[data-s="gross"]').textContent=money(s.grossAmount);root.querySelector('[data-s="discount"]').textContent=money(s.discountAmount);root.querySelector('[data-s="net"]').textContent=money(s.netAmount);root.querySelector('[data-s="received"]').textContent=money(s.receivedAmount);root.querySelector('[data-s="balance"]').textContent=money(s.balanceAmount);renderActions(root,x.actions||[]);renderPayments(root,x.payments||[]);setStatus(root,"");}catch(e){setStatus(root,e.message,true);}}
- function enhance(){document.querySelectorAll(".study-scroll-card").forEach(card=>{if(card.dataset.financeReady)return;card.dataset.financeReady="1";const root=createPanel(Number(card.dataset.studyId));card.appendChild(root);load(root);});}
+
+ // The chip in the Study header. It is the whole point of the panel being collapsed:
+ // the balance is readable from the closed row.
+ function paintHeaderChip(card,state){
+  const host=card.querySelector(".study-header-main")||card.querySelector(".study-scroll-header");
+  if(!host)return;
+  let chip=host.querySelector(".study-finance-chip");
+  if(!chip){
+    chip=document.createElement("span");chip.className="study-finance-chip";
+    // Put the chip on the first header line, next to the status badge. The summary
+    // line below it takes a full row (flex 1 0 100%), so appending the chip would
+    // give every collapsed Study an extra line.
+    const summary=host.querySelector(".study-summary-line");
+    if(summary)host.insertBefore(chip,summary);else host.appendChild(chip);
+  }
+  chip.classList.remove("is-due","is-settled","is-ok","is-none");
+  chip.classList.add("is-"+state.kind);
+  chip.textContent=state.text;
+  chip.title="خلاصه مالی این مطالعه";
+ }
+
+ async function load(root){
+  try{
+    setStatus(root,"در حال دریافت اطلاعات مالی...");
+    const x=await api(`/api/studies/${root.dataset.studyId}/finance`),s=x.summary||{};
+    root.querySelector('[data-s="gross"]').textContent=money(s.grossAmount);
+    root.querySelector('[data-s="discount"]').textContent=money(s.discountAmount);
+    root.querySelector('[data-s="net"]').textContent=money(s.netAmount);
+    root.querySelector('[data-s="received"]').textContent=money(s.receivedAmount);
+    root.querySelector('[data-s="balance"]').textContent=money(s.balanceAmount);
+    const state=summaryState(s);
+    root.querySelector("[data-head-summary]").textContent=state.text;
+    root.classList.remove("is-due","is-settled","is-ok","is-none");
+    root.classList.add("is-"+state.kind);
+    const card=root.closest(".study-scroll-card");
+    if(card)paintHeaderChip(card,state);
+    renderActions(root,x.actions||[]);
+    renderPayments(root,x.payments||[]);
+    setStatus(root,"");
+  }catch(e){setStatus(root,e.message,true);}
+ }
+
+ function enhance(){
+  document.querySelectorAll(".study-scroll-card").forEach(card=>{
+    if(card.dataset.financeReady)return;
+    card.dataset.financeReady="1";
+    const root=createPanel(Number(card.dataset.studyId));
+    const body=card.querySelector(".study-scroll-body");
+    if(body){
+      // The finance panel belongs with the rest of the Study content, after the
+      // chart and the images. app.js builds those when the Study is first opened, so
+      // keep the panel last whenever the body gains children.
+      const keepLast=()=>{if(body.lastElementChild!==root)body.appendChild(root);};
+      keepLast();
+      new MutationObserver(keepLast).observe(body,{childList:true});
+    }else{
+      card.appendChild(root);
+    }
+    load(root);
+  });
+ }
  const observer=new MutationObserver(enhance);const host=document.getElementById("studiesContainer");if(host)observer.observe(host,{childList:true,subtree:true});enhance();
 })();

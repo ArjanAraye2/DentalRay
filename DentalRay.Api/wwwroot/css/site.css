@@ -3473,16 +3473,23 @@ table button {
     font-size: 12px;
 }
 
+/* A Study card shows the chart for reference: the view buttons stay usable so the
+   teeth can be looked at in any of the views, but the teeth themselves are not
+   clickable and the "selected" list is pointless here.
+   Hiding the whole toolbar was wrong - it left the card stuck on one view. */
 .study-card-dental-chart {
     min-height: 245px;
     overflow: hidden;
-    pointer-events: none;
 }
 
-.study-card-dental-chart .dental-chart-toolbar,
-.study-card-dental-chart .dental-chart-selected {
-    display: none;
-}
+.study-card-dental-chart .dental-chart-toolbar { pointer-events: auto; }
+.study-card-dental-chart .dental-chart-body,
+.study-card-dental-chart .dental-integrated-arch,
+.study-card-dental-chart .dental-integrated-fan,
+.study-card-dental-chart .dental-chart-selected { pointer-events: none; }
+
+.study-card-dental-chart .dental-chart-selected { display: none; }
+.study-card-dental-chart .dental-chart-toolbar strong { font-size: 13px; }
 
 .study-scroll-images {
     padding: 0 12px 12px;

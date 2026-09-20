@@ -83,14 +83,33 @@
 
   function syncArch(root) {
     const box = root.querySelector(".dental-integrated-arch");
-    if (box && window.DentalRayArchOdontogram) window.DentalRayArchOdontogram.render(box, selected(root));
+    if (!box) return;
+    if (window.DentalRayArchOdontogram) return window.DentalRayArchOdontogram.render(box, selected(root));
+    load("script", "odontogramArchJs", "/js/odontogram-arch.js");
+    const s = document.getElementById("odontogramArchJs");
+    s?.addEventListener("load", () => window.DentalRayArchOdontogram?.render(box, selected(root)), { once: true });
   }
 
+  // The wheel view is a second self-contained renderer. Each drawn view loads its
+  // own file and waits only for that one, so a missing renderer never blocks the
+  // other view.
+  function syncFan(root) {
+    const box = root.querySelector(".dental-integrated-fan");
+    if (!box) return;
+    if (window.DentalRayFanOdontogram) return window.DentalRayFanOdontogram.render(box, selected(root));
+    load("script", "odontogramFanJs", "/js/odontogram-fan.js");
+    const s = document.getElementById("odontogramFanJs");
+    s?.addEventListener("load", () => window.DentalRayFanOdontogram?.render(box, selected(root)), { once: true });
+  }
+
+  const VIEWS = ["linear", "anatomical", "arch", "fan"];
+
   function setMode(root, m) {
-    ["linear", "anatomical", "arch"].forEach(x => root.classList.remove("dental-view-" + x));
+    VIEWS.forEach(x => root.classList.remove("dental-view-" + x));
     root.classList.add("dental-view-" + m);
     root.querySelectorAll(".dental-view-button").forEach(b => b.classList.toggle("active", b.dataset.view === m));
     if (m === "arch") syncArch(root);
+    if (m === "fan") syncFan(root);
     try { localStorage.setItem(storageKey, m); } catch (_) { }
   }
 
@@ -101,12 +120,16 @@
       '<span class="dental-chart-view-label">نوع نمایش:</span>' +
       '<button type="button" class="dental-view-button" data-view="linear">خطی</button>' +
       '<button type="button" class="dental-view-button" data-view="anatomical">آناتومیک</button>' +
-      '<button type="button" class="dental-view-button" data-view="arch">قوسی</button>';
+      '<button type="button" class="dental-view-button" data-view="arch">قوسی</button>' +
+      '<button type="button" class="dental-view-button" data-view="fan">نمای جدید</button>';
     return b;
   }
 
   function ensureAssets(done) {
     load("link", "odontogramArchCss", "/css/odontogram-arch.css");
+    load("script", "odontogramArchJs", "/js/odontogram-arch.js");
+    load("link", "odontogramFanCss", "/css/odontogram-fan.css");
+    load("script", "odontogramFanJs", "/js/odontogram-fan.js");
     // The tooth library feeds both drawn views, so make sure it is present.
     if (!window.DentalRayToothShapes) {
       const lib = document.getElementById("dentalrayToothShapes");
@@ -119,15 +142,10 @@
         return;
       }
     }
-    if (window.DentalRayArchOdontogram) return done();
-    let s = document.getElementById("odontogramArchJs");
-    if (!s) {
-      s = document.createElement("script");
-      s.id = "odontogramArchJs";
-      s.src = "/js/odontogram-arch.js";
-      document.body.appendChild(s);
-    }
-    s.addEventListener("load", done, { once: true });
+    // Do not wait for the renderers here. Each view loads its own renderer in syncArch
+    // and syncFan, and one of them being slow or absent must never hold back the
+    // other - a chart that waits on an unrelated file is worse than a brief blank.
+    done();
   }
 
   function load(tag, id, url) {
@@ -152,6 +170,9 @@
       const arch = document.createElement("div");
       arch.className = "dental-integrated-arch";
       container.appendChild(arch);
+      const fan = document.createElement("div");
+      fan.className = "dental-integrated-fan";
+      container.appendChild(fan);
       const body = document.createElement("div");
       body.className = "dental-chart-body";
       addSection(body, "دندان‌های دائمی", permanentRows, s);
@@ -163,7 +184,7 @@
       bar.querySelectorAll(".dental-view-button").forEach(b => b.onclick = () => setMode(container, b.dataset.view));
       let mode = "arch";
       try { mode = localStorage.getItem(storageKey) || mode; } catch (_) { }
-      if (!["linear", "anatomical", "arch"].includes(mode)) mode = "arch";
+      if (!["linear", "anatomical", "arch", "fan"].includes(mode)) mode = "arch";
       ensureAssets(() => setMode(container, mode));
       summary(container);
     },
@@ -174,5 +195,4 @@
   // any page that only includes this file, so there is no unconditional load here
   // (which would add a second tag when the library is already present).
   load("link", "dentalGraphicStyles", "/css/dental-graphic.css");
-  load("script", "dentalrayTerminology", "/js/frontend-terminology.js");
-})();
+  load("script", "dentalrayTerminology", "/js/frontend-terminology.js");})();
