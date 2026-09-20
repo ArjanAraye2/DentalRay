@@ -36,9 +36,22 @@
    const b=document.createElement("button");b.type="button";b.className="jalali-calendar-button";b.title="انتخاب از تقویم شمسی";b.setAttribute("aria-label","انتخاب از تقویم شمسی");
    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M7.5 14h2"/><path d="M14.5 14h2"/><path d="M7.5 17.5h2"/><path d="M14.5 17.5h2"/></svg>';
    wrap.appendChild(b);
-   const day=document.createElement("div");day.className="jalali-weekday-name";wrap.insertAdjacentElement("afterend",day);
+   const day=document.createElement("div");day.className="jalali-weekday-name";
+   day.setAttribute("aria-live","polite");
+   wrap.insertAdjacentElement("afterend",day);
    const updateDay=()=>{const m=norm(input.value).match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);if(!m){day.textContent="";return;}const d=greg(+m[1],+m[2],+m[3]);day.textContent=d?new Intl.DateTimeFormat("fa-IR",{weekday:"long"}).format(d):"";};
-   input.addEventListener("input",updateDay);input.addEventListener("change",updateDay);updateDay();
+   input.addEventListener("input",updateDay);input.addEventListener("change",updateDay);
+   // Setting .value from code (the app fills the Study default date and the edit
+   // forms this way) does not fire an input event, which used to leave this label
+   // empty. Wrapping the value setter keeps the label in sync without changing
+   // any call site.
+   const valueDescriptor=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value");
+   Object.defineProperty(input,"value",{
+     configurable:true,
+     get(){return valueDescriptor.get.call(this);},
+     set(v){valueDescriptor.set.call(this,v);updateDay();}
+   });
+   updateDay();
    b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();open(input,withTime);});
  }
 

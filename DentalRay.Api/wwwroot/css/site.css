@@ -1346,12 +1346,29 @@ button {
 }
 
 
+/* Weekday under a date field. It sits on the start side (right in RTL) with a
+   small dot so it reads as a label attached to the field, not as stray text.
+   It used to be centred and plain, which made it easy to miss. */
 .jalali-weekday-name {
-    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
     min-height: 20px;
-    color: #0e7f95;
+    margin-top: 6px;
+    color: var( --brand-600 );
     font-weight: 700;
-    font-size: 13px;
+    font-size: var( --fs-xs );
+    line-height: 1.6;
+}
+.jalali-weekday-name:empty { display: none; }
+.jalali-weekday-name::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: var( --brand-400 );
 }
 
 
