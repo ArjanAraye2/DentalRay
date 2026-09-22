@@ -4,8 +4,11 @@
 // imaging software a dentist already knows rather than the light clinical UI.
 //
 // Three schemes, chosen with a small toolbar:
-//   pano     a panoramic radiograph: one "smile" curve with the mandible rami rising
-//            at the sides, roots inside bone, the way an OPG looks
+//   pano     a full panoramic radiograph (OPG): the mandible as one silhouette with
+//            condyle, sigmoid notch and coronoid process, the canal ending at the
+//            mental foramen, both maxillary sinuses, the nasal cavity with its
+//            septum, the hard palate crossing the upper roots, and the hyoid under
+//            the mandible in front of the cervical spine ghost
 //   mpr      three orthogonal slices side by side - axial, sagittal, coronal - the
 //            way a CBCT viewer lays them out
 //   volume   a shaded 3D jaw that can be spun left and right
@@ -25,31 +28,34 @@
 
   // ---------------------------------------------------------------- panoramic
   //
-  // The classic OPG shape: a wide arc that dips at the front, with the mandible rami
-  // swinging up on both sides. Drawn in bone grey on black, with the teeth brighter
-  // than the bone and the roots visible inside it.
+  // A full panoramic radiograph (OPG), drawn the way X-ray film reads: dense
+  // tissue light, air dark. The mandible is one silhouette - body, angle, ramus,
+  // coronoid process, sigmoid notch, condyle - with the mandibular canal running
+  // forward to the mental foramen beside the premolar apices. Above it the
+  // maxilla carries both sinuses over the molar roots, the hard palate crossing
+  // the upper roots, and the nasal cavity with its septum. The hyoid floats
+  // under the mandible in front of the cervical spine ghost. The teeth of both
+  // jaws ride one occlusal curve, nearly in occlusion, their roots buried in
+  // the brighter alveolar bone.
   function renderPano(container, chosen) {
     const lib = window.DentalRayToothArch;
     const shapes = window.DentalRayToothShapes;
     if (!lib || !shapes) return;
 
-    const CENTER = 500, VIEW = 1150;
+    const CENTER = 590, FILM_W = 1180, FILM_H = 800;
 
-    // Panoramic curve: the occlusal plane. x is linear in t, so the teeth are spread
-    // evenly across the film the way a flattened panoramic projection does; y dips at
-    // the front (t = 0) so the arch reads as a smile rather than a straight line.
-    const CURVE_Y = t => 250 + 86 * Math.cos(t * Math.PI / 2);
-    const CURVE_X = t => 500 + 470 * t;
+    // The occlusal plane: a wide arc that dips at the front, the way the bite
+    // reads on a flattened panoramic projection.
+    const CURVE_Y = t => 400 + 44 * Math.cos(t * Math.PI / 2);
+    const CURVE_X = t => CENTER + 460 * t;
+    const curveYAt = x => CURVE_Y((x - CENTER) / 460);
 
-    // The two rows sit on opposite sides of that plane. The gap is wide enough that
-    // the tilted molars at the ends of the curve never cross the other row.
-    const ROW_GAP = 82;
-    // The teeth are sized to the space the curve gives them. The curve is 959 units
-    // long, so each of the 16 teeth per jaw owns about 30 units; the widest library
-    // tooth is 28 units, which leaves a small gap between neighbours. Scaling the
-    // artwork by the same factor keeps the real width ratios (molar wide, incisor
-    // narrow) without any tooth touching the next.
-    const TOOTH_SCALE = 1.0;
+    // The two rows sit almost in occlusion around the plane, the way a patient
+    // bites on the positioning rod while the machine sweeps around the head.
+    const ROW_GAP = 32;
+    // The teeth own about three quarters of the arch; behind them the retromolar
+    // gap runs into the rising ramus.
+    const TOOTH_SCALE = 1.9;
 
     function place(teeth, jaw) {
       const k = TOOTH_SCALE;
@@ -59,10 +65,10 @@
       const rowDir = upper ? -1 : 1;
       const crownTurn = upper ? 180 : 0;
 
-      // Teeth are distributed by ARC LENGTH along the curve, not by a fraction of the
-      // width. The panoramic curve flattens at its ends, so a width fraction bunched
-      // the molars together and they overlapped. Walking the arc keeps the spacing
-      // even, which is how a real panoramic film looks.
+      // Teeth are distributed by ARC LENGTH along the curve, not by a fraction of
+      // the width. The panoramic curve flattens at its ends, so a width fraction
+      // bunched the molars together and they overlapped. Walking the arc keeps the
+      // spacing even, which is how a real panoramic film looks.
       const N = 240, samples = [];
       let total = 0, prev = null;
       for (let i = 0; i <= N; i++) {
@@ -89,10 +95,7 @@
         const here = at(acc + w / 2);
         acc += w;
         // A panoramic film projects the teeth onto the curve, so they stand upright
-        // rather than leaning with it. Leaning looked right but a tilted tooth takes up
-        // much more width than its crown (a 28-unit molar at 10 degrees needs 33), and
-        // the molars at the ends of the curve collided. Upright is both more accurate
-        // and gives every tooth room.
+        // rather than leaning with it.
         return { n: n, shape: info[i], x: here.x, y: here.y + rowDir * ROW_GAP, rot: crownTurn, k: k, w: w };
       });
     }
@@ -100,15 +103,116 @@
     const upper = place(UPPER, "upper");
     const lower = place(LOWER, "lower");
 
-    // The rami: two vertical bands at the ends of the lower curve, like the two
-    // uprights of the mandible in a panoramic film.
-    const ramus = side => {
-      const t = side, x = CURVE_X(t), y = CURVE_Y(t);
-      const inner = x - Math.sign(t) * 34, outer = x + Math.sign(t) * 30, top = y - 300;
-      return '<path class="cbct-ramus" d="M' + inner + " " + (y + 20) + " L" + inner + " " + top +
-        " Q" + ((inner + outer) / 2) + " " + (top - 26) + " " + outer + " " + top +
-        " L" + outer + " " + (y + 20) + " Z\"/>";
+    // Where bone sits relative to the curve. The alveolar crest starts at the
+    // cervical line of the teeth, the roots are buried in the brighter alveolar
+    // band, and the basal bone fills the body of the mandible below it.
+    const CREST = 64, APEX = 124, UCREST = -64, UAPEX = -126;
+    // How far the tooth-bearing part of the arch reaches, in curve parameter: the
+    // crest ends where the retromolar gap begins, and the rami rise behind it.
+    const T_END = 0.86;
+
+    // A bone band following the occlusal curve between two offsets: the alveolar
+    // process of either jaw.
+    function band(yNear, yFar, tA, tB) {
+      const N = 40, top = [], bot = [];
+      for (let i = 0; i <= N; i++) {
+        const t = tA + (tB - tA) * i / N;
+        top.push((i ? "L" : "M") + CURVE_X(t).toFixed(1) + " " + (CURVE_Y(t) + yNear).toFixed(1));
+      }
+      for (let i = N; i >= 0; i--) {
+        const t = tA + (tB - tA) * i / N;
+        bot.push("L" + CURVE_X(t).toFixed(1) + " " + (CURVE_Y(t) + yFar).toFixed(1));
+      }
+      return top.join(" ") + " " + bot.join(" ") + " Z";
+    }
+
+    // A cortical line along the curve at one offset, for the alveolar crests.
+    function crestLine(y, tA, tB) {
+      const pts = [];
+      for (let i = 0; i <= 40; i++) {
+        const t = tA + (tB - tA) * i / 40;
+        pts.push((i ? "L" : "M") + CURVE_X(t).toFixed(1) + " " + (CURVE_Y(t) + y).toFixed(1));
+      }
+      return pts.join(" ");
+    }
+
+    // The mandible as one closed silhouette: from the crest behind the last molar,
+    // up the anterior ramus border to the pointed coronoid process, down through
+    // the sigmoid notch to the rounded condyle, down the posterior border to the
+    // angle, then along the lower border to the other side.
+    function mandiblePath() {
+      const N = 48, crest = [];
+      for (let i = 0; i <= N; i++) {
+        const t = -T_END + 2 * T_END * i / N;
+        crest.push(CURVE_X(t).toFixed(1) + " " + (CURVE_Y(t) + CREST).toFixed(1));
+      }
+      return "M" + crest.join(" L") +
+        // right anterior ramus border, up to the coronoid tip
+        " C996 336 1006 196 1010 110" +
+        // back of the coronoid, down into the sigmoid notch
+        " C1028 128 1041 156 1044 178" +
+        // out of the notch onto the neck of the condyle
+        " Q1051 164 1055 150" +
+        // the condyle, rounded, over the top
+        " A26 21 -14 0 1 1097 141" +
+        // posterior border of the ramus, down to the angle
+        " C1101 262 1097 444 1076 562" +
+        // the rounded angle
+        " Q1069 586 1056 589" +
+        // the lower border, dipping slightly at the symphysis
+        " C902 603 762 622 590 626" +
+        " C418 622 278 603 124 589" +
+        " Q111 586 104 562" +
+        // left posterior border, up to the left condyle
+        " C83 444 79 262 83 141" +
+        " A26 21 14 0 1 125 150" +
+        " Q129 164 136 178" +
+        // left sigmoid notch, up to the left coronoid tip
+        " C139 156 152 128 170 110" +
+        // left anterior ramus border, back down to the crest
+        " C174 196 184 336 194.4 " + (CURVE_Y(-T_END) + CREST).toFixed(1) +
+        " Z";
+    }
+
+    // The temporomandibular joint above each condyle: the roof of the fossa with
+    // the dark joint space under it, and the articular eminence in front.
+    function tmj(side) {
+      return side < 0
+        ? '<path class="cbct-tmj" d="M84 98 Q100 90 116 96"/>' +
+            '<path class="cbct-tmj" d="M118 118 Q134 98 150 122"/>'
+        : '<path class="cbct-tmj" d="M1064 96 Q1080 90 1096 98"/>' +
+            '<path class="cbct-tmj" d="M1030 122 Q1046 98 1062 118"/>';
+    }
+
+    // The mental foramen beside the premolar apices, and the canal that reaches
+    // it from under the sigmoid notch of the same side.
+    const foramenAt = (ia, ib) => {
+      const x = (lower[ia].x + lower[ib].x) / 2;
+      return { x: x, y: curveYAt(x) + 100 };
     };
+    const fL = foramenAt(3, 4), fR = foramenAt(12, 11);
+    const canal = (x0, dir, f) =>
+      "M" + x0 + " 184" +
+      " C" + (x0 + dir * 15) + " 302 " + (x0 + dir * 34) + " 420 " + (x0 + dir * 72) + " 498" +
+      " C" + (x0 + dir * 110) + " 546 " + (f.x - dir * 42) + " " + (f.y + 34) + " " + (f.x - dir * 4) + " " + f.y;
+
+    // Each maxillary sinus: a dark chamber from the premolar to behind the third
+    // molar, floored just under the root tips so the molar roots read through it,
+    // walled with a thin dense line.
+    function sinus(frontX, backX, tilt) {
+      const cx = (frontX + backX) / 2, cy = curveYAt(cx) - 168;
+      const rx = Math.max(72, Math.abs(frontX - backX) / 2);
+      return '<ellipse class="cbct-sinus" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) +
+        '" rx="' + rx.toFixed(1) + '" ry="63" transform="rotate(' + tilt + " " + cx.toFixed(1) + " " + cy.toFixed(1) + ')"/>';
+    }
+    const sinusL = sinus(upper[4].x + 10, upper[0].x - 45, 7);
+    const sinusR = sinus(upper[11].x - 10, upper[15].x + 45, -7);
+
+    // The maxillary tuberosity, the rounded bump of bone behind the last molar.
+    function tuber(x) {
+      return '<ellipse class="cbct-tuber" cx="' + x.toFixed(1) + '" cy="' + (curveYAt(x) - 92).toFixed(1) + '" rx="30" ry="24"/>';
+    }
+    const tuberL = tuber(upper[0].x - 44), tuberR = tuber(upper[15].x + 44);
 
     function toothMarkup(t, chosen) {
       const sel = chosen.has(t.n) ? " selected" : "";
@@ -119,9 +223,13 @@
         "</g></g>";
     }
 
+    // The dense lower border of the mandible, the brightest cortical line on the
+    // film, retraced as its own stroke.
+    const lowerBorder = "M1056 589 C902 603 762 622 590 626 C418 622 278 603 124 589";
+
     container.innerHTML =
       '<div class="cbct-view cbct-pano">' +
-      '<svg viewBox="0 0 ' + VIEW + " " + VIEW + '" role="group" aria-label="نمای پانورامیک سی‌بی‌سی‌تی">' +
+      '<svg viewBox="0 0 ' + FILM_W + " " + FILM_H + '" role="group" aria-label="نمای پانورامیک سی‌بی‌سی‌تی">' +
       "<defs>" +
       '<linearGradient id="cbctFilm" x1="0" y1="0" x2="0" y2="1">' +
       '<stop offset="0" stop-color="#0b0e12"/><stop offset=".5" stop-color="#171c23"/><stop offset="1" stop-color="#0b0e12"/>' +
@@ -130,42 +238,49 @@
       '<stop offset="0" stop-color="#3b4653" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity="0"/>' +
       "</radialGradient>" +
       "</defs>" +
-      '<rect class="cbct-film" x="0" y="0" width="' + VIEW + '" height="' + VIEW + '"/>' +
-      '<rect class="cbct-beam" x="0" y="0" width="' + VIEW + '" height="' + VIEW + '"/>' +
-      // Bone body of the mandible and the maxilla.
-      '<path class="cbct-bone" d="' + bonePath(CURVE_X, CURVE_Y, 1.0, 96) + '"/>' +
-      '<path class="cbct-bone upper" d="' + bonePath(CURVE_X, CURVE_Y, 0.86, -150) + '"/>' +
-      ramus(1) + ramus(-1) +
-      // Mandibular canal, a faint pair of lines inside the lower bone.
-      '<path class="cbct-canal" d="' + canalPath(CURVE_X, CURVE_Y) + '"/>' +
+      '<rect class="cbct-film" x="0" y="0" width="' + FILM_W + '" height="' + FILM_H + '"/>' +
+      '<rect class="cbct-beam" x="0" y="0" width="' + FILM_W + '" height="' + FILM_H + '"/>' +
+      // Anatomy stays under the teeth and never takes the pointer, so only the
+      // teeth are clickable.
+      '<g class="cbct-anat">' +
+      // cervical spine ghost, behind everything at the bottom of the film
+      [648, 694, 740].map(y =>
+        '<rect class="cbct-vert" x="505" y="' + y + '" width="170" height="48" rx="17"/>').join("") +
+      // hyoid, floating under the mandible
+      '<path class="cbct-hyoid" d="M398 668 Q590 704 782 668"/>' +
+      tmj(-1) + tmj(1) +
+      // the mandible, then its interior detail
+      '<path class="cbct-mandible" d="' + mandiblePath() + '"/>' +
+      '<path class="cbct-alv" d="' + band(CREST + 2, APEX, -T_END, T_END) + '"/>' +
+      '<path class="cbct-crest" d="' + crestLine(CREST + 1, -T_END, T_END) + '"/>' +
+      '<path class="cbct-cortical" d="' + lowerBorder + '"/>' +
+      '<path class="cbct-canal" d="' + canal(136, 1, fL) + '"/>' +
+      '<path class="cbct-canal" d="' + canal(1044, -1, fR) + '"/>' +
+      '<ellipse class="cbct-foramen" cx="' + fL.x.toFixed(1) + '" cy="' + fL.y.toFixed(1) + '" rx="8" ry="6"/>' +
+      '<ellipse class="cbct-foramen" cx="' + fR.x.toFixed(1) + '" cy="' + fR.y.toFixed(1) + '" rx="8" ry="6"/>' +
+      // the maxilla with its tuberosities and sinuses
+      '<path class="cbct-maxilla" d="' + band(UCREST, UAPEX, -T_END, T_END) + '"/>' +
+      tuberL + tuberR +
+      sinusL + sinusR +
+      // nasal cavity, its floor above the incisor roots
+      '<ellipse class="cbct-nose" cx="590" cy="232" rx="104" ry="56"/>' +
+      // the tongue, a faint soft shadow under the occlusal plane
+      '<ellipse class="cbct-tongue" cx="590" cy="468" rx="232" ry="48"/>' +
+      "</g>" +
       lower.map(t => toothMarkup(t, chosen)).join("") +
       upper.map(t => toothMarkup(t, chosen)).join("") +
-      '<text class="cbct-label" x="' + (CENTER - 330) + '" y="1020">CBCT · نمای پانورامیک</text>' +
+      // Layers that read OVER the teeth: the hard palate is superimposed on the
+      // upper roots exactly as it is on a real film.
+      '<g class="cbct-anat-over">' +
+      '<path class="cbct-palate" d="' + band(-93, -107, -0.8, 0.8) + '"/>' +
+      '<path class="cbct-septum" d="M588 180 L588 284"/>' +
+      '<path class="cbct-nose-floor" d="M486 287 Q590 281 694 287"/>' +
+      '<path class="cbct-nose-tip" d="M534 98 Q590 60 646 98"/>' +
+      "</g>" +
+      '<text class="cbct-label" x="' + CENTER + '" y="793">CBCT · نمای پانورامیک</text>' +
       "</svg></div>";
 
     wire(container);
-  }
-
-  function bonePath(X, Y, scale, thickness) {
-    const pts = [];
-    for (let i = 0; i <= 60; i++) {
-      const t = -1 + 2 * i / 60;
-      pts.push((i ? "L" : "M") + X(t * scale).toFixed(1) + " " + (Y(t * scale) + 34).toFixed(1));
-    }
-    for (let i = 60; i >= 0; i--) {
-      const t = -1 + 2 * i / 60;
-      pts.push("L" + X(t * scale).toFixed(1) + " " + (Y(t * scale) + 34 + thickness).toFixed(1));
-    }
-    return pts.join(" ") + " Z";
-  }
-
-  function canalPath(X, Y) {
-    const pts = [];
-    for (let i = 0; i <= 40; i++) {
-      const t = -1 + 2 * i / 40;
-      pts.push((i ? "L" : "M") + X(t * 0.82).toFixed(1) + " " + (Y(t * 0.82) + 78).toFixed(1));
-    }
-    return pts.join(" ");
   }
 
   // ---------------------------------------------------------------- MPR slices

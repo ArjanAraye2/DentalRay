@@ -44,15 +44,32 @@
 .cbct-film { fill: url(#cbctFilm); }
 .cbct-beam { fill: url(#cbctBeam); }
 
-.cbct-bone {
-    fill: #4b5560;
-    stroke: #6b7684;
-    stroke-width: 1.4;
-    opacity: .55;
-}
-.cbct-bone.upper { fill: #3f4954; opacity: .48; }
-.cbct-ramus { fill: #3f4954; stroke: #66707d; stroke-width: 1.4; opacity: .5; }
-.cbct-canal { fill: none; stroke: #20262e; stroke-width: 5; opacity: .85; }
+/* An OPG cassette is a wide landscape film, not a square. */
+.cbct-pano svg { aspect-ratio: 1180 / 800; }
+
+/* Anatomy never takes the pointer: only the teeth are clickable. */
+.cbct-anat, .cbct-anat-over { pointer-events: none; }
+
+/* Bone reads as mid grey, air as near black, enamel as the brightest thing on
+   the film. Dense cortical borders are the light lines. */
+.cbct-mandible { fill: #47515b; stroke: #6f7a87; stroke-width: 1.4; opacity: .62; }
+.cbct-alv { fill: #5d6773; stroke: none; opacity: .5; }
+.cbct-maxilla { fill: #3f4954; stroke: #5f6a76; stroke-width: 1.2; opacity: .5; }
+.cbct-tuber { fill: #525d69; stroke: none; opacity: .5; }
+.cbct-crest { fill: none; stroke: #9aa7b4; stroke-width: 2; opacity: .7; stroke-linecap: round; }
+.cbct-cortical { fill: none; stroke: #b4bfca; stroke-width: 3.4; opacity: .9; stroke-linecap: round; }
+.cbct-tmj { fill: none; stroke: #7d8996; stroke-width: 3; opacity: .45; stroke-linecap: round; }
+.cbct-canal { fill: none; stroke: #12171e; stroke-width: 7; opacity: .92; stroke-linecap: round; }
+.cbct-foramen { fill: #12171e; opacity: .92; }
+.cbct-sinus { fill: #0d1219; stroke: #7d8894; stroke-width: 1.6; opacity: .92; }
+.cbct-nose { fill: #0d1219; opacity: .88; }
+.cbct-nose-floor { fill: none; stroke: #8b96a2; stroke-width: 2.6; opacity: .8; }
+.cbct-septum { fill: none; stroke: #9aa6b1; stroke-width: 5; opacity: .85; }
+.cbct-palate { fill: #8d99a6; opacity: .6; }
+.cbct-nose-tip { fill: none; stroke: #6f7a86; stroke-width: 5; opacity: .3; stroke-linecap: round; }
+.cbct-tongue { fill: #333d49; opacity: .13; }
+.cbct-vert { fill: #232c37; stroke: #3a444f; stroke-width: 1.2; opacity: .5; }
+.cbct-hyoid { fill: none; stroke: #c5cdd6; stroke-width: 6; opacity: .85; stroke-linecap: round; }
 
 .cbct-label {
     font: 700 20px Tahoma, Arial, sans-serif;

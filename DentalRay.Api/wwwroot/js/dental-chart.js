@@ -139,7 +139,7 @@
     if (window.DentalRayCbctOdontogram) {
       return withDeps(() => window.DentalRayCbctOdontogram.render(box, selected(root), cbctScheme));
     }
-    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260921.3");
+    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260922.1");
     const s = document.getElementById("odontogramCbctJs");
     s?.addEventListener("load", () => withDeps(() => window.DentalRayCbctOdontogram?.render(box, selected(root), cbctScheme)), { once: true });
   }
@@ -172,8 +172,8 @@
     load("script", "odontogramArchJs", "/js/odontogram-arch.js?v=20260921.3");
     load("link", "odontogramNaturalCss", "/css/odontogram-natural.css?v=20260921.2");
     load("script", "odontogramNaturalJs", "/js/odontogram-natural.js?v=20260921.3");
-    load("link", "odontogramCbctCss", "/css/odontogram-cbct.css?v=20260921.3");
-    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260921.3");
+    load("link", "odontogramCbctCss", "/css/odontogram-cbct.css?v=20260922.1");
+    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260922.1");
     load("script", "dentalrayToothArch", "/js/tooth-arch.js?v=20260921.3");
     load("script", "dentalrayToothShapes", "/js/tooth-shapes.js?v=20260921.2");
     // Nothing is waited for. index.html loads every one of these tags directly, so on
