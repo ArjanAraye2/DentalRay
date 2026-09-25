@@ -365,6 +365,18 @@
           <div class="pair-payload" id="pairPayload"></div>
         </div>
 
+        <div id="pairInstall" class="hidden">
+          <p class="share-dialog-hint">
+            <strong>نصب برنامه روی گوشی:</strong> این کیوآرکد را با گوشی اسکن کنید تا فایل نصب دانلود شود،
+            سپس <span dir="ltr">Keep ← Open ← Install</span> را بزنید.
+          </p>
+          <div class="pair-qr" id="downloadQr"></div>
+          <div class="pair-payload" id="downloadUrl"></div>
+          <div class="form-actions">
+            <button id="copyDownloadButton" type="button" class="secondary-button">کپی لینک دانلود</button>
+          </div>
+        </div>
+
         <div id="pairStatus" class="status-message"></div>
 
         <div class="form-actions">
@@ -380,6 +392,15 @@
       $("pairPatientBox").classList.toggle("hidden", !isPatient);
       $("pairLabel").placeholder = isPatient ? "موبایل بیمار" : "موبایل مطب";
       if (!isPatient) selectedPatient = null;
+    };
+    $("copyDownloadButton").onclick = async () => {
+      const url = $("downloadUrl").textContent;
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        $("copyDownloadButton").textContent = "کپی شد";
+        setTimeout(() => { $("copyDownloadButton").textContent = "کپی لینک دانلود"; }, 1500);
+      } catch { window.prompt("لینک دانلود را کپی کنید:", url); }
     };
     $("pairCreateButton").onclick = createPairing;
     $("pairPatientSearch").addEventListener("input", searchPatientForPairing);
@@ -448,6 +469,21 @@
       $("pairPayload").textContent = data.qr;
       $("pairResult").classList.remove("hidden");
       status.textContent = "کیوآرکد آماده است؛ آن را روی گوشی اسکن کنید.";
+
+      // لینک دانلود برنامه، برای وقتی که هنوز روی گوشی نصب نشده
+      if (data.downloadUrl) {
+        $("downloadUrl").textContent = data.downloadUrl;
+        const dl = $("downloadQr");
+        dl.replaceChildren();
+        if (typeof qrcode === "function") {
+          const code = qrcode(0, "M");
+          code.addData(data.downloadUrl);
+          code.make();
+          dl.innerHTML = code.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: "کیوآرکد دانلود برنامه" });
+        }
+        $("pairInstall").classList.remove("hidden");
+      }
+
       loadDevices();
     } catch (e) {
       status.textContent = e.message || "ساخت کیوآرکد انجام نشد.";

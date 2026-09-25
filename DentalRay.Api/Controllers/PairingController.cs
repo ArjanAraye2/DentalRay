@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,11 +19,13 @@ namespace DentalRay.Api.Controllers
     {
         private readonly DentalRayDbContext _db;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
-        public PairingController(DentalRayDbContext db, IConfiguration configuration)
+        public PairingController(DentalRayDbContext db, IConfiguration configuration, IWebHostEnvironment environment)
         {
             _db = db;
             _configuration = configuration;
+            _environment = environment;
         }
 
         public sealed record CreatePairingRequest(string? Label, byte OwnerKind, int? PatientID);
@@ -69,8 +72,57 @@ namespace DentalRay.Api.Controllers
                 device.DeviceID,
                 device.Label,
                 qr = payload,
-                server
+                server,
+                // The phone needs the installer file before it can pair at all.
+                downloadUrl = $"{server}/download/app"
             });
+        }
+
+        /// <summary>
+        /// The installer itself, so the clinic phone can fetch it straight from
+        /// Dentix instead of a cable. The file is picked up from the build
+        /// output, so a newer build is offered automatically.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("/download/app")]
+        public IActionResult DownloadApp()
+        {
+            string? configured = _configuration["MobileApp:ApkPath"]?.Trim();
+            var candidates = new List<string>();
+            if (!string.IsNullOrWhiteSpace(configured))
+                candidates.Add(Path.IsPathRooted(configured)
+                    ? configured
+                    : Path.Combine(_environment.ContentRootPath, configured));
+
+            string root = _environment.ContentRootPath;
+            candidates.Add(Path.Combine(root, "..", "DentalRay.Mobile", "dist"));
+            candidates.Add(Path.Combine(root, "wwwroot", "install"));
+
+            string? file = null;
+            foreach (string directory in candidates)
+            {
+                if (System.IO.File.Exists(directory) && directory.EndsWith(".apk", StringComparison.OrdinalIgnoreCase))
+                {
+                    file = directory;
+                    break;
+                }
+                if (Directory.Exists(directory))
+                {
+                    file = Directory.GetFiles(directory, "*.apk")
+                        .OrderByDescending(f => System.IO.File.GetLastWriteTimeUtc(f))
+                        .FirstOrDefault();
+                    if (file != null) break;
+                }
+            }
+
+            if (file == null)
+                return NotFound(new
+                {
+                    success = false,
+                    message = "فایل نصب برنامه پیدا نشد؛ ابتدا برنامهٔ اندروید را بسازید."
+                });
+
+            return PhysicalFile(file, "application/vnd.android.package-archive", "Dentix.apk", enableRangeProcessing: false);
         }
 
         [HttpGet]
