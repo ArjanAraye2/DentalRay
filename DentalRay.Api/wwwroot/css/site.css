@@ -4123,3 +4123,62 @@ body { line-height: 1.75; }
     border-color: #d92d20;
     box-shadow: 0 0 0 3px rgba(217, 45, 32, .12);
 }
+
+/* ==========================================================
+   Persian file picker
+   The native control prints "Choose File" in English, so it is stretched
+   transparently over a Persian face. Tapping the face really taps the input,
+   which is what makes this work the same on Android and iPhone.
+   ========================================================== */
+.file-picker {
+    position: relative;
+    display: block;
+}
+
+.file-picker input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.file-picker-face {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 46px;
+    padding: 7px 12px;
+    border: 1px dashed #a9cbd7;
+    border-radius: 10px;
+    background: #f5fbfd;
+}
+
+.file-picker-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 5px 14px;
+    border: 1px solid #b9e2ea;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #0e7f95;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.file-picker-name {
+    color: #55707e;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.file-picker:focus-within .file-picker-face {
+    border-color: #0e7f95;
+    box-shadow: 0 0 0 3px rgba(14, 127, 149, .14);
+}
