@@ -4101,3 +4101,25 @@ body { line-height: 1.75; }
     }
     button:hover:not(:disabled) { transform: none; }
 }
+
+/* ==========================================================
+   Mobile: messages must never sit on the bottom bar
+   The navigation bar owns the bottom 62px of the phone screen. Toasts are
+   fixed and layered far above it, so while a message is on screen the bar
+   used to become untappable - tapping "بیماران" then did nothing at all.
+   ========================================================== */
+@media ( max-width: 700px ) {
+    .toast-container {
+        bottom: 74px;
+        /* An empty (or partly empty) container must let touches through. */
+        pointer-events: none;
+    }
+    .toast { pointer-events: auto; }
+}
+
+/* A required choice the user skipped is marked in the form itself, so the
+   error is visible next to the field and not only in a message. */
+.form-field select.field-missing {
+    border-color: #d92d20;
+    box-shadow: 0 0 0 3px rgba(217, 45, 32, .12);
+}
