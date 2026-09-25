@@ -68,3 +68,11 @@ Desktop.ini
 
 # Runtime external DentalRay configuration
 DentalRay.config.json
+# ============================================================
+# Android (DentalRay.Mobile)
+# ============================================================
+**/local.properties
+**/.gradle/
+**/build/
+**/dist/
+hs_err_pid*.log

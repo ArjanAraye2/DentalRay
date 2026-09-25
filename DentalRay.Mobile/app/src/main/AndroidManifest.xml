@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DentalRay Mobile - خواندن پیامک‌های رادیولوژی و فرستادنشان به مطب.
+
+  مجوز خواندن پیامک (READ_SMS) فقط با تأیید خودِ کاربر داده می‌شود و برنامه
+  جز پیامک‌هایی که خودش می‌فرستد هیچ چیزی را ذخیره یا ارسال نمی‌کند.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@drawable/ic_dentix"
+        android:label="@string/app_name"
+        android:usesCleartextTraffic="true"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Dentix"
+        tools:targetApi="34">
+
+        <!-- صفحهٔ اصلی: وضعیت اتصال، دکمه‌های عمل -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- صفحهٔ اسکن کیوآرکد جفت‌سازی -->
+        <activity
+            android:name=".PairingActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <!-- سرویس پس‌زمینه: پیامک‌های تازه را می‌خواند و می‌فرستد -->
+        <service
+            android:name=".SmsRelayService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- شروع دوبارهٔ سرویس پس از راه‌اندازی مجدد گوشی -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
