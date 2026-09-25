@@ -267,7 +267,32 @@
         const link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener"; link.textContent = url;
         const copy = document.createElement("button"); copy.type = "button"; copy.className = "secondary-button"; copy.textContent = "کپی";
         copy.onclick = async () => { try { await navigator.clipboard.writeText(url); copy.textContent = "کپی شد"; setTimeout(() => copy.textContent = "کپی", 1500); } catch { window.prompt("لینک را کپی کنید:", url); } };
-        row.append(title, link, copy); return row;
+        row.append(title, link, copy);
+        const qr = createAccessQr(url, label);
+        if (qr) row.appendChild(qr);
+        return row;
+    }
+    // The QR code of the link itself, so a phone can open Dentix by pointing its
+    // camera instead of typing the address. qrcode-generator draws the standard
+    // four-module quiet zone (margin below); the card around it adds more white
+    // space so neighbouring codes stay far enough apart to scan reliably.
+    function createAccessQr(url, label) {
+        if (typeof qrcode !== "function") return null;
+        try {
+            const code = qrcode(0, "M");            // 0 = pick the smallest version that fits
+            code.addData(url);
+            code.make();
+            const box = document.createElement("div");
+            box.className = "dashboard-access-qr";
+            box.innerHTML = code.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: `کیوکد لینک ${label}` });
+            const hint = document.createElement("small");
+            hint.textContent = "برای باز کردن Dentix روی موبایل، دوربین را روی این کد بگیرید.";
+            box.append(hint);
+            return box;
+        } catch {
+            // A broken QR must never take the dashboard down; the plain link stays.
+            return null;
+        }
     }
     function renderRecentStudies(items) {
         const root = document.getElementById("dashboardRecentStudies"); root.replaceChildren();

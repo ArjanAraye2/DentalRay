@@ -3692,17 +3692,49 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 }
 
 .dashboard-access-links > strong { color: #0f5165; font-size: 12px; }
-.dashboard-access-links > div { display: grid; gap: 6px; }
+/* Each link is its own card; the gap is what keeps two QR codes from sitting
+   close to each other when the clinic has several addresses to show. */
+.dashboard-access-links > div { display: grid; gap: 18px; }
 
 .dashboard-access-row {
     display: grid;
     grid-template-columns: 120px minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid #e3eef3;
+    border-radius: 10px;
     background: #f5fbfd;
 }
+
+.dashboard-access-qr {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    margin-top: 6px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+/* Sized box so every code looks the same, whatever the length of the address.
+   The padding is white space around the quiet zone: a camera needs a clear
+   margin on all four sides before it locks on. */
+.dashboard-access-qr svg {
+    display: block;
+    width: 172px;
+    height: 172px;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #d8e7ec;
+    border-radius: 12px;
+    background: #ffffff;
+    image-rendering: pixelated;
+}
+
+.dashboard-access-qr small { color: #55707e; font-size: 11px; line-height: 1.7; }
 
 .dashboard-access-row a {
     direction: ltr;
