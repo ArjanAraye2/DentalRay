@@ -28,6 +28,8 @@ namespace DentalRay.Api.Data
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<WaitStage> WaitStages { get; set; }
         public DbSet<StudyShareLink> StudyShareLinks { get; set; }
+        public DbSet<PairedDevice> PairedDevices { get; set; }
+        public DbSet<InboxMessage> InboxMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

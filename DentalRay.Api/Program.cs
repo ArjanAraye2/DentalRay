@@ -25,6 +25,9 @@ builder.Services.AddSingleton<IPosProtocol, GenericTcpPosProtocol>();
 builder.Services.AddSingleton<PosProtocolRegistry>();
 // Patient messaging: sends SMS and records every attempt in tblPatientMessages.
 builder.Services.AddScoped<PatientMessagingService>();
+// Reading the radiology SMS that arrived on a paired phone: matching a message
+// to a patient and importing the pictures its links point at.
+builder.Services.AddScoped<SmsInboxService>();
 // Central communication service: Kavenegar is the default SMS provider, while the provider remains configurable.
 builder.Services.AddSingleton<ICommunicationService, CommunicationService>();
 builder.Services.AddHttpClient();
