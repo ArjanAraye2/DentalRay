@@ -22,8 +22,10 @@ namespace DentalRay.Api.Controllers
         }
 
         // New files can only enter DentalRay through a Study that the current user may access.
+        // allowDuplicate is set by the client after the duplicate warning was shown,
+        // so the operator - not the software - decides whether a second copy is intended.
         [HttpPost]
-        public async Task<IActionResult> UploadImage(int studyID, int imageTypeID, IFormFile file)
+        public async Task<IActionResult> UploadImage(int studyID, int imageTypeID, IFormFile file, bool allowDuplicate = false)
         {
             if (studyID <= 0 || file == null || file.Length == 0)
                 return BadRequest(new { success=false, message="Study and file are required." });
@@ -56,6 +58,35 @@ namespace DentalRay.Api.Controllers
             var patient = await _context.Patients.AsNoTracking().FirstOrDefaultAsync(x=>x.PatientID==study.PatientID);
             if (patient == null) return NotFound(new { success=false, message="Patient not found." });
 
+            // The bytes are kept in memory once so they can be hashed and then
+            // saved. Uploading is bounded by the request body limit (30 MB), so
+            // an X-ray or a phone photo fits comfortably.
+            using var buffer = new MemoryStream();
+            await file.CopyToAsync(buffer);
+            buffer.Position = 0;
+            string contentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(buffer)).ToLowerInvariant();
+            buffer.Position = 0;
+
+            // Duplicate detection stays inside one patient's own images. Showing
+            // matches from other patients would leak that someone else has the
+            // same picture, so the comparison is deliberately scoped.
+            if (!allowDuplicate)
+            {
+                var existing = await _context.RadiologyImages.AsNoTracking()
+                    .Where(x => x.PatientID == patient.PatientID && x.ContentHash == contentHash)
+                    .OrderByDescending(x => x.CreatedDate)
+                    .Select(x => new { x.ImageID, x.FileName, x.ContentType, x.CreatedDate })
+                    .FirstOrDefaultAsync();
+                if (existing != null)
+                    return Conflict(new
+                    {
+                        success = false,
+                        duplicate = true,
+                        message = "این تصویر قبلاً برای همین بیمار بارگذاری شده است.",
+                        existing
+                    });
+            }
+
             int serial = (await _context.RadiologyImages.Where(x=>x.PatientID==patient.PatientID)
                 .Select(x=>(int?)x.SerialNumber).MaxAsync() ?? 0) + 1;
             DateTime now = DateTime.Now;
@@ -63,9 +94,8 @@ namespace DentalRay.Api.Controllers
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                await using (var input=file.OpenReadStream())
-                    relativePath = await _storage.SaveImageAsync(input,file.FileName,patient.NationalCode,now,serial);
-                var image = new RadiologyImage { PatientID=patient.PatientID,ImageTypeID=imageTypeID,FileName=Path.GetFileName(relativePath),RelativePath=relativePath,ContentType=ContentTypeFor(file, ext),SerialNumber=serial,CreatedDate=now };
+                relativePath = await _storage.SaveImageAsync(buffer,file.FileName,patient.NationalCode,now,serial);
+                var image = new RadiologyImage { PatientID=patient.PatientID,ImageTypeID=imageTypeID,FileName=Path.GetFileName(relativePath),RelativePath=relativePath,ContentType=ContentTypeFor(file, ext),SerialNumber=serial,CreatedDate=now,ContentHash=contentHash };
                 _context.RadiologyImages.Add(image); await _context.SaveChangesAsync();
                 _context.RadiologyStudyImages.Add(new RadiologyStudyImage { StudyID=studyID,ImageID=image.ImageID,CreatedDate=now });
                 await _context.SaveChangesAsync(); await tx.CommitAsync();

@@ -44,6 +44,11 @@ namespace DentalRay.Api.Models
         // روز Reset نمی‌شود.
         public int SerialNumber { get; set; }
 
+        // SHA-256 محتوای فایل برای تشخیص تصویر تکراری. تصاویر قدیمی NULL
+        // می‌مانند و در مقایسه نادیده گرفته می‌شوند.
+        [MaxLength(64)]
+        public string? ContentHash { get; set; }
+
         // تاریخ/زمان واقعی Upload در SQL Server میلادی ذخیره می‌شود.
         // فقط بخش تاریخ نام فایل به Jalali تبدیل خواهد شد.
         public DateTime CreatedDate { get; set; }

@@ -52,6 +52,15 @@ namespace DentalRay.Api.Services
                 "{patient} عزیز، مانده حساب شما {balance} تومان است. Dentix",
                 true),
 
+            // Sent by the share feature only: {link} is filled with a one-time
+            // URL, so it is kept out of the generic template list. The wording
+            // stays editable - the sender is never tied to this sentence.
+            new Template(
+                "share-images",
+                "لینک تصاویر رادیولوژی",
+                "{patient} عزیز، لینک تصاویر رادیولوژی شما: {link}",
+                false),
+
             new Template(
                 "free",
                 "متن آزاد",

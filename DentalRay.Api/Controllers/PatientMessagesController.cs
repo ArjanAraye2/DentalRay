@@ -61,8 +61,12 @@ namespace DentalRay.Api.Controllers
         public IActionResult Templates() =>
             Ok(new
             {
+                // share-images is excluded: its {link} only means something when
+                // a link has just been issued, so it lives in the share dialog.
                 success = true,
-                templates = MessageTemplates.All.Select(t => new { key = t.Key, title = t.Title, body = t.Body, containsAmount = t.ContainsAmount })
+                templates = MessageTemplates.All
+                    .Where(t => t.Key != "share-images")
+                    .Select(t => new { key = t.Key, title = t.Title, body = t.Body, containsAmount = t.ContainsAmount })
             });
 
         [HttpGet]

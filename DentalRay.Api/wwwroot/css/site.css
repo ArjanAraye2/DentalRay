@@ -4182,3 +4182,33 @@ body { line-height: 1.75; }
     border-color: #0e7f95;
     box-shadow: 0 0 0 3px rgba(14, 127, 149, .14);
 }
+
+/* ==========================================================
+   Share the Study images by SMS
+   ========================================================== */
+.share-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; }
+.share-dialog-hint { margin: 0 0 14px; color: #55707e; font-size: 13px; line-height: 1.9; }
+
+.share-link-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.share-link-row input {
+    flex: 1;
+    min-width: 0;
+    direction: ltr;
+    text-align: left;
+    font-family: Consolas, "Segoe UI", sans-serif;
+    font-size: 12.5px;
+    background: #f5fbfd;
+}
+
+.share-link-row button { white-space: nowrap; }
+
+#shareOtherFields { display: grid; gap: 8px; }
+#shareOtherFields.hidden { display: none; }
+#shareOtherFields input + input { margin-top: 0; }
+
+#shareImagesDialog .status-message { min-height: 18px; }
