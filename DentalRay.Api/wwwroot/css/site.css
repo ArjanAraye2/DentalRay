@@ -3693,8 +3693,20 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 
 .dashboard-access-links > strong { color: #0f5165; font-size: 12px; }
 /* Each link is its own card; the gap is what keeps two QR codes from sitting
-   close to each other when the clinic has several addresses to show. */
-.dashboard-access-links > div { display: grid; gap: 18px; }
+   close to each other when the clinic has several addresses to show.
+   Two cards share a row (one right, one left) so the panel stays short. */
+.dashboard-access-links > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+/* The settings panel holds the same cards directly, under its own heading. */
+#settingsNetworkLinks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#settingsNetworkLinks > strong { grid-column: 1 / -1; }
 
 .dashboard-access-row {
     display: grid;
@@ -3791,6 +3803,8 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 @media (max-width: 800px) {
     .dashboard-network-grid { grid-template-columns: 1fr; }
     .network-settings-steps { grid-template-columns: 1fr; }
+    .dashboard-access-links > div,
+    #settingsNetworkLinks { grid-template-columns: 1fr; }
     .dashboard-access-row { grid-template-columns: 1fr auto; }
     .dashboard-access-row > span { grid-column: 1 / -1; }
 }
