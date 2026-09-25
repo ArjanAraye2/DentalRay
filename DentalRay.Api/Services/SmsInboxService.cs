@@ -261,28 +261,40 @@ namespace DentalRay.Api.Services
         // Saving what was fetched into the patient's own images
         // ------------------------------------------------------------
         /// <summary>
-        /// Stores the fetched files as patient-owned images. They are not tied
-        /// to a Study yet - the secretary decides where they belong - and a
-        /// file already stored for this patient (same hash) is skipped, so
-        /// repeated SMS messages never duplicate a picture.
+        /// Stores the fetched files as patient-owned images and shows them in
+        /// the patient's newest Study. Attaching here (rather than leaving them
+        /// loose) is what makes an imported picture visible where staff look;
+        /// a file already stored for this patient is attached again instead of
+        /// being copied, so repeated SMS messages never duplicate a picture.
         /// </summary>
-        public async Task<int> ImportToPatientAsync(int patientID, IReadOnlyList<FetchedImage> files, CancellationToken cancellationToken = default)
+        public sealed record ImportResult(int Imported, int? StudyID);
+
+        public async Task<ImportResult> ImportToPatientAsync(int patientID, IReadOnlyList<FetchedImage> files, CancellationToken cancellationToken = default)
         {
-            if (files.Count == 0) return 0;
+            if (files.Count == 0) return new ImportResult(0, null);
             var patient = await _db.Patients.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.PatientID == patientID, cancellationToken);
-            if (patient == null) return 0;
+            if (patient == null) return new ImportResult(0, null);
 
             int serial = await _db.RadiologyImages.Where(x => x.PatientID == patientID)
                 .Select(x => (int?)x.SerialNumber).MaxAsync(cancellationToken) ?? 0;
 
+            var touched = new List<long>();
             int imported = 0;
+
             foreach (var file in files)
             {
                 string hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(file.Content)).ToLowerInvariant();
-                bool alreadyStored = await _db.RadiologyImages.AsNoTracking()
-                    .AnyAsync(x => x.PatientID == patientID && x.ContentHash == hash, cancellationToken);
-                if (alreadyStored) continue;
+                var existing = await _db.RadiologyImages.AsNoTracking()
+                    .Where(x => x.PatientID == patientID && x.ContentHash == hash)
+                    .Select(x => (long?)x.ImageID)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (existing.HasValue)
+                {
+                    touched.Add(existing.Value);
+                    continue;
+                }
 
                 serial++;
                 string relativePath;
@@ -302,7 +314,7 @@ namespace DentalRay.Api.Services
                         .FirstOrDefaultAsync(cancellationToken);
                 }
 
-                _db.RadiologyImages.Add(new RadiologyImage
+                var image = new RadiologyImage
                 {
                     PatientID = patientID,
                     ImageTypeID = imageTypeID,
@@ -312,12 +324,41 @@ namespace DentalRay.Api.Services
                     SerialNumber = serial,
                     CreatedDate = DateTime.Now,
                     ContentHash = hash
-                });
+                };
+                _db.RadiologyImages.Add(image);
+                await _db.SaveChangesAsync(cancellationToken);
+                touched.Add(image.ImageID);
                 imported++;
             }
 
-            if (imported > 0) await _db.SaveChangesAsync(cancellationToken);
-            return imported;
+            if (touched.Count == 0) return new ImportResult(0, null);
+
+            // آخرین Study بیمار که تصویر باید در آن دیده شود
+            int? latestStudy = await _db.RadiologyStudies.AsNoTracking()
+                .Where(x => x.PatientID == patientID)
+                .OrderByDescending(x => x.StudyDate)
+                .ThenByDescending(x => x.StudyID)
+                .Select(x => (int?)x.StudyID)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (latestStudy.HasValue)
+            {
+                foreach (long imageID in touched)
+                {
+                    bool linked = await _db.RadiologyStudyImages.AsNoTracking()
+                        .AnyAsync(x => x.StudyID == latestStudy.Value && x.ImageID == imageID, cancellationToken);
+                    if (linked) continue;
+                    _db.RadiologyStudyImages.Add(new RadiologyStudyImage
+                    {
+                        StudyID = latestStudy.Value,
+                        ImageID = imageID,
+                        CreatedDate = DateTime.Now
+                    });
+                }
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+
+            return new ImportResult(imported, latestStudy);
         }
     }
 }

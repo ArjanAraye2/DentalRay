@@ -70,14 +70,17 @@ namespace DentalRay.Api.Controllers
                 if (row.PatientID.HasValue && links.Count > 0)
                 {
                     int fetched = 0, imported = 0;
+                    int? studyID = null;
                     foreach (string link in links)
                     {
                         var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
                         fetched += files.Count;
-                        imported += await _inbox.ImportToPatientAsync(row.PatientID.Value, files, cancellationToken);
+                        var result = await _inbox.ImportToPatientAsync(row.PatientID.Value, files, cancellationToken);
+                        imported += result.Imported;
+                        studyID ??= result.StudyID;
                     }
                     row.ImportedCount = imported;
-                    row.Note = DescribeImport(links.Count, fetched, imported);
+                    row.Note = DescribeImport(links.Count, fetched, imported, studyID);
                 }
                 else if (row.PatientID.HasValue && links.Count == 0)
                 {
@@ -136,6 +139,7 @@ namespace DentalRay.Api.Controllers
             row.MatchMethod = row.MatchMethod ?? 0;
 
             int imported = 0, fetched = 0;
+            int? studyID = null;
             var links = _inbox.ExtractLinks(row.Links) is { Count: > 0 } stored
                 ? stored
                 : _inbox.ExtractLinks(row.Body);
@@ -143,24 +147,30 @@ namespace DentalRay.Api.Controllers
             {
                 var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
                 fetched += files.Count;
-                imported += await _inbox.ImportToPatientAsync(patient.PatientID, files, cancellationToken);
+                var result = await _inbox.ImportToPatientAsync(patient.PatientID, files, cancellationToken);
+                imported += result.Imported;
+                studyID ??= result.StudyID;
             }
             row.ImportedCount = imported;
-            row.Note = DescribeImport(links.Count, fetched, imported);
+            row.Note = DescribeImport(links.Count, fetched, imported, studyID);
 
             await _db.SaveChangesAsync(cancellationToken);
-            return Ok(new { success = true, fetched, imported, message = imported > 0 ? $"{imported} تصویر وارد شد." : "تصویر جدیدی اضافه نشد." });
+            return Ok(new { success = true, fetched, imported, studyID, message = imported > 0 ? $"{imported} تصویر وارد شد." : "تصویر جدیدی اضافه نشد." });
         }
 
         /// <summary>
         /// What the secretary should read: nothing found is a different problem
         /// from "found, but this patient already had every one of them".
         /// </summary>
-        private static string DescribeImport(int linkCount, int fetched, int imported)
+        private static string DescribeImport(int linkCount, int fetched, int imported, int? studyID)
         {
             if (fetched == 0) return "لینک پیدا شد ولی تصویری قابل دریافت نبود.";
-            if (imported == 0) return $"هر {fetched} تصویر دریافتی قبلاً در پروندهٔ همین بیمار بود (تکراری).";
-            return $"از {linkCount} لینک، {imported} تصویر جدید وارد شد (بدون Study؛ در پرونده قابل انتخاب است).";
+            if (imported == 0 && studyID == null)
+                return $"هر {fetched} تصویر دریافتی قبلاً در پروندهٔ همین بیمار بود (تکراری).";
+            string where = studyID.HasValue ? $" و به Study شمارهٔ {studyID} وصل شد" : " (بدون Study)";
+            if (imported == 0)
+                return $"هر {fetched} تصویر قبلاً در پرونده بود و در Study شمارهٔ {studyID ?? 0} نمایش داده می‌شود.";
+            return $"از {linkCount} لینک، {imported} تصویر جدید وارد شد{where}.";
         }
 
         [HttpPost("{messageID:long}/reject")]

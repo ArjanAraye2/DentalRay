@@ -175,18 +175,25 @@ namespace DentalRay.Api.Controllers
             }
 
             int imported = 0, fetched = 0;
+            int? studyID = null;
             foreach (string link in links)
             {
                 var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
                 fetched += files.Count;
-                imported += await _inbox.ImportToPatientAsync(record.PatientID, files, cancellationToken);
+                var result = await _inbox.ImportToPatientAsync(record.PatientID, files, cancellationToken);
+                imported += result.Imported;
+                studyID ??= result.StudyID;
             }
 
             string note = fetched == 0
                 ? "لینک پیدا شد ولی تصویری قابل دریافت نبود."
                 : imported == 0
-                    ? $"هر {fetched} تصویر دریافتی قبلاً در پروندهٔ همین بیمار بود (تکراری)."
-                    : $"{imported} تصویر جدید دریافت شد.";
+                    ? (studyID.HasValue
+                        ? $"هر {fetched} تصویر قبلاً در پرونده بود و در Study شمارهٔ {studyID} نمایش داده می‌شود."
+                        : $"هر {fetched} تصویر دریافتی قبلاً در پروندهٔ همین بیمار بود (تکراری).")
+                    : studyID.HasValue
+                        ? $"{imported} تصویر دریافت و در Study شمارهٔ {studyID} ثبت شد."
+                        : $"{imported} تصویر دریافت شد؛ برای این بیمار Study ثبت نشده است.";
 
             await SaveRowAsync(text, links, match, status: 1, patientID: record.PatientID,
                 imported, note, cancellationToken);
@@ -198,9 +205,8 @@ namespace DentalRay.Api.Controllers
                 outcome = imported > 0 ? "imported" : (fetched > 0 ? "duplicate" : "empty"),
                 fetched,
                 imported,
-                message = imported > 0
-                    ? $"{imported} تصویر دریافت و در پرونده ثبت شد."
-                    : note
+                studyID,
+                message = note
             });
         }
 
