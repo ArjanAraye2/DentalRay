@@ -96,16 +96,40 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success = true, message = "دسترسی گوشی قطع شد." });
         }
 
+        /// <summary>
+        /// The address a phone can actually reach. When Dentix is opened on the
+        /// server itself (localhost), the QR would hand the phone a useless
+        /// address, so the machine's LAN address is used instead.
+        /// </summary>
         private string BuildServerUrl()
         {
             string? publicHost = _configuration["RemoteAccess:PublicHost"]?.Trim();
             if (!string.IsNullOrWhiteSpace(publicHost))
             {
-                string scheme = _configuration["RemoteAccess:PublicScheme"]?.Trim() ?? "http";
-                int port = _configuration.GetValue<int?>("RemoteAccess:PublicPort") ?? 5202;
+                string scheme = _configuration["RemoteAccess:LocalScheme"]?.Trim() ?? "http";
+                int port = _configuration.GetValue<int?>("RemoteAccess:LocalPort") ?? 5202;
                 bool defaultPort = (scheme == "http" && port == 80) || (scheme == "https" && port == 443);
                 return $"{scheme}://{publicHost}{(defaultPort ? "" : $":{port}")}";
             }
+
+            string host = Request.Host.Host;
+            bool isLoopback = host is "localhost" or "127.0.0.1" or "::1";
+            if (!isLoopback) return $"{Request.Scheme}://{Request.Host}";
+
+            try
+            {
+                string lan = System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName())
+                    .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                                         && !System.Net.IPAddress.IsLoopback(a))
+                    ?.ToString() ?? string.Empty;
+                if (!string.IsNullOrEmpty(lan))
+                {
+                    int port = Request.Host.Port ?? 5202;
+                    return $"{Request.Scheme}://{lan}:{port}";
+                }
+            }
+            catch { /* falls back to the request host below */ }
+
             return $"{Request.Scheme}://{Request.Host}";
         }
 
