@@ -187,7 +187,7 @@ namespace DentalRay.Api.Services
             if (baseUri == null) return Array.Empty<FetchedImage>();
             string origin = $"{baseUri.Scheme}://{baseUri.Authority}";
 
-            var client = _http.CreateClient();
+            var client = _http.CreateClient("ShareImages");
             client.Timeout = TimeSpan.FromSeconds(60);
 
             var results = new List<FetchedImage>();

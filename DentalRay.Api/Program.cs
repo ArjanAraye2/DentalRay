@@ -30,7 +30,14 @@ builder.Services.AddScoped<PatientMessagingService>();
 builder.Services.AddScoped<SmsInboxService>();
 // Central communication service: Kavenegar is the default SMS provider, while the provider remains configurable.
 builder.Services.AddSingleton<ICommunicationService, CommunicationService>();
-builder.Services.AddHttpClient();
+// Client for fetching images behind a share link. It calls back into this
+// same server, so loopback must bypass any system proxy (see LoopbackBypassProxy).
+builder.Services.AddHttpClient("ShareImages", client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        UseProxy = true,
+        Proxy = new DentalRay.Api.Services.LoopbackBypassProxy()
+    });
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // DentalRay is a browser application served by the same ASP.NET Core backend,

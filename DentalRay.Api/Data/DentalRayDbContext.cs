@@ -30,6 +30,7 @@ namespace DentalRay.Api.Data
         public DbSet<StudyShareLink> StudyShareLinks { get; set; }
         public DbSet<PairedDevice> PairedDevices { get; set; }
         public DbSet<InboxMessage> InboxMessages { get; set; }
+        public DbSet<PatientReceiveToken> PatientReceiveTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

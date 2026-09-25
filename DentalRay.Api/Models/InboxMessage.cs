@@ -43,7 +43,8 @@ namespace DentalRay.Api.Models
         [Key]
         public long MessageID { get; set; }
 
-        public int DeviceID { get; set; }
+        // NULL برای پیام‌هایی است که از مرورگر بیمار می‌آیند (بدون گوشی جفت‌شده)
+        public int? DeviceID { get; set; }
 
         [MaxLength(30)]
         public string? SenderMobile { get; set; }
@@ -72,6 +73,9 @@ namespace DentalRay.Api.Models
 
         [MaxLength(300)]
         public string? Note { get; set; }
+
+        // 1 = پیامک خوانده‌شده از گوشی جفت‌شده، 2 = متنی که بیمار در مرورگر چسبانده
+        public byte Source { get; set; } = 1;
 
         public DateTime CreatedDate { get; set; }
     }

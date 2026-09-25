@@ -467,6 +467,110 @@
   }
 
   // ------------------------------------------------------------
+  // دریافت تصویر از گوشی بیمار — بدون نصب برنامه روی گوشی بیمار
+  // ------------------------------------------------------------
+  function ensureReceiveButton() {
+    const toolbar = document.querySelector("#patientDetailsSection .details-toolbar");
+    if (!toolbar || $("receiveImagesButton")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "receiveImagesButton";
+    btn.className = "secondary-button";
+    btn.textContent = "دریافت تصویر از گوشی بیمار";
+    btn.onclick = openReceiveDialog;
+    toolbar.appendChild(btn);
+  }
+
+  function ensureReceiveDialog() {
+    if ($("receiveDialog")) return;
+    const wrap = document.createElement("div");
+    wrap.id = "receiveDialog";
+    wrap.className = "confirm-overlay hidden";
+    wrap.innerHTML = `
+      <div class="confirm-dialog">
+        <h3>دریافت تصویر از گوشی بیمار</h3>
+        <p class="share-dialog-hint">از بیمار بخواهید این کیوآرکد را با دوربین گوشی‌اش اسکن کند (نیازی به نصب برنامه نیست)،
+        بعد متن پیامک رادیولوژی را در صفحه‌ای که باز می‌شود بچپاند. تصاویر خودکار به همین پرونده می‌آید.</p>
+
+        <div class="pair-qr" id="receiveQr"></div>
+        <div class="pair-payload" id="receiveUrl"></div>
+
+        <div id="receiveHistory" class="inbox-note"></div>
+        <div id="receiveStatus" class="status-message"></div>
+
+        <div class="form-actions">
+          <button id="receiveCopyButton" type="button" class="secondary-button">کپی لینک</button>
+          <button id="receiveCloseButton" type="button" class="secondary-button">بستن</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+    wrap.addEventListener("click", e => { if (e.target === wrap) closeReceiveDialog(); });
+    $("receiveCloseButton").onclick = closeReceiveDialog;
+    $("receiveCopyButton").onclick = async () => {
+      const url = $("receiveUrl").textContent;
+      try {
+        await navigator.clipboard.writeText(url);
+        $("receiveCopyButton").textContent = "کپی شد";
+        setTimeout(() => { $("receiveCopyButton").textContent = "کپی لینک"; }, 1500);
+      } catch { window.prompt("لینک را کپی کنید:", url); }
+    };
+  }
+
+  function closeReceiveDialog() {
+    $("receiveDialog")?.classList.add("hidden");
+    $("receiveQr")?.replaceChildren();
+  }
+
+  async function openReceiveDialog() {
+    const patient = window.selectedPatient;
+    if (!patient) { window.showToast?.("ابتدا پروندهٔ بیمار را باز کنید.", "error"); return; }
+    ensureReceiveDialog();
+
+    const status = $("receiveStatus");
+    status.classList.remove("error");
+    status.textContent = "در حال ساخت لینک…";
+    $("receiveHistory").textContent = "";
+    $("receiveQr").replaceChildren();
+    $("receiveUrl").textContent = "";
+    $("receiveDialog").classList.remove("hidden");
+
+    try {
+      const res = await fetch(`/api/patients/${patient.patientID}/receive-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresInDays: 1 })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "ساخت لینک انجام نشد.");
+
+      $("receiveUrl").textContent = data.url;
+      if (typeof qrcode === "function") {
+        const code = qrcode(0, "M");
+        code.addData(data.url);
+        code.make();
+        $("receiveQr").innerHTML = code.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: "کیوآرکد دریافت تصویر" });
+      }
+      status.textContent = "کیوآرکد آماده است؛ آن را به بیمار نشان دهید.";
+      loadReceiveHistory(patient.patientID);
+    } catch (e) {
+      status.textContent = e.message || "ساخت لینک انجام نشد.";
+      status.classList.add("error");
+    }
+  }
+
+  async function loadReceiveHistory(patientID) {
+    try {
+      const res = await fetch(`/api/patients/${patientID}/receive-links`);
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.items.length) return;
+      const last = data.items[0];
+      $("receiveHistory").textContent =
+        `استفاده‌ها: ${last.useCount}  |  آخرین استفاده: ` +
+        (last.lastUsedAt ? new Date(last.lastUsedAt).toLocaleString("fa-IR") : "هنوز");
+    } catch { /* تاریخچه فرعی است */ }
+  }
+
+  // ------------------------------------------------------------
   // Wiring
   // ------------------------------------------------------------
   function init() {
@@ -474,6 +578,7 @@
     ensureSidebar();
     ensureSection();
     ensurePairDialog();
+    ensureReceiveButton();
 
     document.querySelectorAll(".inbox-filter").forEach(button => {
       button.classList.toggle("active", button.dataset.status === currentFilter);
@@ -489,4 +594,12 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
+
+  // دکمهٔ دریافت تصویر داخل نوار پروندهٔ بیمار است که بعداً ساخته می‌شود؛
+  // پس هر بار که آن بخش به‌روز شد دوباره بررسی می‌کنیم.
+  const patientObserver = new MutationObserver(ensureReceiveButton);
+  const patientHost = document.getElementById("patientDetailsSection");
+  if (patientHost) {
+    patientObserver.observe(patientHost, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
 })();
