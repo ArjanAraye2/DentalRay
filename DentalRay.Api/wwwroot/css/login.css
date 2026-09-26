@@ -315,3 +315,36 @@ body.dentalray-login-active .app-sidebar{display:none!important}
   .login-form-logo .login-logo-name strong{font-size:29px}
   .login-form-heading h2{font-size:23px}
 }
+
+/* ==========================================================
+   Short screens: the login column must fit without scrolling.
+   Vertical space is tightened instead of letting the form
+   scroll, so the submit button is always visible.
+   ========================================================== */
+@media (max-height: 900px){
+  .login-form-panel{padding:30px 70px 20px}
+  .login-form-logo{margin-bottom:22px}
+  .login-form-logo .login-logo-tooth{width:46px;height:51px}
+  .login-form-logo .login-logo-name strong{font-size:32px}
+  .login-form-heading{margin-bottom:18px}
+  .login-form-heading h2{font-size:26px;margin-bottom:6px}
+  .login-field{margin-bottom:14px}
+  .login-field label{margin-bottom:7px}
+  .login-field input{height:56px}
+  .login-password-toggle{bottom:14px}
+  .login-submit{height:56px;margin-top:4px}
+  .login-status{min-height:18px}
+}
+@media (max-height: 740px){
+  .login-form-panel{padding:20px 46px 14px}
+  .login-form-logo{margin-bottom:14px}
+  .login-form-logo .login-logo-tooth{width:38px;height:42px}
+  .login-form-logo .login-logo-name strong{font-size:27px}
+  .login-form-heading{margin-bottom:12px}
+  .login-form-heading h2{font-size:23px}
+  .login-field{margin-bottom:11px}
+  .login-field input{height:50px}
+  .login-password-toggle{bottom:11px}
+  .login-submit{height:50px}
+  .login-status{min-height:16px}
+}
