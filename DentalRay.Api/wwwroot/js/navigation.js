@@ -338,14 +338,35 @@
             box.tabIndex = 0;
             box.setAttribute("role", "button");
             box.setAttribute("aria-label", `بزرگ‌نمایی کیوآرکد ${label}`);
-            box.onclick = () => DentalRayQrZoom(box, label);
-            box.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); box.click(); } };
             return box;
         } catch {
             // A broken QR must never take the dashboard down; the plain link stays.
             return null;
         }
     }
+
+    // بزرگ‌نمایی همهٔ کیوآرکدهای برنامه — لینک‌های اجرا، جفت‌سازی، دانلود و
+    // دریافت تصویر. با یک شنوندهٔ سراسری، پنجره‌هایی که بعداً ساخته می‌شوند هم
+    // خودکار پوشش داده می‌شوند و لازم نیست هر جا دوباره سیم‌کشی شود.
+    function attachQrZoomDelegation() {
+        const findBox = (target) => (target && target.closest ? target.closest(".dashboard-access-qr, .pair-qr") : null);
+        document.addEventListener("click", (e) => {
+            const box = findBox(e.target);
+            if (!box) return;
+            const svg = box.querySelector("svg");
+            if (!svg) return;
+            const alt = (svg.getAttribute("alt") || "").replace(/^کیوکد\s+|^کیوآرکد\s+/, "");
+            DentalRayQrZoom(box, alt);
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            const box = findBox(e.target);
+            if (!box || !box.querySelector("svg")) return;
+            e.preventDefault();
+            DentalRayQrZoom(box, (box.querySelector("svg").getAttribute("alt") || "").replace(/^کیوکد\s+|^کیوآرکد\s+/, ""));
+        });
+    }
+    attachQrZoomDelegation();
 
     // نمای تمام‌صفحهٔ یک کیوآرکد؛ همان کد، فقط بزرگ‌تر تا هر دوربینی بگیردش.
     function DentalRayQrZoom(box, label) {
