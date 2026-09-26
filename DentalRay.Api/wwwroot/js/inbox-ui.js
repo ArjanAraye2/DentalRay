@@ -50,7 +50,8 @@
       .inbox-links{font-size:12px;color:#0e7f95;overflow-wrap:anywhere;direction:ltr;text-align:left}
       .inbox-empty{color:#55707e;font-size:13.5px;padding:22px 6px;text-align:center}
       .pair-qr{display:flex;flex-direction:column;align-items:center;gap:10px;margin:14px 0}
-      .pair-qr svg{width:210px;height:210px;border:1px solid #d8e7ec;border-radius:14px;padding:10px;background:#fff}
+      .pair-qr svg{width:190px;height:190px;border:1px solid #d8e7ec;border-radius:14px;padding:10px;background:#fff}
+      .pair-install-hidden{display:none !important}
       .pair-hint{color:#55707e;font-size:13px;line-height:2;text-align:center}
       .pair-payload{direction:ltr;text-align:left;font-family:Consolas,monospace;font-size:11.5px;background:#0a3540;color:#d9eff4;padding:8px 10px;border-radius:8px;overflow-wrap:anywhere}
       .inbox-devices{display:grid;gap:8px;margin-top:10px}
@@ -405,6 +406,10 @@
         </div>
       </div>`;
     document.body.appendChild(wrap);
+
+    // پنجرهٔ جفت‌سازی بلند است؛ بخش نصب جمع می‌ماند تا کلیدهای اصلی دیده شوند.
+    collapseInstallSection();
+
     wrap.addEventListener("click", e => { if (e.target === wrap) closePair(); });
     $("pairCloseButton").onclick = closePair;
     $("pairOwner").onchange = () => {
@@ -433,6 +438,32 @@
   }
 
   let selectedSerial = null;
+
+  /** بخش نصب مستقیم پیش‌فرض جمع است تا دکمه‌های بالای پنجره از دید خارج نشوند. */
+  function collapseInstallSection() {
+    const card = $("pairDirectInstall");
+    if (!card || card.dataset.collapsible === "1") return;
+    card.dataset.collapsible = "1";
+
+    const body = [...card.children].slice(1);   // فقط عنوان بالا می‌ماند
+    body.forEach(el => el.classList.add("pair-install-hidden"));
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "secondary-button";
+    toggle.style.width = "100%";
+    toggle.style.marginTop = "8px";
+    toggle.textContent = "گزینه‌های نصب مستقیم روی گوشی";
+    card.insertBefore(toggle, card.firstChild);
+
+    let open = false;
+    toggle.onclick = () => {
+      open = !open;
+      body.forEach(el => el.classList.toggle("pair-install-hidden", !open));
+      toggle.textContent = open ? "بستن بخش نصب" : "گزینه‌های نصب مستقیم روی گوشی";
+      if (open) loadInstallStatus();
+    };
+  }
 
   async function loadInstallStatus() {
     const box = $("installStatus");

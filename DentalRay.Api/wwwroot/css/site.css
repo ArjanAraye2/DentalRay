@@ -4212,3 +4212,19 @@ body { line-height: 1.75; }
 #shareOtherFields input + input { margin-top: 0; }
 
 #shareImagesDialog .status-message { min-height: 18px; }
+
+/* ==========================================================
+   Dialogs must stay reachable on short screens.
+   The pairing dialog carries two QR codes plus the device panel,
+   so without a height limit its action buttons fall off screen.
+   ========================================================== */
+.confirm-dialog {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+@media (max-height: 780px) {
+    .confirm-dialog { padding: 16px; }
+    .pair-qr svg { width: 168px; height: 168px; }
+    .pair-qr { padding: 10px; gap: 8px; }
+}
