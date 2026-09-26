@@ -30,14 +30,14 @@ public class AiStudyAnalysisController : ControllerBase
     {
         // Authorization is checked before reading image metadata or physical files.
         if (!await _studyAccess.CanAccessStudyAsync(studyID, User))
-            return NotFound(new { success = false, message = "Study پیدا نشد." });
+            return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
 
         var images = await (from link in _db.RadiologyStudyImages.AsNoTracking()
                             join image in _db.RadiologyImages.AsNoTracking() on link.ImageID equals image.ImageID
                             where link.StudyID == studyID
                             orderby image.FileName descending
                             select image).ToListAsync(cancellationToken);
-        if (images.Count == 0) return BadRequest(new { success = false, message = "این Study تصویری برای تحلیل ندارد." });
+        if (images.Count == 0) return BadRequest(new { success = false, message = "این مراجعه تصویری برای تحلیل ندارد." });
 
         // PDF is intentionally excluded from image vision input for this first implementation.
         var supported = images.Where(x => x.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)).ToList();

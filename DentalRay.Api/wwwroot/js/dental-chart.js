@@ -233,4 +233,4 @@
   // any page that only includes this file, so there is no unconditional load here
   // (which would add a second tag when the library is already present).
   load("link", "dentalGraphicStyles", "/css/dental-graphic.css");
-  load("script", "dentalrayTerminology", "/js/frontend-terminology.js");})();
+  load("script", "dentalrayTerminology", "/js/frontend-terminology.js?v=20260926.2");})();

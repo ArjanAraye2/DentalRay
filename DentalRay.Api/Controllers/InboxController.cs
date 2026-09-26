@@ -123,7 +123,7 @@ namespace DentalRay.Api.Controllers
 
             var study = await _db.RadiologyStudies.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.StudyID == studyID, cancellationToken);
-            if (study == null) return NotFound(new { success = false, message = "Study پیدا نشد." });
+            if (study == null) return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
 
             var links = _inbox.ExtractLinks(text);
             if (links.Count == 0)
@@ -183,8 +183,8 @@ namespace DentalRay.Api.Controllers
             string message = fetched == 0
                 ? "لینک پیدا شد ولی تصویری قابل دریافت نبود."
                 : imported > 0
-                    ? $"{imported} تصویر دریافت و به Study شمارهٔ {studyID} وصل شد."
-                    : $"هر {fetched} تصویر قبلاً در پرونده بود و حالا در همین Study نمایش داده می‌شود.";
+                    ? $"{imported} تصویر دریافت و به مراجعهٔ شمارهٔ {studyID} وصل شد."
+                    : $"هر {fetched} تصویر قبلاً در پرونده بود و حالا در همین مراجعه نمایش داده می‌شود.";
 
             // سابقه در همان صندوق ورودی، با برچسب «دستی»
             _db.InboxMessages.Add(new InboxMessage
@@ -273,9 +273,9 @@ namespace DentalRay.Api.Controllers
             if (fetched == 0) return "لینک پیدا شد ولی تصویری قابل دریافت نبود.";
             if (imported == 0 && studyID == null)
                 return $"هر {fetched} تصویر دریافتی قبلاً در پروندهٔ همین بیمار بود (تکراری).";
-            string where = studyID.HasValue ? $" و به Study شمارهٔ {studyID} وصل شد" : " (بدون Study)";
+            string where = studyID.HasValue ? $" و به مراجعهٔ شمارهٔ {studyID} وصل شد" : " (بدون مراجعه)";
             if (imported == 0)
-                return $"هر {fetched} تصویر قبلاً در پرونده بود و در Study شمارهٔ {studyID ?? 0} نمایش داده می‌شود.";
+                return $"هر {fetched} تصویر قبلاً در پرونده بود و در مراجعهٔ شمارهٔ {studyID ?? 0} نمایش داده می‌شود.";
             return $"از {linkCount} لینک، {imported} تصویر جدید وارد شد{where}.";
         }
 
@@ -300,7 +300,7 @@ namespace DentalRay.Api.Controllers
         {
             var study = await _db.RadiologyStudies.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.StudyID == studyID, cancellationToken);
-            if (study == null) return NotFound(new { success = false, message = "Study پیدا نشد." });
+            if (study == null) return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
 
             var rows = await _db.InboxMessages.AsNoTracking()
                 .Where(x => x.PatientID == study.PatientID && x.Links != null)
@@ -326,8 +326,8 @@ namespace DentalRay.Api.Controllers
             string message = handled == 0
                 ? "هنوز پیامک دریافتی‌ای برای این بیمار وجود ندارد."
                 : imported > 0
-                    ? $"{imported} تصویر دریافت و به همین Study وصل شد."
-                    : $"هر {fetched} تصویر قبلاً در پرونده بود و حالا در همین Study نمایش داده می‌شود.";
+                    ? $"{imported} تصویر دریافت و به همین مراجعه وصل شد."
+                    : $"هر {fetched} تصویر قبلاً در پرونده بود و حالا در همین مراجعه نمایش داده می‌شود.";
 
             return Ok(new { success = true, handled, fetched, imported, studyID, message });
         }

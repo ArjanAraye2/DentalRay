@@ -61,7 +61,7 @@ namespace DentalRay.Api.Controllers
                 bool belongs = await _db.RadiologyStudies.AsNoTracking()
                     .AnyAsync(x => x.StudyID == request.StudyID.Value && x.PatientID == patientID, cancellationToken);
                 if (!belongs)
-                    return BadRequest(new { success = false, message = "این Study متعلق به این بیمار نیست." });
+                    return BadRequest(new { success = false, message = "این مراجعه متعلق به این بیمار نیست." });
                 studyID = request.StudyID;
             }
 
@@ -203,11 +203,11 @@ namespace DentalRay.Api.Controllers
                 ? "لینک پیدا شد ولی تصویری قابل دریافت نبود."
                 : imported == 0
                     ? (studyID.HasValue
-                        ? $"هر {fetched} تصویر قبلاً در پرونده بود و در Study شمارهٔ {studyID} نمایش داده می‌شود."
+                        ? $"هر {fetched} تصویر قبلاً در پرونده بود و در مراجعهٔ شمارهٔ {studyID} نمایش داده می‌شود."
                         : $"هر {fetched} تصویر دریافتی قبلاً در پروندهٔ همین بیمار بود (تکراری).")
                     : studyID.HasValue
-                        ? $"{imported} تصویر دریافت و در Study شمارهٔ {studyID} ثبت شد."
-                        : $"{imported} تصویر دریافت شد؛ برای این بیمار Study ثبت نشده است.";
+                        ? $"{imported} تصویر دریافت و در مراجعهٔ شمارهٔ {studyID} ثبت شد."
+                        : $"{imported} تصویر دریافت شد؛ برای این بیمار مراجعه ثبت نشده است.";
 
             await SaveRowAsync(text, links, match, status: 1, patientID: record.PatientID,
                 imported, note, cancellationToken);

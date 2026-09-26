@@ -27,9 +27,9 @@ namespace DentalRay.Api.Controllers
         {
             string name = (request.StudyTypeName ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(name))
-                return BadRequest(new { success = false, message = "نام نوع Study الزامی است.", messageEn = "Study Type name is required." });
+                return BadRequest(new { success = false, message = "نام نوع مراجعه الزامی است.", messageEn = "Study Type name is required." });
             if (await _context.StudyTypes.AnyAsync(x => x.StudyTypeName == name))
-                return Conflict(new { success = false, message = "این نوع Study قبلاً ثبت شده است.", messageEn = "This Study Type already exists." });
+                return Conflict(new { success = false, message = "این نوع مراجعه قبلاً ثبت شده است.", messageEn = "This Study Type already exists." });
 
             var item = new StudyType { StudyTypeName = name, IsActive = true };
             _context.StudyTypes.Add(item);
@@ -42,13 +42,13 @@ namespace DentalRay.Api.Controllers
         {
             var item = await _context.StudyTypes.FirstOrDefaultAsync(x => x.StudyTypeID == id);
             if (item == null)
-                return NotFound(new { success = false, message = "نوع Study پیدا نشد.", messageEn = "Study Type not found." });
+                return NotFound(new { success = false, message = "نوع مراجعه پیدا نشد.", messageEn = "Study Type not found." });
 
             string name = (request.StudyTypeName ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(name))
-                return BadRequest(new { success = false, message = "نام نوع Study الزامی است.", messageEn = "Study Type name is required." });
+                return BadRequest(new { success = false, message = "نام نوع مراجعه الزامی است.", messageEn = "Study Type name is required." });
             if (await _context.StudyTypes.AnyAsync(x => x.StudyTypeID != id && x.StudyTypeName == name))
-                return Conflict(new { success = false, message = "نوع Study دیگری با این نام وجود دارد.", messageEn = "Another Study Type with this name already exists." });
+                return Conflict(new { success = false, message = "نوع مراجعه دیگری با این نام وجود دارد.", messageEn = "Another Study Type with this name already exists." });
 
             item.StudyTypeName = name;
             item.IsActive = request.IsActive;
@@ -61,7 +61,7 @@ namespace DentalRay.Api.Controllers
         {
             var item = await _context.StudyTypes.FirstOrDefaultAsync(x => x.StudyTypeID == id);
             if (item == null)
-                return NotFound(new { success = false, message = "نوع Study پیدا نشد.", messageEn = "Study Type not found." });
+                return NotFound(new { success = false, message = "نوع مراجعه پیدا نشد.", messageEn = "Study Type not found." });
 
             item.IsActive = request.IsActive;
             await _context.SaveChangesAsync();
