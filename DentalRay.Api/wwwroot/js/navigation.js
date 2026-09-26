@@ -401,6 +401,14 @@
         window.scrollTo(0, 0);
     }
 
+    function openHelp() {
+        hidePages();
+        document.getElementById("helpSection")?.classList.remove("hidden");
+        setActive("help");
+        if (typeof window.DentalRayHelpPage === "function") window.DentalRayHelpPage.render();
+        window.scrollTo(0, 0);
+    }
+
     function openSettings(focus) {
         hidePages(); settings.classList.remove("hidden"); setActive("settings");
         renderSettingsNetworkLinks(latestNetwork);
@@ -495,6 +503,7 @@
         if (name === "dashboard") return openDashboard();
         if (name === "patients") { dashboardVisible = false; stopDashboardAutoRefresh(); return openPatients(); }
         if (name === "settings") { dashboardVisible = false; stopDashboardAutoRefresh(); return openSettings(); }
+        if (name === "help") { dashboardVisible = false; stopDashboardAutoRefresh(); return openHelp(); }
         if (placeholderSections[name]) { dashboardVisible = false; stopDashboardAutoRefresh(); return openPlaceholder(name); }
     }
 
