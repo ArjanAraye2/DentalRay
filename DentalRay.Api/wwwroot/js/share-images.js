@@ -170,21 +170,29 @@
     }
   }
 
-  function addShareButton() {
-    const toolbar = document.querySelector("#studyImagesSection .details-toolbar");
-    if (!toolbar || $("shareStudyImagesButton")) return;
+  function addShareButtonTo(selector, id) {
+    const toolbar = document.querySelector(selector);
+    if (!toolbar || $(id)) return;
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.id = "shareStudyImagesButton";
+    btn.id = id;
     btn.className = "secondary-button";
-    btn.textContent = "ارسال لینک تصاویر";
+    btn.textContent = "ارسال لینک تصویر";
     btn.onclick = open;
     toolbar.appendChild(btn);
   }
 
-  const observer = new MutationObserver(addShareButton);
-  const host = document.getElementById("studyImagesSection");
-  if (host) observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addShareButton);
-  else addShareButton();
+  // هم در صفحهٔ تصاویر Study و هم در صفحهٔ جزئیات Study، تا همیشه در دسترس باشد.
+  function addShareButtons() {
+    addShareButtonTo("#studyImagesSection .details-toolbar", "shareStudyImagesButton");
+    addShareButtonTo("#studyDetailsSection .details-toolbar", "shareStudyDetailsButton");
+  }
+
+  const observer = new MutationObserver(addShareButtons);
+  ["studyImagesSection", "studyDetailsSection"].forEach(id => {
+    const host = document.getElementById(id);
+    if (host) observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addShareButtons);
+  else addShareButtons();
 })();

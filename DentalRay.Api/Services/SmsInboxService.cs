@@ -181,7 +181,6 @@ namespace DentalRay.Api.Services
         public async Task<IReadOnlyList<FetchedImage>> FetchSharedImagesAsync(string shareLink, CancellationToken cancellationToken = default)
         {
             string? token = TokenFromLink(shareLink);
-            if (token == null) return Array.Empty<FetchedImage>();
 
             Uri? baseUri = Uri.TryCreate(shareLink, UriKind.Absolute, out var parsed) ? parsed : null;
             if (baseUri == null) return Array.Empty<FetchedImage>();
@@ -192,9 +191,9 @@ namespace DentalRay.Api.Services
 
             var results = new List<FetchedImage>();
 
-            // Our own viewer answers with JSON. Another radiologist's system
-            // will not, so a failed parse simply falls through to the page below.
-            try
+            // لینک خودِ دنتیکس جواب ساختاریافته (JSON) دارد؛ لینک بیرونی ندارد،
+            // پس مستقیم به خواندنِ صفحهٔ HTML می‌رود.
+            if (token != null) try
             {
                 string metadataJson = await client.GetStringAsync($"{origin}/api/shared/{token}", cancellationToken);
                 var metadata = System.Text.Json.JsonDocument.Parse(metadataJson);
@@ -238,11 +237,16 @@ namespace DentalRay.Api.Services
                 {
                     if (!Uri.TryCreate(baseUri, match.Groups[1].Value, out var imageUri)) continue;
                     string path = imageUri.AbsolutePath.ToLowerInvariant();
+                    string file = Path.GetFileName(imageUri.AbsolutePath).ToLowerInvariant();
                     if (path.EndsWith(".svg") || path.Contains("logo") || path.Contains("icon") || path.Contains("favicon")) continue;
+                    // آیکون‌ها و تصاویر رابط کاربری سایت را رد می‌کنیم
+                    if (path.Contains("/content/") || path.Contains("/cliniclogo/") || file.StartsWith("ic-")) continue;
+                    if (!file.EndsWith(".jpg") && !file.EndsWith(".jpeg") && !file.EndsWith(".png") && !file.EndsWith(".webp")) continue;
                     byte[] bytes;
                     try { bytes = await client.GetByteArrayAsync(imageUri, cancellationToken); }
                     catch (Exception ex) { _logger.LogWarning(ex, "Picture {Url} could not be downloaded", imageUri); continue; }
-                    if (bytes.Length < 1500) continue;
+                    // عکس رادیولوژی معمولاً چند صد کیلوبایت است؛ زیر ۲۰ کیلوبایت آیکون است
+                    if (bytes.Length < 20000) continue;
                     results.Add(new FetchedImage(bytes, Path.GetFileName(imageUri.AbsolutePath), "image/jpeg", null));
                     if (results.Count >= 20) break;
                 }
