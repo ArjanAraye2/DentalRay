@@ -230,25 +230,51 @@ namespace DentalRay.Api.Services
 
             // A page written by someone else: take the pictures it displays,
             // skipping logos and icons. Nothing else can be trusted blindly.
+            // صفحهٔ بیرونی: آدرس عکس‌ها ممکن است داخل تگ img، داخل جاوااسکریپت یا
+            // با آدرس نسبی باشد، پس کل صفحه را می‌خوانیم و بعد ترتیب می‌دهیم.
             try
             {
                 string html = await client.GetStringAsync(shareLink, cancellationToken);
-                foreach (Match match in Regex.Matches(html, "<img[^>]+src=[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase))
+
+                var candidates = new List<string>();
+                var pattern = @"(?:(?:https?:)?//[A-Za-z0-9\.\-:]+)?/[^""'\s<>]+?\.(?:jpe?g|png|webp)(?:\?[^""'\s<>]*)?";
+                foreach (Match match in Regex.Matches(html, pattern, RegexOptions.IgnoreCase))
                 {
-                    if (!Uri.TryCreate(baseUri, match.Groups[1].Value, out var imageUri)) continue;
+                    if (!Uri.TryCreate(baseUri, match.Value, out var imageUri)) continue;
                     string path = imageUri.AbsolutePath.ToLowerInvariant();
                     string file = Path.GetFileName(imageUri.AbsolutePath).ToLowerInvariant();
-                    if (path.EndsWith(".svg") || path.Contains("logo") || path.Contains("icon") || path.Contains("favicon")) continue;
-                    // آیکون‌ها و تصاویر رابط کاربری سایت را رد می‌کنیم
-                    if (path.Contains("/content/") || path.Contains("/cliniclogo/") || file.StartsWith("ic-")) continue;
-                    if (!file.EndsWith(".jpg") && !file.EndsWith(".jpeg") && !file.EndsWith(".png") && !file.EndsWith(".webp")) continue;
+
+                    if (path.Contains("/content/") || path.Contains("/cliniclogo/")) continue;
+                    if (file.StartsWith("ic-") || file.StartsWith("log")) continue;
+                    if (file.StartsWith("tmb") || file.StartsWith("thumb")) continue;   // بندانگشتی
+                    if (file.Contains("logo") || file.Contains("icon") || file.Contains("favicon")) continue;
+
+                    string absolute = imageUri.ToString();
+                    if (!candidates.Contains(absolute, StringComparer.OrdinalIgnoreCase)) candidates.Add(absolute);
+                }
+
+                // عکس‌های jpg معمولاً خودِ فیلم رادیولوژی‌اند؛ pngها معمولاً راهنما یا نقشه‌اند
+                var ordered = candidates
+                    .OrderBy(u => u.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                    .ToList();
+
+                foreach (string candidate in ordered)
+                {
+                    if (results.Count >= 12) break;
                     byte[] bytes;
-                    try { bytes = await client.GetByteArrayAsync(imageUri, cancellationToken); }
-                    catch (Exception ex) { _logger.LogWarning(ex, "Picture {Url} could not be downloaded", imageUri); continue; }
-                    // عکس رادیولوژی معمولاً چند صد کیلوبایت است؛ زیر ۲۰ کیلوبایت آیکون است
-                    if (bytes.Length < 20000) continue;
-                    results.Add(new FetchedImage(bytes, Path.GetFileName(imageUri.AbsolutePath), "image/jpeg", null));
-                    if (results.Count >= 20) break;
+                    try { bytes = await client.GetByteArrayAsync(new Uri(candidate), cancellationToken); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Picture {Url} could not be downloaded", candidate); continue; }
+
+                    var uri = new Uri(candidate);
+                    bool isPng = uri.AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+                    // نقشه/راهنماهای png کوچک‌اند؛ فیلم واقعی چند صد کیلوبایتی است
+                    if (bytes.Length < (isPng ? 100_000 : 20_000)) continue;
+
+                    results.Add(new FetchedImage(
+                        bytes,
+                        Path.GetFileName(uri.AbsolutePath),
+                        isPng ? "image/png" : "image/jpeg",
+                        null));
                 }
             }
             catch (Exception ex)
