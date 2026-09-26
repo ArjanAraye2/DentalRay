@@ -78,7 +78,7 @@ namespace DentalRay.Api.Controllers
             _db.PatientReceiveTokens.Add(token);
             await _db.SaveChangesAsync(cancellationToken);
 
-            string url = $"{Request.Scheme}://{Request.Host}/r/{token.Token}";
+            string url = $"{PublicUrl.BaseUrl(Request.HttpContext, _configuration)}/r/{token.Token}";
             return Ok(new
             {
                 success = true,

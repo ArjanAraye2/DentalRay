@@ -171,23 +171,9 @@ namespace DentalRay.Api.Controllers
         /// once the clinic has a static IP or domain; before that the request's
         /// own host works inside the clinic network.
         /// </summary>
-        private string BuildShareUrl(string token)
-        {
-            string? publicHost = _configuration["RemoteAccess:PublicHost"]?.Trim();
-            string baseUrl;
-            if (!string.IsNullOrWhiteSpace(publicHost))
-            {
-                string scheme = _configuration["RemoteAccess:PublicScheme"]?.Trim() ?? "http";
-                int port = _configuration.GetValue<int?>("RemoteAccess:PublicPort") ?? 5202;
-                bool defaultPort = (scheme == "http" && port == 80) || (scheme == "https" && port == 443);
-                baseUrl = $"{scheme}://{publicHost}{(defaultPort ? "" : $":{port}")}";
-            }
-            else
-            {
-                baseUrl = $"{Request.Scheme}://{Request.Host}";
-            }
-            return $"{baseUrl}/s/{token}";
-        }
+        private string BuildShareUrl(string token) =>
+            // PublicUrl: آدرس عمومی تنظیم‌شده، وگرنه آدرس LAN (localhost به درد گوشی نمی‌خورد)
+            $"{PublicUrl.BaseUrl(Request.HttpContext, _configuration)}/s/{token}";
 
         private static string FirstNotEmpty(params string?[] values) =>
             values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim() ?? string.Empty;

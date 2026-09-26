@@ -455,7 +455,7 @@
 
           <section class="guide-box">
             <div class="guide-box-title">۲ — جفت‌سازی با کیوآرکد</div>
-            <p class="pair-hint">برنامهٔ Dentix را روی گوشی باز کنید و این کد را اسکن کنید تا گوشی اجازهٔ ارسال پیامک‌ها را بدهد.</p>
+            <p class="pair-hint">روی گوشی، با <b>دوربین معمولی</b> این کد را اسکن کنید تا خودش برنامهٔ Dentix باز شود و جفت‌سازی انجام شود؛ یا داخل برنامه از دکمهٔ «جفت‌سازی با Dentix» استفاده کنید.</p>
             <div id="pairResult" class="hidden">
               <div class="pair-qr" id="pairQr"></div>
               <div class="pair-payload" id="pairPayload"></div>
