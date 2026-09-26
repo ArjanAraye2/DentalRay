@@ -1,4 +1,5 @@
-// دریافت تصویر تعیین‌نشده از پروندهٔ بیمار و الصاق آن به مراجعهٔ باز، تعیین نوع، یا حذف با تأیید کاربر.
+// الصاق تصویر از پروندهٔ بیمار به مراجعهٔ باز، تعیین نوع، یا حذف با تأیید کاربر؛
+// فقط تصاویری که نوعشان تعیین نشده یا به این مراجعه وصل نیستند فهرست می‌شوند.
 // داده از picker آمادهٔ سرور می‌آید: /api/radiologyimages/study/{id}/picker (با پرچم attached).
 (function () {
   "use strict";
@@ -52,7 +53,7 @@
     modal.innerHTML =
       '<div class="confirm-dialog pickup-dialog">' +
       '<button class="modal-close-button pickup-close" type="button" aria-label="بستن">×</button>' +
-      "<h3>دریافت تصویر تعیین‌نشده</h3>" +
+      "<h3>الصاق تصویر از پرونده</h3>" +
       '<p class="pickup-hint">تصاویر پروندهٔ این بیمار که نوعشان تعیین نشده یا به این مراجعه وصل نیستند. یک تصویر می‌تواند هم‌زمان در چند مراجعه معتبر باشد؛ «الصاق» فقط اضافه می‌کند و اتصال‌های دیگر را دست نمی‌زند.</p>' +
       '<div id="imagePickupStatus" class="status-message"></div>' +
       '<div id="imagePickupList" class="pickup-list"></div>' +
