@@ -63,7 +63,7 @@
 
     const count = moreBox.children.length;
     const hidden = moreBox.classList.contains("hidden");
-    const label = count ? (hidden ? `بیشتر (${count}) ▾` : "بستن ▴") : "";
+    const label = count ? (hidden ? "بیشتر ▾" : "بستن ▴") : "";
     // فقط وقتی متن عوض می‌شود نوشته می‌شود؛ وگرنه همین نوشتن باعث
     // تحریک دوبارهٔ مشاهده‌گر و حلقهٔ بی‌نهایت می‌شود.
     if (moreButton.textContent !== label) moreButton.textContent = label;
