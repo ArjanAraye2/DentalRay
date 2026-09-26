@@ -129,6 +129,48 @@ namespace DentalRay.Api.Controllers
             if (links.Count == 0)
                 return BadRequest(new { success = false, message = "در متن واردشده آدرسی با http پیدا نشد." });
 
+            // لینک‌های خودِ دنتیکس صاحب دارند؛ اگر متعلق به بیمار دیگری باشند
+            // وارد این پرونده نمی‌شوند و فقط برای بررسی در صندوق ورودی می‌مانند.
+            foreach (string link in links)
+            {
+                string? token = SmsInboxService.TokenFromLink(link);
+                if (token == null) continue;
+
+                var share = await _db.StudyShareLinks.AsNoTracking()
+                    .Where(x => x.Token == token)
+                    .Select(x => new { x.StudyID })
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (share == null) continue;
+
+                int? ownerPatient = await _db.RadiologyStudies.AsNoTracking()
+                    .Where(x => x.StudyID == share.StudyID)
+                    .Select(x => (int?)x.PatientID)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (!ownerPatient.HasValue || ownerPatient.Value == study.PatientID) continue;
+
+                var other = await _db.Patients.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.PatientID == ownerPatient.Value, cancellationToken);
+                string otherName = other == null ? "بیمار دیگر" : $"{other.FirstName} {other.LastName}".Trim();
+                string mismatchMessage = $"این لینک متعلق به بیمار «{otherName}» است و وارد پروندهٔ این بیمار نشد.";
+
+                _db.InboxMessages.Add(new InboxMessage
+                {
+                    DeviceID = null,
+                    Source = 3,
+                    Body = text.Length > 2000 ? text[..2000] : text,
+                    Links = string.Join("\n", links),
+                    ReceivedDate = DateTime.Now,
+                    PatientID = study.PatientID,
+                    MatchMethod = null,
+                    Status = 0,
+                    ImportedCount = 0,
+                    Note = mismatchMessage,
+                    CreatedDate = DateTime.Now
+                });
+                try { await _db.SaveChangesAsync(cancellationToken); } catch { /* برای بررسی منشی */ }
+                return Conflict(new { success = false, message = mismatchMessage });
+            }
+
             int fetched = 0, imported = 0;
             foreach (string link in links)
             {

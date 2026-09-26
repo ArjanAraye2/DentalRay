@@ -214,10 +214,29 @@ namespace DentalRay.Api.Controllers
         [HttpDelete("{imageID:long}")]
         public async Task<IActionResult> DeleteImage(long imageID)
         {
-            if (!StudyAccessService.IsSuperAdmin(User)) return Forbid();
             var image=await _context.RadiologyImages.FirstOrDefaultAsync(x=>x.ImageID==imageID);
             if (image==null) return NotFound(new { success=false,message="Image not found." });
-            if (await _context.RadiologyStudyImages.AnyAsync(x=>x.ImageID==imageID)) return Conflict(new { success=false,message="Detach the image from all Studies before deleting it." });
+
+            var linkedStudies = await _context.RadiologyStudyImages.AsNoTracking()
+                .Where(x=>x.ImageID==imageID).Select(x=>x.StudyID).ToListAsync();
+
+            // هر کسی که به Study های متصلِ این تصویر دسترسی دارد می‌تواند آن را
+            // حذف کند (مثلاً تصویری که اشتباه از لینک دریافت شده)؛ کاربر عادی
+            // فقط وقتی اجازه دارد که همهٔ Study های متصل را ببیند.
+            bool isSuperAdmin = StudyAccessService.IsSuperAdmin(User);
+            if (!isSuperAdmin)
+            {
+                bool allowed = linkedStudies.Count > 0;
+                foreach (int sid in linkedStudies)
+                {
+                    if (!await _studyAccess.CanAccessStudyAsync(sid, User)) { allowed = false; break; }
+                }
+                if (!allowed) return Forbid();
+
+                var linksToRemove = await _context.RadiologyStudyImages.Where(x=>x.ImageID==imageID).ToListAsync();
+                _context.RadiologyStudyImages.RemoveRange(linksToRemove);
+            }
+            else if (linkedStudies.Count>0) return Conflict(new { success=false,message="Detach the image from all Studies before deleting it." });
             string originalPath=_storage.GetPhysicalPath(image.RelativePath);
             if (!System.IO.File.Exists(originalPath)) return Conflict(new { success=false,message="Physical file not found. Database metadata was not deleted." });
             string directory=Path.GetDirectoryName(originalPath)!;
