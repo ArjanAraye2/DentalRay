@@ -305,7 +305,7 @@
     btn.type = "button";
     btn.id = "sendPatientSmsButton";
     btn.className = "secondary-button";
-    btn.textContent = "�� ررسرل پیرمک";
+    btn.textContent = "ارسال پیامک";
     btn.onclick = open;
     toolbar.appendChild(btn);
   }
