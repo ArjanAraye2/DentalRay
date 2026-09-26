@@ -30,6 +30,7 @@ namespace DentalRay.Api.Controllers
         public sealed record InboxText(string? Body, string? Sender, DateTime? ReceivedAt);
         public sealed record ReceiveRequest(string? DeviceToken, List<InboxText>? Messages);
         public sealed record ConfirmRequest(int PatientID);
+        public sealed record ImportLinkRequest(string? Url);
 
         /// <summary>Forwarded by the Dentix phone app. One call may carry many SMS.</summary>
         [AllowAnonymous]
@@ -106,6 +107,61 @@ namespace DentalRay.Api.Controllers
             try { await _db.SaveChangesAsync(cancellationToken); } catch { /* seen-time is a nicety */ }
 
             return Ok(new { success = true, received, linked, pending });
+        }
+
+        /// <summary>
+        /// سناریوی ۳: لینک از قبل در دست است (کپی‌شده از پیامک یا ایمیل) و منشی
+        /// می‌خواهد تصاویر آن را داخل همین Study بگیرد. همان موتور دریافت، با
+        /// همان قواعد: حذف تصویر تکراری و پیام شفاف.
+        /// </summary>
+        [HttpPost("/api/studies/{studyID:int}/import-link")]
+        public async Task<IActionResult> ImportLink(int studyID, ImportLinkRequest request, CancellationToken cancellationToken)
+        {
+            string text = (request.Url ?? string.Empty).Trim();
+            if (text.Length == 0)
+                return BadRequest(new { success = false, message = "لینک را وارد کنید." });
+
+            var study = await _db.RadiologyStudies.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.StudyID == studyID, cancellationToken);
+            if (study == null) return NotFound(new { success = false, message = "Study پیدا نشد." });
+
+            var links = _inbox.ExtractLinks(text);
+            if (links.Count == 0)
+                return BadRequest(new { success = false, message = "در متن واردشده آدرسی با http پیدا نشد." });
+
+            int fetched = 0, imported = 0;
+            foreach (string link in links)
+            {
+                var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
+                fetched += files.Count;
+                var result = await _inbox.ImportToPatientAsync(study.PatientID, files, studyID, cancellationToken);
+                imported += result.Imported;
+            }
+
+            string message = fetched == 0
+                ? "لینک پیدا شد ولی تصویری قابل دریافت نبود."
+                : imported > 0
+                    ? $"{imported} تصویر دریافت و به Study شمارهٔ {studyID} وصل شد."
+                    : $"هر {fetched} تصویر قبلاً در پرونده بود و حالا در همین Study نمایش داده می‌شود.";
+
+            // سابقه در همان صندوق ورودی، با برچسب «دستی»
+            _db.InboxMessages.Add(new InboxMessage
+            {
+                DeviceID = null,
+                Source = 3,
+                Body = text.Length > 2000 ? text[..2000] : text,
+                Links = string.Join("\n", links),
+                ReceivedDate = DateTime.Now,
+                PatientID = study.PatientID,
+                MatchMethod = 0,
+                Status = 1,
+                ImportedCount = imported,
+                Note = message,
+                CreatedDate = DateTime.Now
+            });
+            try { await _db.SaveChangesAsync(cancellationToken); } catch { /* سابقه فرعی است */ }
+
+            return Ok(new { success = true, fetched, imported, studyID, message });
         }
 
         /// <summary>The queue the secretary works through.</summary>

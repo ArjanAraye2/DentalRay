@@ -47,6 +47,22 @@
           <div id="studyPullStatus" class="status-message"></div>
         </div>
 
+        <div class="inbox-card">
+          <strong>روش ۳ — لینکی که خودتان دارید</strong>
+          <p class="share-dialog-hint">
+            لینک را از پیامک، ایمیل یا هرجای دیگر کپی کنید و اینجا بچپانید؛
+            تصاویر دانلود و به <strong>همین Study</strong> وصل می‌شود.
+            می‌توانید چند لینک را هم با فاصله در همین جعبه بگذارید.
+          </p>
+          <textarea id="manualLinkInput" rows="3" dir="ltr"
+                    placeholder="http://…"
+                    style="width:100%;box-sizing:border-box;direction:ltr;text-align:left;font-family:Consolas,monospace;font-size:13px;border:1px solid #d8e7ec;border-radius:10px;padding:10px"></textarea>
+          <div class="form-actions">
+            <button id="manualImportButton" type="button">دانلود و وصل کردن به این Study</button>
+          </div>
+          <div id="manualImportStatus" class="status-message"></div>
+        </div>
+
         <div class="form-actions">
           <button id="studyReceiveClose" type="button" class="secondary-button">بستن</button>
         </div>
@@ -55,6 +71,7 @@
 
     wrap.addEventListener("click", e => { if (e.target === wrap) closeDialog(); });
     $("studyReceiveClose").onclick = closeDialog;
+    $("manualImportButton").onclick = importFromLink;
     $("studyReceiveCopy").onclick = async () => {
       const url = $("studyReceiveUrl").textContent;
       if (!url) return;
@@ -87,6 +104,8 @@
     $("studyReceiveUrl").textContent = "";
     $("studyReceiveQr").replaceChildren();
     $("studyPullStatus").textContent = "";
+    if ($("manualLinkInput")) $("manualLinkInput").value = "";
+    if ($("manualImportStatus")) $("manualImportStatus").textContent = "";
     $("studyReceiveDialog").classList.remove("hidden");
 
     loadClinicMobile();
@@ -145,6 +164,41 @@
       if (data.imported > 0 || data.fetched > 0) {
         window.showToast?.(data.message);
         // تصاویر تازه را همان‌جا نشان بده
+        if (typeof window.openStudyImages === "function") window.openStudyImages(study);
+      }
+    } catch (e) {
+      status.textContent = e.message || "دریافت انجام نشد.";
+      status.classList.add("error");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  /** روش ۳: لینک از قبل در دست است و داخل همین Study دانلود می‌شود. */
+  async function importFromLink() {
+    const study = selectedStudy();
+    if (!study) return;
+    const status = $("manualImportStatus");
+    const button = $("manualImportButton");
+    const url = $("manualLinkInput").value.trim();
+
+    if (!url) { status.textContent = "اول لینک را وارد کنید."; status.classList.add("error"); return; }
+    if (!/https?:\/\//i.test(url)) { status.textContent = "لینک باید با http:// یا https:// شروع شود."; status.classList.add("error"); return; }
+
+    button.disabled = true;
+    status.classList.remove("error");
+    status.textContent = "در حال دریافت تصاویر از لینک…";
+    try {
+      const res = await fetch(`/api/studies/${study.studyID}/import-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "دریافت انجام نشد.");
+      status.textContent = data.message;
+      if (data.fetched > 0) {
+        window.showToast?.(data.message);
         if (typeof window.openStudyImages === "function") window.openStudyImages(study);
       }
     } catch (e) {

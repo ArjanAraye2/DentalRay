@@ -357,6 +357,7 @@
       "<b>USB debugging</b> را روشن کنید و در پنجرهٔ <b>Allow USB debugging?</b> بزنید <b>Allow</b>",
       "در بعضی مدل‌ها لازم است <b>Install via USB</b> و <b>USB debugging (Security settings)</b> هم روشن شوند (همان‌جا داخل <b>Developer options</b>)",
       "کابل را وصل کنید؛ اعلان <b>Charging this device via USB</b> را از بالا بکشید پایین و <b>File Transfer / MTP</b> را انتخاب کنید",
+      "برای اینکه برنامه در پس‌زمینه بسته نشود: <b>Settings</b> ← <b>Apps</b> ← <b>Manage apps</b> ← <b>Dentix</b> ← <b>Autostart</b> را روشن کنید و <b>Battery saver</b> را روی <b>No restrictions</b> بگذارید",
       "اگر نصب انجام نشد: <b>Developer options</b> ← <b>MIUI optimization</b> را خاموش کنید و دوباره تلاش کنید"
     ],
     samsung: [
