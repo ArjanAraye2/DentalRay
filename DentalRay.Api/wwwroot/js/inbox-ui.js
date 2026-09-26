@@ -55,6 +55,19 @@
       .confirm-dialog{position:relative}
       .dialog-close-x{position:absolute;top:8px;left:10px;width:34px;height:34px;border:1px solid #d8e7ec;background:#fff;color:#55707e;border-radius:50%;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3}
       .dialog-close-x:hover{background:#fdecea;color:#b42318;border-color:#f3c2c0}
+      .pair-dialog{width:min(940px,calc(100vw - 32px));text-align:right}
+      .pair-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px;align-items:start}
+      .pair-grid .guide-box--full{grid-column:1 / -1}
+      .guide-box{border:1px solid #d8e7ec;border-radius:12px;background:#f8fcfd;padding:12px 14px;text-align:right}
+      .guide-box-title{font-weight:700;color:#0f5165;font-size:14px;margin-bottom:8px}
+      .guide-steps{margin:4px 0 0;padding-inline-start:20px;color:#4a6b7d;font-size:12.5px;line-height:2.1}
+      .guide-steps li{margin-bottom:5px}
+      .guide-steps b{color:#0d3f4f;background:#eef6f9;border-radius:4px;padding:1px 5px;font-weight:700;direction:ltr;display:inline-block}
+      .guide-box-title-toggle{cursor:pointer;user-select:none}
+      .guide-caret{color:#0e7f95;font-weight:700}
+      .pair-dialog .pair-qr{margin:8px 0}
+      .pair-dialog .pair-qr svg{width:150px;height:150px;padding:8px}
+      @media (max-width:860px){.pair-dialog{width:calc(100vw - 24px)}.pair-grid{grid-template-columns:1fr}}
       .pair-hint{color:#55707e;font-size:13px;line-height:2;text-align:center}
       .pair-payload{direction:ltr;text-align:left;font-family:Consolas,monospace;font-size:11.5px;background:#0a3540;color:#d9eff4;padding:8px 10px;border-radius:8px;overflow-wrap:anywhere}
       .inbox-devices{display:grid;gap:8px;margin-top:10px}
@@ -333,6 +346,70 @@
   }
 
   // ------------------------------------------------------------
+  // راهنمای دقیق آماده‌سازی گوشی، به‌تفکیک برند.
+  // نام منوها دقیقاً همان چیزی است که روی گوشی (با زبان انگلیسی) دیده می‌شود.
+  // ------------------------------------------------------------
+  const PHONE_GUIDES = {
+    xiaomi: [
+      "<b>Settings</b> ← <b>About phone</b> (اگر نبود: <b>About phone</b> ← <b>All specs</b>)",
+      "روی <b>MIUI version</b> — در گوشی‌های جدید <b>HyperOS version</b> — <b>۷ بار</b> پشت‌سرهم بزنید تا پیام <b>You are now a developer!</b> بیاید",
+      "<b>Settings</b> ← <b>Additional settings</b> ← <b>Developer options</b><br>(در بعضی مدل‌ها: <b>Settings</b> ← <b>System</b> ← <b>Developer options</b>)",
+      "<b>USB debugging</b> را روشن کنید و در پنجرهٔ <b>Allow USB debugging?</b> بزنید <b>Allow</b>",
+      "در بعضی مدل‌ها لازم است <b>Install via USB</b> و <b>USB debugging (Security settings)</b> هم روشن شوند (همان‌جا داخل <b>Developer options</b>)",
+      "کابل را وصل کنید؛ اعلان <b>Charging this device via USB</b> را از بالا بکشید پایین و <b>File Transfer / MTP</b> را انتخاب کنید",
+      "اگر نصب انجام نشد: <b>Developer options</b> ← <b>MIUI optimization</b> را خاموش کنید و دوباره تلاش کنید"
+    ],
+    samsung: [
+      "<b>Settings</b> ← <b>About phone</b> ← <b>Software information</b>",
+      "روی <b>Build number</b> <b>۷ بار</b> پشت‌سرهم بزنید تا <b>You are now a developer!</b> بیاید",
+      "<b>Settings</b> ← <b>Developer options</b> (انتهای لیست اصلی تنظیمات)",
+      "<b>USB debugging</b> را روشن کنید و <b>OK</b> را بزنید",
+      "در صورت نیاز: <b>Default USB configuration</b> ← <b>File transfer</b> یا <b>MTP</b>",
+      "کابل را وصل کنید و در اعلان، حالت را روی <b>File Transfer / MTP</b> بگذارید"
+    ],
+    huawei: [
+      "<b>Settings</b> ← <b>About phone</b>؛ روی <b>Build number</b> (یا <b>Version</b>) <b>۷ بار</b> بزنید تا <b>You are now a developer!</b> ظاهر شود",
+      "<b>Settings</b> ← <b>System & updates</b> ← <b>Developer options</b><br>(در بعضی مدل‌ها: <b>Settings</b> ← <b>Developer options</b>)",
+      "<b>USB debugging</b> را روشن کنید و <b>OK</b> را بزنید",
+      "حتماً: <b>Settings</b> ← <b>Apps</b> ← <b>Special access</b> ← <b>Install via USB</b> ← فعال کنید؛ بدون این، نصب از کابل رد نمی‌شود",
+      "کابل را وصل و در اعلان <b>Transfer files</b> یا <b>MTP</b> را انتخاب کنید"
+    ],
+    oppo: [
+      "<b>Settings</b> ← <b>About phone</b>؛ روی <b>Version</b> یا <b>Build number</b> <b>۷ بار</b> بزنید تا <b>You are now a developer!</b> بیاید",
+      "<b>Settings</b> ← <b>Additional settings</b> ← <b>Developer options</b>",
+      "<b>USB debugging</b> را روشن کنید و <b>OK</b> را بزنید",
+      "حتماً <b>Install via USB</b> (در بعضی مدل‌ها: <b>Security</b> ← <b>USB installation</b>) را فعال کنید",
+      "کابل را وصل کنید و در اعلان، <b>Charging only</b> را به <b>File transfer / MTP</b> تغییر دهید"
+    ],
+    generic: [
+      "<b>Settings</b> ← <b>About phone</b>",
+      "روی <b>Build number</b> <b>۷ بار</b> پشت‌سرهم بزنید تا پیام <b>You are now a developer!</b> بیاید",
+      "<b>Settings</b> ← <b>System</b> ← <b>Developer options</b><br>(در بعضی برندها <b>Developer options</b> مستقیم در لیست اصلی تنظیمات است)",
+      "<b>USB debugging</b> را روشن کنید و <b>Allow</b> / <b>OK</b> را بزنید",
+      "کابل را وصل کنید و در اعلان، حالت را روی <b>File Transfer</b> یا <b>MTP</b> بگذارید"
+    ],
+    iphone: [
+      "<b>روی آیفون نصب برنامه ممکن نیست</b> — دنتیکس فقط برای اندروید ساخته شده و اپل به نصب برنامه‌های خارج از فروشگاه خود اجازه نمی‌دهد.",
+      "جایگزین ۱ (بدون نصب): از بخش <b>۲ — جفت‌سازی با کیوآرکد</b> استفاده کنید؛ بیمار با دوربین خودِ گوشی (بدون برنامهٔ اضافه) کیوآرکد را اسکن و پیامک را می‌چپاند.",
+      "جایگزین ۲: بیمار پیامک رادیولوژیست را به <b>شمارهٔ مطب</b> <b>Forward</b> می‌کند و منشی از پروندهٔ همان Study آن را دریافت می‌کند.",
+      "جایگزین ۳: لینک داخل پیامک را در مرورگر Safari باز کنید تا تصاویر دیده شود."
+    ]
+  };
+
+  function renderPhoneGuide() {
+    const select = $("guideBrand");
+    const list = $("guideSteps");
+    if (!select || !list) return;
+    const steps = PHONE_GUIDES[select.value] || PHONE_GUIDES.generic;
+    list.replaceChildren();
+    steps.forEach(text => {
+      const li = document.createElement("li");
+      li.innerHTML = text;
+      list.appendChild(li);
+    });
+  }
+
+  // ------------------------------------------------------------
   // Pairing dialog (QR)
   // ------------------------------------------------------------
   function ensurePairDialog() {
@@ -341,78 +418,113 @@
     wrap.id = "pairDialog";
     wrap.className = "confirm-overlay hidden";
     wrap.innerHTML = `
-      <div class="confirm-dialog">
+      <div class="confirm-dialog pair-dialog">
         <button id="pairCloseX" type="button" class="dialog-close-x" title="بستن" aria-label="بستن">×</button>
-        <h3>جفت‌سازی گوشی</h3>
-        <p class="pair-hint">برنامهٔ Dentix را روی گوشی باز کنید و این کیوآرکد را اسکن کنید تا گوشی اجازهٔ ارسال پیامک‌ها را بدهد.</p>
+        <h3>جفت‌سازی گوشی و نصب برنامه</h3>
+        <p class="pair-hint">هر بخش جداگانه است: اول مشخصات گوشی، بعد جفت‌سازی، و در صورت نیاز نصب برنامه.</p>
 
-        <div class="form-field">
-          <label for="pairOwner">نوع گوشی</label>
-          <select id="pairOwner">
-            <option value="1">موبایل مطب</option>
-            <option value="2">گوشی بیمار</option>
-          </select>
-        </div>
+        <div class="pair-grid">
 
-        <div id="pairPatientBox" class="form-field hidden">
-          <label for="pairPatientSearch">بیمار</label>
-          <input id="pairPatientSearch" type="text" placeholder="نام یا کد ملی بیمار…" />
-          <div id="pairPatientResults" class="inbox-results"></div>
-        </div>
+          <section class="guide-box">
+            <div class="guide-box-title">۱ — مشخصات گوشی</div>
 
-        <div class="form-field">
-          <label for="pairLabel">برچسب</label>
-          <input id="pairLabel" type="text" placeholder="موبایل مطب" />
-        </div>
+            <div class="form-field">
+              <label for="pairOwner">نوع گوشی</label>
+              <select id="pairOwner">
+                <option value="1">موبایل مطب</option>
+                <option value="2">گوشی بیمار</option>
+              </select>
+            </div>
 
-        <div id="pairResult" class="hidden">
-          <div class="pair-qr" id="pairQr"></div>
-          <div class="pair-payload" id="pairPayload"></div>
-        </div>
+            <div id="pairPatientBox" class="form-field hidden">
+              <label for="pairPatientSearch">بیمار</label>
+              <input id="pairPatientSearch" type="text" placeholder="نام یا کد ملی بیمار…" />
+              <div id="pairPatientResults" class="inbox-results"></div>
+            </div>
 
-        <div id="pairInstall" class="hidden">
-          <p class="share-dialog-hint">
-            <strong>نصب برنامه روی گوشی:</strong> این کیوآرکد را با گوشی اسکن کنید تا فایل نصب دانلود شود،
-            سپس <span dir="ltr">Keep ← Open ← Install</span> را بزنید.
-          </p>
-          <div class="pair-qr" id="downloadQr"></div>
-          <div class="pair-payload" id="downloadUrl"></div>
-          <div class="form-actions">
-            <button id="copyDownloadButton" type="button" class="secondary-button">کپی لینک دانلود</button>
-          </div>
-        </div>
+            <div class="form-field">
+              <label for="pairLabel">برچسب</label>
+              <input id="pairLabel" type="text" placeholder="موبایل مطب" />
+            </div>
 
-        <!-- نصب مستقیم از داخل دنتیکس: کابل یا وای‌فای -->
-        <div id="pairDirectInstall" class="inbox-card" style="margin-top:10px">
-          <strong>نصب مستقیم روی گوشی مطب (بدون هیچ کلیکی روی گوشی)</strong>
-          <p class="share-dialog-hint">
-            کافی است گوشی یک‌بار با کابل وصل و «اشکال‌زدایی USB» روشن شده باشد؛ بعد از این دکمهٔ زیر همان نصب را انجام می‌دهد.
-          </p>
-          <div id="installStatus" class="inbox-note">در حال بررسی…</div>
-          <div id="installDevices" class="inbox-results"></div>
-          <div class="form-actions">
-            <button id="installRefresh" type="button" class="secondary-button">بررسی دستگاه‌ها</button>
-            <button id="installRun" type="button">نصب برنامه روی گوشی انتخاب‌شده</button>
-            <button id="installWireless" type="button" class="secondary-button">فعال‌سازی نصب بی‌سیم (وای‌فای)</button>
-          </div>
-          <div class="form-actions">
-            <input id="installIp" type="text" placeholder="آدرس IP گوشی (مثلاً 192.168.1.50)" style="flex:1;min-width:180px;direction:ltr;text-align:left" />
-            <button id="installConnect" type="button" class="secondary-button">اتصال بی‌سیم</button>
-          </div>
-          <div id="installResult" class="status-message"></div>
-        </div>
+            <div class="form-actions">
+              <button id="pairCreateButton" type="button">ساخت کیوآرکد</button>
+            </div>
+          </section>
+
+          <section class="guide-box">
+            <div class="guide-box-title">۲ — جفت‌سازی با کیوآرکد</div>
+            <p class="pair-hint">برنامهٔ Dentix را روی گوشی باز کنید و این کد را اسکن کنید تا گوشی اجازهٔ ارسال پیامک‌ها را بدهد.</p>
+            <div id="pairResult" class="hidden">
+              <div class="pair-qr" id="pairQr"></div>
+              <div class="pair-payload" id="pairPayload"></div>
+            </div>
+          </section>
+
+          <section class="guide-box" id="pairInstall">
+            <div class="guide-box-title">۳ — دانلود برنامه برای گوشی</div>
+            <p class="share-dialog-hint">
+              این کیوآرکد را با گوشی اسکن کنید تا فایل نصب دانلود شود،
+              سپس <span dir="ltr">Keep ← Open ← Install</span> را بزنید.
+            </p>
+            <div class="pair-qr" id="downloadQr"></div>
+            <div class="pair-payload" id="downloadUrl"></div>
+            <div class="form-actions">
+              <button id="copyDownloadButton" type="button" class="secondary-button">کپی لینک دانلود</button>
+            </div>
+          </section>
+
+          <!-- راهنمای آماده‌سازی گوشی، به تفکیک مدل -->
+          <section class="guide-box" id="pairGuide">
+            <div class="guide-box-title">۴ — آماده‌سازی گوشی برای نصب (به تفکیک مدل)</div>
+            <div class="form-field">
+              <label for="guideBrand">مدل گوشی</label>
+              <select id="guideBrand">
+                <option value="xiaomi">شیائومی / ردمی / پوکو (MIUI و HyperOS)</option>
+                <option value="samsung">سامسونگ</option>
+                <option value="huawei">هوآوی / آنر</option>
+                <option value="oppo">اوپو / ویوو / ریلمی</option>
+                <option value="generic">سایر گوشی‌های اندروید</option>
+                <option value="iphone">آیفون (iPhone)</option>
+              </select>
+            </div>
+            <ol id="guideSteps" class="guide-steps"></ol>
+          </section>
+
+          <section id="pairDirectInstall" class="guide-box guide-box--full">
+            <div class="guide-box-title">۵ — نصب مستقیم از همین صفحه (کابل یا وای‌فای)</div>
+            <p class="share-dialog-hint">
+              کافی است گوشی یک‌بار با کابل وصل و «اشکال‌زدایی USB» روشن شده باشد؛ بعد از دکمه‌های زیر همان نصب را انجام می‌دهد.
+            </p>
+            <div id="installStatus" class="inbox-note">در حال بررسی…</div>
+            <div id="installDevices" class="inbox-results"></div>
+            <div class="form-actions">
+              <button id="installRefresh" type="button" class="secondary-button">بررسی دستگاه‌ها</button>
+              <button id="installRun" type="button">نصب برنامه روی گوشی انتخاب‌شده</button>
+              <button id="installWireless" type="button" class="secondary-button">فعال‌سازی نصب بی‌سیم (وای‌فای)</button>
+            </div>
+            <div class="form-actions">
+              <input id="installIp" type="text" placeholder="آدرس IP گوشی (مثلاً 192.168.1.50)" style="flex:1;min-width:180px;direction:ltr;text-align:left" />
+              <button id="installConnect" type="button" class="secondary-button">اتصال بی‌سیم</button>
+            </div>
+            <div id="installResult" class="status-message"></div>
+          </section>
+
+        </div><!-- پایان بخش‌ها -->
 
         <div id="pairStatus" class="status-message"></div>
 
         <div class="form-actions">
-          <button id="pairCreateButton" type="button">ساخت کیوآرکد</button>
           <button id="pairCloseButton" type="button" class="secondary-button">بستن</button>
         </div>
       </div>`;
     document.body.appendChild(wrap);
 
-    // پنجرهٔ جفت‌سازی بلند است؛ بخش نصب جمع می‌ماند تا کلیدهای اصلی دیده شوند.
-    collapseInstallSection();
+    // بخش‌های مرجع (دانلود، راهنما، نصب مستقیم) جمع می‌مانند تا پنجره بدون
+    // اسکرول جا شود؛ با کلیک روی عنوان هر بخش باز می‌شود.
+    makeCollapsible($("pairInstall"));
+    makeCollapsible($("pairGuide"));
+    makeCollapsible($("pairDirectInstall"));
 
     wrap.addEventListener("click", e => { if (e.target === wrap) closePair(); });
     $("pairCloseButton").onclick = closePair;
@@ -438,6 +550,10 @@
     $("pairCreateButton").onclick = createPairing;
     $("pairPatientSearch").addEventListener("input", searchPatientForPairing);
 
+    // راهنمای آماده‌سازی گوشی به‌تفکیک برند
+    $("guideBrand").onchange = renderPhoneGuide;
+    renderPhoneGuide();
+
     // نصب مستقیم روی گوشی (از داخل دنتیکس، با کابل یا وای‌فای)
     $("installRefresh").onclick = loadInstallStatus;
     $("installRun").onclick = runInstall;
@@ -447,29 +563,31 @@
 
   let selectedSerial = null;
 
-  /** بخش نصب مستقیم پیش‌فرض جمع است تا دکمه‌های بالای پنجره از دید خارج نشوند. */
-  function collapseInstallSection() {
-    const card = $("pairDirectInstall");
+  /**
+   * بخش‌های مرجع (دانلود، راهنمای مدل، نصب مستقیم) جمع می‌مانند تا پنجره
+   * بدون اسکرول جا شود؛ با کلیک روی عنوان همان بخش باز و بسته می‌شوند.
+   */
+  function makeCollapsible(card) {
     if (!card || card.dataset.collapsible === "1") return;
     card.dataset.collapsible = "1";
 
-    const body = [...card.children].slice(1);   // فقط عنوان بالا می‌ماند
+    const title = card.querySelector(".guide-box-title");
+    const body = [...card.children].filter(el => el !== title);
     body.forEach(el => el.classList.add("pair-install-hidden"));
+    if (!title) return;
 
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "secondary-button";
-    toggle.style.width = "100%";
-    toggle.style.marginTop = "8px";
-    toggle.textContent = "گزینه‌های نصب مستقیم روی گوشی";
-    card.insertBefore(toggle, card.firstChild);
+    title.classList.add("guide-box-title-toggle");
+    const caret = document.createElement("span");
+    caret.className = "guide-caret";
+    caret.textContent = " ▾";
+    title.appendChild(caret);
 
-    let open = false;
-    toggle.onclick = () => {
-      open = !open;
-      body.forEach(el => el.classList.toggle("pair-install-hidden", !open));
-      toggle.textContent = open ? "بستن بخش نصب" : "گزینه‌های نصب مستقیم روی گوشی";
-      if (open) loadInstallStatus();
+    title.onclick = () => {
+      const isOpen = body.length > 0 && !body[0].classList.contains("pair-install-hidden");
+      body.forEach(el => el.classList.toggle("pair-install-hidden", isOpen));
+      caret.textContent = isOpen ? " ▾" : " ▴";
+      if (!isOpen && card.id === "pairDirectInstall") loadInstallStatus();
+      if (!isOpen && card.id === "pairGuide") renderPhoneGuide();
     };
   }
 
