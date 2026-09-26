@@ -377,6 +377,26 @@
           </div>
         </div>
 
+        <!-- نصب مستقیم از داخل دنتیکس: کابل یا وای‌فای -->
+        <div id="pairDirectInstall" class="inbox-card" style="margin-top:10px">
+          <strong>نصب مستقیم روی گوشی مطب (بدون هیچ کلیکی روی گوشی)</strong>
+          <p class="share-dialog-hint">
+            کافی است گوشی یک‌بار با کابل وصل و «اشکال‌زدایی USB» روشن شده باشد؛ بعد از این دکمهٔ زیر همان نصب را انجام می‌دهد.
+          </p>
+          <div id="installStatus" class="inbox-note">در حال بررسی…</div>
+          <div id="installDevices" class="inbox-results"></div>
+          <div class="form-actions">
+            <button id="installRefresh" type="button" class="secondary-button">بررسی دستگاه‌ها</button>
+            <button id="installRun" type="button">نصب برنامه روی گوشی انتخاب‌شده</button>
+            <button id="installWireless" type="button" class="secondary-button">فعال‌سازی نصب بی‌سیم (وای‌فای)</button>
+          </div>
+          <div class="form-actions">
+            <input id="installIp" type="text" placeholder="آدرس IP گوشی (مثلاً 192.168.1.50)" style="flex:1;min-width:180px;direction:ltr;text-align:left" />
+            <button id="installConnect" type="button" class="secondary-button">اتصال بی‌سیم</button>
+          </div>
+          <div id="installResult" class="status-message"></div>
+        </div>
+
         <div id="pairStatus" class="status-message"></div>
 
         <div class="form-actions">
@@ -404,6 +424,128 @@
     };
     $("pairCreateButton").onclick = createPairing;
     $("pairPatientSearch").addEventListener("input", searchPatientForPairing);
+
+    // نصب مستقیم روی گوشی (از داخل دنتیکس، با کابل یا وای‌فای)
+    $("installRefresh").onclick = loadInstallStatus;
+    $("installRun").onclick = runInstall;
+    $("installWireless").onclick = enableWireless;
+    $("installConnect").onclick = connectWireless;
+  }
+
+  let selectedSerial = null;
+
+  async function loadInstallStatus() {
+    const box = $("installStatus");
+    const list = $("installDevices");
+    if (!box || !list) return;
+    box.classList.remove("error");
+    box.textContent = "در حال بررسی…";
+    list.replaceChildren();
+    try {
+      const res = await fetch("/api/install/status", { cache: "no-store" });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.message || "بررسی انجام نشد.");
+      if (!d.adbFound) { box.textContent = "ابزار adb روی سرور پیدا نشد (MobileApp:AdbPath را تنظیم کنید)."; box.classList.add("error"); return; }
+      if (!d.apkFound) { box.textContent = "فایل نصب پیدا نشد؛ ابتدا برنامهٔ اندروید را بسازید."; box.classList.add("error"); return; }
+
+      box.textContent = `فایل آماده: ${d.apkName} (${Math.round((d.apkSize || 0) / 1048576)} مگابایت)`;
+      if (!d.devices || !d.devices.length) {
+        list.innerHTML = '<div class="inbox-empty">گوشی‌ای متصل نیست. کابل را وصل و «اشکال‌زدایی USB» را روشن کنید.</div>';
+        return;
+      }
+      selectedSerial = d.devices[0].serial;
+      d.devices.forEach((dev, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "inbox-result";
+        btn.textContent = `${dev.model || dev.serial} — ${dev.serial} (${dev.state})`;
+        btn.style.borderColor = index === 0 ? "#0E7F95" : "";
+        btn.onclick = () => {
+          selectedSerial = dev.serial;
+          [...list.children].forEach(c => { c.style.borderColor = ""; });
+          btn.style.borderColor = "#0E7F95";
+        };
+        list.appendChild(btn);
+      });
+    } catch (e) {
+      box.textContent = e.message || "بررسی انجام نشد.";
+      box.classList.add("error");
+    }
+  }
+
+  async function runInstall() {
+    const status = $("installResult");
+    const button = $("installRun");
+    status.classList.remove("error");
+    status.textContent = "در حال نصب روی گوشی…";
+    button.disabled = true;
+    try {
+      const res = await fetch("/api/install/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serial: selectedSerial })
+      });
+      const d = await res.json();
+      status.textContent = d.message || d.output || "نتیجه‌ای گزارش نشد.";
+      status.classList.toggle("error", !d.success);
+      if (d.success) window.showToast?.(d.message || "نصب انجام شد.");
+    } catch (e) {
+      status.textContent = e.message || "نصب انجام نشد.";
+      status.classList.add("error");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function enableWireless() {
+    const status = $("installResult");
+    const button = $("installWireless");
+    status.classList.remove("error");
+    status.textContent = "در حال فعال‌سازی اتصال بی‌سیم…";
+    button.disabled = true;
+    try {
+      const res = await fetch("/api/install/wireless-enable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serial: selectedSerial })
+      });
+      const d = await res.json();
+      status.textContent = d.message || "انجام شد.";
+      status.classList.toggle("error", !d.success);
+      if (d.ip) $("installIp").value = d.ip;
+    } catch (e) {
+      status.textContent = e.message || "فعال‌سازی انجام نشد.";
+      status.classList.add("error");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function connectWireless() {
+    const status = $("installResult");
+    const button = $("installConnect");
+    const ip = $("installIp").value.trim();
+    if (!ip) { status.textContent = "آدرس IP گوشی را وارد کنید."; status.classList.add("error"); return; }
+    status.classList.remove("error");
+    status.textContent = "در حال اتصال…";
+    button.disabled = true;
+    try {
+      const res = await fetch("/api/install/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip })
+      });
+      const d = await res.json();
+      status.textContent = d.message || d.output || "انجام شد.";
+      status.classList.toggle("error", !d.success);
+      if (d.success) { await loadInstallStatus(); const s = $("installStatus"); if (s) s.textContent += " — اتصال برقرار شد."; }
+    } catch (e) {
+      status.textContent = e.message || "اتصال برقرار نشد.";
+      status.classList.add("error");
+    } finally {
+      button.disabled = false;
+    }
+  }
   }
 
   let pairTimer = null;
@@ -681,7 +823,10 @@
       });
     });
     $("inboxRefreshButton")?.addEventListener("click", () => { loadDevices(); loadMessages(); });
-    $("inboxPairButton")?.addEventListener("click", () => $("pairDialog").classList.remove("hidden"));
+    $("inboxPairButton")?.addEventListener("click", () => {
+      $("pairDialog").classList.remove("hidden");
+      loadInstallStatus();
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
