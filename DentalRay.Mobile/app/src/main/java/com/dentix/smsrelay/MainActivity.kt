@@ -7,12 +7,16 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -89,6 +93,7 @@ class MainActivity : AppCompatActivity() {
 
         requestNotificationsIfNeeded()
         render()
+        setupHomeShortcut()
     }
 
     override fun onResume() {
@@ -168,6 +173,58 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("انصراف", null)
             .show()
+    }
+
+    // ------------------------------------------------------------
+    // آیکون روی صفحهٔ اصلی گوشی
+    //
+    // اندروید به هیچ برنامه‌ای اجازه نمی‌دهد بی‌سکوت آیکون بگذارد، پس:
+    //  - میان‌بر پویا ساخته می‌شود (فشردن طولانی روی آیکون + جست‌وجو)
+    //  - درخواست رسمی «افزودن به صفحهٔ اصلی» داده می‌شود (یک تأیید کاربر)
+    //  - اگر نیامد، راهنمای کوتاه یک بار نشان داده می‌شود
+    // ------------------------------------------------------------
+    private fun setupHomeShortcut() {
+        addDynamicShortcut()
+        offerHomeShortcut()
+        showHomeGuideIfNeeded()
+    }
+
+    private fun buildShortcut() =
+        ShortcutInfoCompat.Builder(this, "dentix-home")
+            .setShortLabel("Dentix")
+            .setLongLabel(getString(R.string.main_title))
+            .setIcon(IconCompat.createWithResource(this, R.drawable.ic_dentix))
+            .setIntent(Intent(this, MainActivity::class.java).setAction(Intent.ACTION_MAIN))
+            .build()
+
+    private fun addDynamicShortcut() {
+        try {
+            ShortcutManagerCompat.setDynamicShortcuts(this, listOf(buildShortcut()))
+        } catch (_: Exception) {
+            // برخی لانچرها محدودیت دارند؛ نادیده گرفتن مشکلی ایجاد نمی‌کند.
+        }
+    }
+
+    private fun offerHomeShortcut() {
+        val prefs = getSharedPreferences("dentix_prefs", MODE_PRIVATE)
+        if (prefs.getBoolean("homeShortcutOffered", false)) return
+        prefs.edit().putBoolean("homeShortcutOffered", true).apply()
+        try {
+            if (ShortcutManagerCompat.isRequestPinShortcutSupported(this)) {
+                ShortcutManagerCompat.requestPinShortcut(this, buildShortcut(), null)
+            }
+        } catch (_: Exception) { /* لانچر عجیب؛ راهنما کمک می‌کند */ }
+    }
+
+    private fun showHomeGuideIfNeeded() {
+        val prefs = getSharedPreferences("dentix_prefs", MODE_PRIVATE)
+        if (prefs.getBoolean("homeGuideClosed", false)) return
+        val guide = findViewById<LinearLayout>(R.id.homeGuide) ?: return
+        guide.visibility = View.VISIBLE
+        findViewById<Button>(R.id.homeGuideClose)?.setOnClickListener {
+            guide.visibility = View.GONE
+            prefs.edit().putBoolean("homeGuideClosed", true).apply()
+        }
     }
 
     private fun render() {

@@ -9,4 +9,6 @@
     <string name="save">ثبت</string>
     <string name="back">بازگشت</string>
     <string name="main_title">ارسال پیامک رادیولوژی</string>
+    <string name="home_guide_text">اگر آیکون Dentix روی صفحهٔ اصلی نیست: از کشوی برنامه‌ها آن را پیدا کنید، رویش نگه دارید و «افزودن به صفحهٔ اصلی» را بزنید.</string>
+    <string name="home_guide_ok">متوجه شدم</string>
 </resources>

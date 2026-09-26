@@ -12,8 +12,8 @@ android {
         applicationId = "com.dentix.smsrelay"
         minSdk = 26          // اندروید ۸ به بالا؛ اکثر گوشی‌های فعلی
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.2"
     }
 
     buildTypes {
