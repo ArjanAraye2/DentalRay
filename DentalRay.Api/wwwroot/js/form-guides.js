@@ -52,6 +52,7 @@
     if (data.before) body.appendChild(part("قبل از شروع", data.before));
     if (data.during) body.appendChild(part("هنگام پر کردن", data.during));
     if (data.after) body.appendChild(part("بعد از ذخیره", data.after));
+    if (data.text) body.appendChild(part("نکته", data.text));
 
     if (data.buttons && data.buttons.length) {
       var wrap = document.createElement("div");

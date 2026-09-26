@@ -89,7 +89,7 @@
     host.appendChild(tourBox);
 
     // ---- راهنمای فرم‌ها (به ترتیب کار: ثبت بیمار تا ادغام) ----
-    var order = ["newPatientForm", "editPatientForm", "newStudyForm", "uploadImageForm", "studyDetailsForm", "mergePatientForm"];
+    var order = ["newPatientForm", "editPatientForm", "newStudyForm", "uploadImageForm", "studyDetailsForm", "studyImagesSection", "mergePatientForm"];
     order.forEach(function (key) {
       if (help[key]) host.appendChild(guideBlock(help[key].title, help[key]));
     });
