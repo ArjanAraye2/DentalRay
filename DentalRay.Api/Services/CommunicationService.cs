@@ -98,15 +98,26 @@ namespace DentalRay.Api.Services
                     if (!string.IsNullOrWhiteSpace(settings.SmsSender)) form["sender"] = settings.SmsSender;
                     using var response = await client.PostAsync(endpoint, new FormUrlEncodedContent(form));
                     var body = await response.Content.ReadAsStringAsync();
-                    if (!response.IsSuccessStatusCode) return (false, $"ارسال پیامک ناموفق بود. HTTP {(int)response.StatusCode}.");
+
+                    // ارائه‌دهنده پیام را به فارسی برمی‌گرداند (مثلاً ۴۱۶ برای محدودیت IP)؛
+                    // نشان دادن همان پیام به‌جای کد بی‌معنی HTTP، کاربر را سردرگم نمی‌کند.
+                    int providerStatus = 0;
+                    string providerMessage = string.Empty;
                     try
                     {
                         using var json = JsonDocument.Parse(body);
                         var returnValue = json.RootElement.GetProperty("return");
-                        var status = returnValue.GetProperty("status").GetInt32();
-                        if (status != 200) return (false, "سرویس پیامک درخواست را نپذیرفت.");
+                        if (returnValue.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.Number)
+                            providerStatus = st.GetInt32();
+                        if (returnValue.TryGetProperty("message", out var msg) && msg.ValueKind == JsonValueKind.String)
+                            providerMessage = msg.GetString() ?? string.Empty;
                     }
-                    catch { /* Some compatible providers may return a non-JSON success response. */ }
+                    catch { /* برخی ارائه‌دهنده‌های سازگار به‌جای JSON پاسخ ساده می‌دهند. */ }
+
+                    bool providerRejected = providerStatus != 0 && providerStatus != 200;
+                    if (!response.IsSuccessStatusCode || providerRejected)
+                        return (false, DescribeSendFailure((int)response.StatusCode, providerStatus, providerMessage));
+
                     return (true, "پیامک با موفقیت ارسال شد.");
                 }
 
@@ -116,6 +127,28 @@ namespace DentalRay.Api.Services
             {
                 return (false, $"خطا در ارتباط با سرویس پیامک: {ex.Message}");
             }
+        }
+
+        // کدهای رایج ارائه‌دهنده به فارسی؛ اگر خودش پیام فارسی داشته باشد همان نمایش داده می‌شود.
+        private static string DescribeSendFailure(int httpStatus, int providerStatus, string providerMessage)
+        {
+            if (!string.IsNullOrWhiteSpace(providerMessage)) return providerMessage.Trim();
+
+            if (providerStatus != 0)
+            {
+                return providerStatus switch
+                {
+                    400 => "درخواست نامعتبر است؛ شماره یا متن پیام را بررسی کنید.",
+                    401 => "کلید API پیامک معتبر نیست.",
+                    402 => "اعتبار حساب پیامک کافی نیست.",
+                    403 => "دسترسی به این سرویس مجاز نیست؛ خط فرستنده یا الگوی پیام را در پنل بررسی کنید.",
+                    404 => "سرویس یا شماره مقصد پیدا نشد.",
+                    416 => "IP سرور در پنل ارائه‌دهنده مجاز نیست (محدودیت IP).",
+                    _ => $"سرویس پیامک درخواست را نپذیرفت. (کد {providerStatus})"
+                };
+            }
+
+            return $"ارسال پیامک ناموفق بود؛ خطای ارتباطی HTTP {httpStatus}.";
         }
 
         private static string NormalizeMobile(string value)
