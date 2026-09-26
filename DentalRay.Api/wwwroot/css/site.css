@@ -4431,3 +4431,59 @@ body { line-height: 1.75; }
     padding: 1px 6px;
     font-weight: 700;
 }
+
+/* ==========================================================
+   تور اولین ورود (متن‌ها در js/help-content.js → tour)
+   ========================================================== */
+
+.tour-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(12, 55, 70, 0.55);
+    backdrop-filter: blur(3px);
+}
+
+.tour-dialog {
+    width: min(620px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+    padding: 20px 22px;
+    text-align: right;
+}
+
+.tour-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tour-kicker { color: #0e7f95; font-size: 12px; font-weight: 700; }
+
+.tour-title { color: #0d3f4f; font-size: 18px; font-weight: 700; margin-top: 3px; }
+
+.tour-progress { color: #55707e; font-size: 12.5px; white-space: nowrap; }
+
+.tour-dots { display: flex; gap: 6px; margin-top: 12px; }
+
+.tour-dot { width: 9px; height: 9px; border-radius: 50%; background: #d8e7ec; }
+
+.tour-dot.is-active { background: #0e7f95; }
+
+.tour-body { min-height: 110px; }
+
+.tour-part { margin: 13px 0 0; color: #4a6b7d; font-size: 13.5px; line-height: 2.1; }
+
+.tour-part b { color: #0d3f4f; }
+
+.tour-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+
+.tour-note { margin-top: 12px; color: #7c8b95; font-size: 11.5px; line-height: 1.9; }
