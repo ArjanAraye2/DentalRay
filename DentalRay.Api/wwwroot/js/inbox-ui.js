@@ -811,7 +811,7 @@
     btn.type = "button";
     btn.id = "receiveImagesButton";
     btn.className = "secondary-button";
-    btn.textContent = "دریافت تصویر از گوشی بیمار";
+    btn.textContent = "دریافت تصویر برای این بیمار";
     btn.onclick = openReceiveDialog;
     toolbar.appendChild(btn);
   }

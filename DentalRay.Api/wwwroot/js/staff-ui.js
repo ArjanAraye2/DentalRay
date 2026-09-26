@@ -11,7 +11,7 @@
     section.innerHTML = `
         <div class="section-header">
             <div><h2>اشخاص و پرسنل</h2><p>ثبت و ویرایش کارمندان و دندانپزشکان</p></div>
-            <button id="newStaffButton" type="button">+ شخص جدید</button>
+            <button id="newStaffButton" type="button">+ پرسنل جدید</button>
         </div>
         <div class="search-container">
             <input id="staffSearch" type="text" placeholder="نام، نام خانوادگی یا کد ملی..." autocomplete="off">
@@ -41,7 +41,7 @@
         const b = document.createElement("button");
         b.id = "staffNavButton";
         b.type = "button";
-        b.textContent = "اشخاص / پرسنل";
+        b.textContent = "مدیریت پرسنل";
         b.className = "secondary-button";
         header.appendChild(b);
         b.onclick = () => {

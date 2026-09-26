@@ -42,7 +42,7 @@
         <section class="dashboard-panel"><div class="dashboard-panel-title"><strong>آخرین تصاویر</strong><span>۵ مورد اخیر</span></div><div id="dashboardRecentImages" class="dashboard-recent-list"></div></section>
       </div>
       <section class="dashboard-network-panel">
-        <div class="dashboard-panel-title"><strong>دسترسی شبکه</strong><button type="button" class="secondary-button dashboard-network-settings-button" data-open-nav="settings" data-settings-focus="network">⚙ تنظیمات دسترسی شبکه</button></div>
+        <div class="dashboard-panel-title"><strong>دسترسی شبکه</strong><button type="button" class="secondary-button dashboard-network-settings-button" data-open-nav="settings" data-settings-focus="network">تنظیمات دسترسی شبکه</button></div>
         <div class="dashboard-network-grid">
           <div><span>نام کامپیوتر سرور</span><strong id="dashboardServerName">-</strong></div>
           <div><span>IP محلی</span><strong id="dashboardLocalIp">-</strong></div>
@@ -91,7 +91,7 @@
 
     function moveAdministrativeButtons() {
         const target = document.getElementById("settingsAdminActions");
-        const administrativeLabels = new Set(["اشخاص / پرسنل", "مدیریت تخصص‌ها", "مدیریت انواع Study", "مدیریت انواع تصویر", "مدیریت کاربران"]);
+        const administrativeLabels = new Set(["مدیریت پرسنل", "مدیریت تخصص‌ها", "مدیریت انواع Study", "مدیریت انواع تصویر", "مدیریت کاربران"]);
         document.querySelectorAll(".header-content button").forEach(button => {
             if (!administrativeLabels.has(button.textContent.trim())) return;
             button.classList.add("settings-action-button");
