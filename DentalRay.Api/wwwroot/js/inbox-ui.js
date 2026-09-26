@@ -52,6 +52,9 @@
       .pair-qr{display:flex;flex-direction:column;align-items:center;gap:10px;margin:14px 0}
       .pair-qr svg{width:190px;height:190px;border:1px solid #d8e7ec;border-radius:14px;padding:10px;background:#fff}
       .pair-install-hidden{display:none !important}
+      .confirm-dialog{position:relative}
+      .dialog-close-x{position:absolute;top:8px;left:10px;width:34px;height:34px;border:1px solid #d8e7ec;background:#fff;color:#55707e;border-radius:50%;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3}
+      .dialog-close-x:hover{background:#fdecea;color:#b42318;border-color:#f3c2c0}
       .pair-hint{color:#55707e;font-size:13px;line-height:2;text-align:center}
       .pair-payload{direction:ltr;text-align:left;font-family:Consolas,monospace;font-size:11.5px;background:#0a3540;color:#d9eff4;padding:8px 10px;border-radius:8px;overflow-wrap:anywhere}
       .inbox-devices{display:grid;gap:8px;margin-top:10px}
@@ -339,6 +342,7 @@
     wrap.className = "confirm-overlay hidden";
     wrap.innerHTML = `
       <div class="confirm-dialog">
+        <button id="pairCloseX" type="button" class="dialog-close-x" title="بستن" aria-label="بستن">×</button>
         <h3>جفت‌سازی گوشی</h3>
         <p class="pair-hint">برنامهٔ Dentix را روی گوشی باز کنید و این کیوآرکد را اسکن کنید تا گوشی اجازهٔ ارسال پیامک‌ها را بدهد.</p>
 
@@ -412,6 +416,10 @@
 
     wrap.addEventListener("click", e => { if (e.target === wrap) closePair(); });
     $("pairCloseButton").onclick = closePair;
+    $("pairCloseX").onclick = closePair;
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && !$("pairDialog").classList.contains("hidden")) closePair();
+    });
     $("pairOwner").onchange = () => {
       const isPatient = $("pairOwner").value === "2";
       $("pairPatientBox").classList.toggle("hidden", !isPatient);
