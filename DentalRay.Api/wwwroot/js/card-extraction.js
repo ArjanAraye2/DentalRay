@@ -10,7 +10,7 @@
   const s=data.study||{},uncertain=data.uncertainFields||[];
   modal.querySelector(".card-extraction-body").innerHTML=`
    <p class="card-extraction-warning">اطلاعات زیر توسط هوش مصنوعی خوانده شده است. قبل از ثبت حتماً با کارت اصلی تطبیق دهید.</p>
-   <section><h4>اطلاعات پیشنهادی مطالعه</h4><div class="card-extraction-grid">${row("تاریخ مطالعه",s.studyDate)}${row("نوع مطالعه",s.studyType)}${row("ناحیه",s.bodyPart)}${row("توضیحات",s.description)}${row("گزارش",s.report)}</div></section>
+   <section><h4>اطلاعات پیشنهادی مطالعه</h4><div class="card-extraction-grid">${row("تاریخ مطالعه",s.studyDate)}${row("دلیل مراجعه",s.studyType)}${row("ناحیه",s.bodyPart)}${row("توضیحات",s.description)}${row("گزارش",s.report)}</div></section>
    <section><h4>متن کامل خوانده‌شده</h4><pre>${esc(text(data.rawText))}</pre></section>
    ${uncertain.length?`<div class="card-extraction-uncertain"><strong>موارد نیازمند بررسی:</strong> ${esc(uncertain.join("، "))}</div>`:""}`;
   modal.querySelector(".card-extraction-copy").onclick=async()=>{await navigator.clipboard.writeText(data.rawText||"");};

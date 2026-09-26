@@ -24,7 +24,7 @@ function hideMainSections(){[E.patientsSection,E.patientDetailsSection,E.studyDe
 function showPatientsScreen(){hideMainSections();E.patientsSection.classList.remove("hidden");window.scrollTo(0,0);}
 function showToast(message,type="success",title=""){const t=document.createElement("div");t.className=`toast ${type}`;t.innerHTML=`<div class="toast-title"></div><div class="toast-message"></div>`;t.children[0].textContent=title||(type==="success"?"انجام شد":type==="error"?"خطا":"توجه");t.children[1].textContent=message;E.toastContainer.appendChild(t);setTimeout(()=>t.remove(),4300);}
 function askConfirmation({title="تأیید عملیات",message,confirmText="تأیید",danger=true}){return new Promise(resolve=>{E.confirmTitle.textContent=title;E.confirmMessage.textContent=message;E.confirmYesButton.textContent=confirmText;E.confirmYesButton.classList.toggle("danger-button",danger);E.confirmModal.classList.remove("hidden");const done=v=>{E.confirmModal.classList.add("hidden");E.confirmYesButton.onclick=E.confirmNoButton.onclick=null;resolve(v);};E.confirmYesButton.onclick=()=>done(true);E.confirmNoButton.onclick=()=>done(false);});}
-function getApiError(r,f){const m=r?.message||r?.messageEn||r?.error;if(!m)return f;const translations={"A patient with this NationalCode already exists.":"بیماری با این کد ملی قبلاً ثبت شده است.","NationalCode must contain only digits.":"کد ملی فقط باید شامل عدد باشد.","PatientID must be greater than zero.":"شناسه بیمار معتبر نیست.","Patient not found.":"بیمار پیدا نشد.","StudyType is required.":"نوع رادیولوژی را وارد کنید.","StudyType cannot be longer than 50 characters.":"نوع رادیولوژی نمی‌تواند بیشتر از ۵۰ نویسه باشد.","BodyPart cannot be longer than 100 characters.":"ناحیه نمی‌تواند بیشتر از ۱۰۰ نویسه باشد.","Description cannot be longer than 1000 characters.":"توضیحات نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.","Study creation failed.":"ثبت رادیولوژی انجام نشد.","StudyDate is required.":"تاریخ رادیولوژی الزامی است.","Study not found.":"رادیولوژی پیدا نشد."};return translations[m]||m;}
+function getApiError(r,f){const m=r?.message||r?.messageEn||r?.error;if(!m)return f;const translations={"A patient with this NationalCode already exists.":"بیماری با این کد ملی قبلاً ثبت شده است.","NationalCode must contain only digits.":"کد ملی فقط باید شامل عدد باشد.","PatientID must be greater than zero.":"شناسه بیمار معتبر نیست.","Patient not found.":"بیمار پیدا نشد.","StudyType is required.":"دلیل مراجعه را وارد کنید.","StudyType cannot be longer than 50 characters.":"دلیل مراجعه نمی‌تواند بیشتر از ۵۰ نویسه باشد.","BodyPart cannot be longer than 100 characters.":"ناحیه نمی‌تواند بیشتر از ۱۰۰ نویسه باشد.","Description cannot be longer than 1000 characters.":"توضیحات نمی‌تواند بیشتر از ۱۰۰۰ نویسه باشد.","Study creation failed.":"ثبت رادیولوژی انجام نشد.","StudyDate is required.":"تاریخ رادیولوژی الزامی است.","Study not found.":"رادیولوژی پیدا نشد."};return translations[m]||m;}
 // A 401 from the API has an EMPTY body, so a plain r.json() throws the cryptic
 // "JSON.parse: unexpected character at line 1 column 1" and the user sees a
 // technical English error instead of a Persian one. Read the body safely: an
@@ -333,7 +333,7 @@ async function saveStudyDetails(){
  if(!Number.isInteger(studyID)||studyID<=0){setFormStatus(E.studyDetailsStatus,"مطالعه معتبر انتخاب نشده است.",true);return;}
  try{
   studyDetailsSaveInProgress=true;E.studyDetailsSaveButton.disabled=true;E.studyDetailsSaveButton.textContent="در حال ذخیره...";setFormStatus(E.studyDetailsStatus,"در حال ذخیره تغییرات...",false);
-  const studyTypeID=Number(E.studyDetailsType.value);if(!Number.isInteger(studyTypeID)||studyTypeID<=0)throw new Error("نوع مطالعه را انتخاب کنید.");
+  const studyTypeID=Number(E.studyDetailsType.value);if(!Number.isInteger(studyTypeID)||studyTypeID<=0)throw new Error("دلیل مراجعه را انتخاب کنید.");
   const studyDate=parsePersianDateForBackend(E.studyDetailsStudyDate.value,true);if(!studyDate)throw new Error("تاریخ مطالعه را وارد کنید.");
   const status=Number(E.studyDetailsStatus2?.value)||2;
   const body={studyDate,studyTypeID,bodyPart:emptyToNull(E.studyDetailsBodyPart.value),description:emptyToNull(E.studyDetailsDescription.value),report:emptyToNull(E.studyDetailsReport.value),toothNumbers:window.DentalRayDentalChart?.getSelected(E.studyDetailsDentalChart)||[],
@@ -565,15 +565,15 @@ async function openNewStudyForm(){
  hideMainSections();
  E.newStudySection.classList.remove("hidden");
  E.newStudySection.scrollIntoView({behavior:"smooth",block:"start"});
- E.newStudyType.innerHTML='<option value="">در حال دریافت انواع مطالعه...</option>';
+ E.newStudyType.innerHTML='<option value="">در حال دریافت دلایل مراجعه...</option>';
  E.newStudyType.disabled=true;
  try{
   const r=await fetch("/api/studytypes",{cache:"no-store"}),x=await readApiJson(r);
-  if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"انواع مطالعه دریافت نشد."));
-  E.newStudyType.innerHTML='<option value="">انتخاب نوع مطالعه</option>';
+  if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"دلایل مراجعه دریافت نشد."));
+  E.newStudyType.innerHTML='<option value="">انتخاب دلیل مراجعه</option>';
   (x.studyTypes||[]).forEach(t=>{const o=document.createElement("option");o.value=String(t.studyTypeID);o.textContent=t.studyTypeName;E.newStudyType.appendChild(o);});
   E.newStudyType.disabled=false;E.newStudyType.focus();
- }catch(e){E.newStudyType.innerHTML='<option value="">دریافت انواع مطالعه ناموفق بود</option>';setFormStatus(E.newStudyStatus,e.message||"انواع مطالعه دریافت نشد.",true);}
+ }catch(e){E.newStudyType.innerHTML='<option value="">دریافت دلایل مراجعه ناموفق بود</option>';setFormStatus(E.newStudyStatus,e.message||"دلایل مراجعه دریافت نشد.",true);}
 }
 // Public entry point keeps this primary action independent from later optional bindings.
 window.DentalRayOpenNewStudy=event=>{event?.preventDefault?.();return openNewStudyForm();};
@@ -613,7 +613,7 @@ function attachStatusToggle(prefix){E[`${prefix}Status`]?.addEventListener("chan
 
 function studyPayload(prefix){
  const studyTypeID=Number(E[`${prefix}StudyType`].value);
- if(!Number.isInteger(studyTypeID)||studyTypeID<=0)throw new Error("نوع رادیولوژی را انتخاب کنید.");
+ if(!Number.isInteger(studyTypeID)||studyTypeID<=0)throw new Error("دلیل مراجعه را انتخاب کنید.");
  const chart=byId(prefix==="new"?"newStudyDentalChart":"editStudyDentalChart");
  return{
   studyDate:parsePersianDateForBackend(E[`${prefix}StudyDate`].value,true),
