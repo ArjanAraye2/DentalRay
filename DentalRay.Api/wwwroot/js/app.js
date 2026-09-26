@@ -34,7 +34,7 @@ function getApiError(r,f){const m=r?.message||r?.messageEn||r?.error;if(!m)retur
 // than look like a broken patient form.
 async function readApiJson(r){let x={};try{x=await r.json();}catch{x={};}return x;}
 function apiErrorMessage(r,x,fallback){if(r.status===401||r.status===403){const m=x?.message||x?.messageEn||x?.error;if(m)return getApiError(x,fallback);return"نشست ورود شما پایان یافته است. لطفاً از سیستم خارج شده و دوباره وارد شوید.";}return getApiError(x,fallback);}
-function setFormStatus(el,msg,error){el.textContent=msg;el.classList.toggle("error",!!error);}
+function setFormStatus(el,msg,error){if(!el)return;el.textContent=msg;el.classList.toggle("error",!!error);}
 function normalizeDigits(v){const p="۰۱۲۳۴۵۶۷۸۹",a="٠١٢٣٤٥٦٧٨٩";return String(v??"").replace(/[۰-۹]/g,d=>p.indexOf(d)).replace(/[٠-٩]/g,d=>a.indexOf(d));}
 function normalizePhone(v){const s=normalizeDigits(v).replace(/\s+/g,"").trim();return s||null;}
 function emptyToNull(v){const s=v.trim();return s||null;}
@@ -295,7 +295,7 @@ async function completeStudyFromCard(study,button){
  }
 }
 async function openStudyDetails(study){
- selectedStudyID=study.studyID;selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
+ selectedStudyID=study.studyID;selectedStudy=study;window.selectedStudy=study;hideMainSections();E.studyDetailsSection.classList.remove("hidden");
  E.studyDetailsTitle.textContent=study.studyTypeName||("Study "+study.studyID);E.studyDetailsDate.textContent=formatPersianDateTime(study.studyDate);
  // Status badge so the state is visible without entering edit mode.
  const badge=createStudyStatusBadge(study);

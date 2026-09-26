@@ -19,6 +19,10 @@ namespace DentalRay.Api.Models
 
         public int PatientID { get; set; }
 
+        // وقتی توکن از داخل یک Study ساخته شده باشد، تصاویر به همان Study
+        // می‌روند؛ در غیر این صورت تصویر به آخرین Study بیمار وصل می‌شود.
+        public int? StudyID { get; set; }
+
         [Required]
         [MaxLength(64)]
         public string Token { get; set; } = string.Empty;

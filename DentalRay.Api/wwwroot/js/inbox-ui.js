@@ -607,6 +607,62 @@
   }
 
   // ------------------------------------------------------------
+  // پیامک‌های دریافتیِ همین بیمار، داخل پروندهٔ بیمار (سناریوی ۲)
+  // ------------------------------------------------------------
+  function ensurePatientInbox() {
+    const host = document.getElementById("patientDetailsSection");
+    if (!host) return;
+    if (!$("patientInboxCard")) {
+      const card = document.createElement("div");
+      card.id = "patientInboxCard";
+      card.className = "inbox-card hidden";
+      card.innerHTML =
+        `<div class="section-header"><div><h3>پیامک‌های رادیولوژی دریافتی</h3>` +
+        `<p>پیامک‌هایی که از گوشی مطب یا مرورگر بیمار برای این پرونده آمده است</p></div></div>` +
+        `<div id="patientInboxList" class="inbox-note">—</div>`;
+      host.appendChild(card);
+    }
+    refreshPatientInbox();
+  }
+
+  async function refreshPatientInbox() {
+    const card = $("patientInboxCard");
+    const list = $("patientInboxList");
+    if (!card || !list) return;
+    const patient = window.selectedPatient;
+    const open = !!patient && !document.getElementById("patientDetailsSection").classList.contains("hidden");
+
+    // فقط وقتی وضعیت واقعاً عوض شده دست می‌زنیم؛ وگرنه همین رفتار
+    // (تغییر متن داخلِ بخشِ مشاهده‌شده) باعث حلقهٔ بی‌نهایت می‌شود.
+    const shouldShow = !open && !card.classList.contains("hidden")
+        || open && card.classList.contains("hidden");
+    if (shouldShow) card.classList.toggle("hidden", !open);
+    if (!open) return;
+
+    const wanted = await loadPatientInboxText(patient.patientID);
+    if (list.dataset.signature === wanted.signature) return;
+    list.dataset.signature = wanted.signature;
+    list.textContent = wanted.text;
+  }
+
+  async function loadPatientInboxText(patientID) {
+    try {
+      const res = await fetch("/api/inbox", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "دریافت ناموفق بود.");
+      const mine = (data.items || []).filter(x => Number(x.patientID) === Number(patientID));
+      if (!mine.length) return { signature: "empty", text: "هنوز پیامک دریافتی‌ای برای این بیمار نیست." };
+      const lines = mine.slice(0, 6).map(item =>
+        `${new Date(item.receivedDate).toLocaleString("fa-IR")} — ${STATE[item.status] || ""}` +
+        (item.importedCount ? ` — ${item.importedCount} تصویر` : "") +
+        (item.note ? ` — ${item.note}` : ""));
+      return { signature: lines.join("|"), text: lines.join("\n") };
+    } catch (e) {
+      return { signature: "error", text: e.message || "دریافت ناموفق بود." };
+    }
+  }
+
+  // ------------------------------------------------------------
   // Wiring
   // ------------------------------------------------------------
   function init() {
@@ -631,9 +687,20 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 
-  // دکمهٔ دریافت تصویر داخل نوار پروندهٔ بیمار است که بعداً ساخته می‌شود؛
-  // پس هر بار که آن بخش به‌روز شد دوباره بررسی می‌کنیم.
-  const patientObserver = new MutationObserver(ensureReceiveButton);
+  // دکمهٔ دریافت تصویر و لیست پیامک‌های دریافتی داخل پروندهٔ بیمار ساخته می‌شوند؛
+  // مهم است که تغییراتِ خودِ همان کارت دوبارهٔ خودش را تحریک نکند، وگرنه
+  // صفحه وارد حلقه می‌شود (این باگ قبلاً دیده شد و دنتیکس را قفل کرد).
+  const patientObserver = new MutationObserver(mutations => {
+    const card = document.getElementById("patientInboxCard");
+    if (card && mutations.every(m => card.contains(m.target) ||
+        (m.type === "childList" && [...m.addedNodes, ...m.removedNodes].every(n => n === card || card.contains(n))))) {
+      return;
+    }
+    ensureReceiveButton();
+    ensurePatientInbox();
+    clearTimeout(window.__dentixInboxTimer);
+    window.__dentixInboxTimer = setTimeout(refreshPatientInbox, 700);
+  });
   const patientHost = document.getElementById("patientDetailsSection");
   if (patientHost) {
     patientObserver.observe(patientHost, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });

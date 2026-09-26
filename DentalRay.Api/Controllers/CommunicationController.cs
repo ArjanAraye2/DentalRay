@@ -30,6 +30,17 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success = true, settings });
         }
 
+        /// <summary>
+        /// شمارهٔ مطب برای نمایش به منشی (روش «فوروارد به گوشی مطب»).
+        /// عمداً فقط همین یک فیلد برمی‌گردد تا کلید API در اختیار کاربر عادی قرار نگیرد.
+        /// </summary>
+        [HttpGet("clinic-mobile")]
+        public IActionResult ClinicMobile()
+        {
+            var settings = _communication.GetSettings();
+            return Ok(new { success = true, mobile = settings.ClinicMobile ?? string.Empty });
+        }
+
         [HttpPut("settings")]
         public async Task<IActionResult> SaveSettings(CommunicationChannelSettings settings)
         {

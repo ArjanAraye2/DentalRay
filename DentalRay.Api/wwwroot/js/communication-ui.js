@@ -39,6 +39,7 @@
             <div class="form-field"><label>API Key</label><input id="commSmsApiKey" type="password" autocomplete="off" /></div>
             <div class="form-field"><label>شماره / خط ارسال</label><input id="commSmsSender" /></div>
             <div class="form-field"><label>نام الگوی OTP (اختیاری)</label><input id="commSmsOtpTemplate" /></div>
+            <div class="form-field"><label>شمارهٔ موبایل مطب</label><input id="commClinicMobile" inputmode="tel" placeholder="09…" /><small class="field-hint">برای گرفتن پیامکی که بیمار به مطب فوروارد می‌کند</small></div>
           </div>
           <div class="checkbox-row"><input id="commSmsEnabled" type="checkbox"><span>ارسال پیامک فعال باشد</span></div>
           <div class="communication-settings-actions"><button id="commSaveButton" type="button">ذخیره تنظیمات</button><button id="commTestButton" type="button" class="secondary-button">تست ارسال</button></div>
@@ -60,13 +61,14 @@
             document.getElementById("commSmsApiKey").value=s.smsApiKey||"";
             document.getElementById("commSmsSender").value=s.smsSender||"";
             document.getElementById("commSmsOtpTemplate").value=s.smsOtpTemplate||"";
+            document.getElementById("commClinicMobile").value=s.clinicMobile||"";
             document.getElementById("commSmsEnabled").checked=!!s.smsEnabled;
             document.getElementById("commSmsStatus").textContent=s.smsEnabled?"فعال":"غیرفعال";
         }
         async function saveSettings(){
             const status=document.getElementById("commStatus");
             const button=document.getElementById("commSaveButton");
-            const body={smsProvider:document.getElementById("commSmsProvider").value,smsApiUrl:document.getElementById("commSmsApiUrl").value,smsApiKey:document.getElementById("commSmsApiKey").value,smsSender:document.getElementById("commSmsSender").value,smsOtpTemplate:document.getElementById("commSmsOtpTemplate").value,smsEnabled:document.getElementById("commSmsEnabled").checked,pushEnabled:true,emailEnabled:false,whatsAppEnabled:false,telegramEnabled:false};
+            const body={smsProvider:document.getElementById("commSmsProvider").value,smsApiUrl:document.getElementById("commSmsApiUrl").value,smsApiKey:document.getElementById("commSmsApiKey").value,smsSender:document.getElementById("commSmsSender").value,smsOtpTemplate:document.getElementById("commSmsOtpTemplate").value,clinicMobile:document.getElementById("commClinicMobile").value.trim(),smsEnabled:document.getElementById("commSmsEnabled").checked,pushEnabled:true,emailEnabled:false,whatsAppEnabled:false,telegramEnabled:false};
             button.disabled=true;status.classList.remove("error");status.textContent="در حال ذخیره...";
             try{
                 const r=await fetch("/api/communications/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});

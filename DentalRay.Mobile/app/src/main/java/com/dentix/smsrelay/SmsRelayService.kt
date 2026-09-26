@@ -66,10 +66,9 @@ class SmsRelayService : Service() {
         if (worker?.isAlive != true) {
             active = true
             worker = Thread {
-                var since = PairingStore.pairedAt(this)
-                var lastRead = 0L
+                val since = PairingStore.pairedAt(this)
                 while (active) {
-                    try { tick(since, lastRead) } catch (_: Exception) { }
+                    try { tick(since) } catch (_: Exception) { }
                     Thread.sleep(CYCLE_MS)
                 }
             }.apply { isDaemon = true; start() }
@@ -77,14 +76,23 @@ class SmsRelayService : Service() {
         return START_STICKY
     }
 
-    private fun tick(since: Long, lastRead: Long) {
+    /**
+     * نقطه‌ای که تا آن خوانده‌ایم. بدون این، هر نوبت همان صندوق قبلی دوباره
+     * خوانده می‌شد و همان پیامک بارها و بارها فرستاده می‌شد.
+     */
+    @Volatile private var lastReadAt = 0L
+
+    private fun tick(since: Long) {
         val outbox = Outbox(this)
 
         // ۱) پیامک‌های تازه با لینک را به صف اضافه کن
         if (SmsReader.hasPermission(this)) {
-            val fresh = SmsReader.readNew(this, maxOf(since, lastRead))
+            val fresh = SmsReader.readNew(this, maxOf(since, lastReadAt))
             fresh.forEach { m -> outbox.add(m.sender, m.body, m.receivedAt) }
-            if (fresh.isNotEmpty()) RelayState.lastInfo = "${fresh.size} پیامک تازه خوانده شد."
+            if (fresh.isNotEmpty()) {
+                lastReadAt = maxOf(lastReadAt, fresh.maxOf { it.receivedAt })
+                RelayState.lastInfo = "${fresh.size} پیامک تازه خوانده شد."
+            }
         }
 
         // ۲) هر چه در صف است بفرست

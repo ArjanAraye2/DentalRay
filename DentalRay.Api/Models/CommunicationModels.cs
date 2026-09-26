@@ -10,6 +10,11 @@ namespace DentalRay.Api.Models
         public string SmsSender { get; set; } = string.Empty;
         public string SmsOtpTemplate { get; set; } = string.Empty;
         public bool SmsEnabled { get; set; }
+
+        // شمارهٔ مطب: بیمار پیامک رادیولوژیست را به همین شماره فوروارد می‌کند.
+        // فقط برای نمایش به منشی است؛ ارسال از همان مسیر پیامک انجام می‌شود.
+        public string ClinicMobile { get; set; } = string.Empty;
+
         public bool PushEnabled { get; set; }
         public bool EmailEnabled { get; set; }
         public bool WhatsAppEnabled { get; set; }

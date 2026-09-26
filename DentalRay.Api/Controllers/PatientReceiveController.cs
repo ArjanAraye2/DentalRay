@@ -42,7 +42,7 @@ namespace DentalRay.Api.Controllers
         }
 
         public sealed record ReceiveRequest(string? Text);
-        public sealed record CreateRequest(int? ExpiresInDays);
+        public sealed record CreateRequest(int? ExpiresInDays, int? StudyID);
 
         // ------------------------------------------------------------
         // Issuing the QR (staff only - protected by the login fallback)
@@ -54,9 +54,21 @@ namespace DentalRay.Api.Controllers
                 .FirstOrDefaultAsync(x => x.PatientID == patientID, cancellationToken);
             if (patient == null) return NotFound(new { success = false, message = "بیمار پیدا نشد." });
 
+            // اگر از داخل Study ساخته شده باشد، تصویر به همان Study می‌رود.
+            int? studyID = null;
+            if (request.StudyID.HasValue)
+            {
+                bool belongs = await _db.RadiologyStudies.AsNoTracking()
+                    .AnyAsync(x => x.StudyID == request.StudyID.Value && x.PatientID == patientID, cancellationToken);
+                if (!belongs)
+                    return BadRequest(new { success = false, message = "این Study متعلق به این بیمار نیست." });
+                studyID = request.StudyID;
+            }
+
             var token = new PatientReceiveToken
             {
                 PatientID = patient.PatientID,
+                StudyID = studyID,
                 Token = NewToken(),
                 CreatedDate = DateTime.Now,
                 ExpiresDate = request.ExpiresInDays is > 0
@@ -72,6 +84,7 @@ namespace DentalRay.Api.Controllers
                 success = true,
                 token.ReceiveID,
                 token.Token,
+                token.StudyID,
                 url,
                 patientName = $"{patient.FirstName} {patient.LastName}".Trim()
             });
@@ -180,7 +193,8 @@ namespace DentalRay.Api.Controllers
             {
                 var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
                 fetched += files.Count;
-                var result = await _inbox.ImportToPatientAsync(record.PatientID, files, cancellationToken);
+                // اگر توکن از داخل یک Study ساخته شده باشد، تصویر به همان Study می‌رود.
+                var result = await _inbox.ImportToPatientAsync(record.PatientID, files, record.Token.StudyID, cancellationToken);
                 imported += result.Imported;
                 studyID ??= result.StudyID;
             }

@@ -49,6 +49,14 @@ namespace DentalRay.Api.Controllers
                 if (body.Length == 0) continue;
                 if (body.Length > 2000) body = body[..2000];
 
+                // همان پیامک ممکن است چند بار از گوشی برسد (خواندن دوبارهٔ صندوق
+                // یا اتصال قطع و وصل شده). با ترکیب «فرستنده + متن + تاریخ دریافت»
+                // فقط یک بار ثبت می‌شود تا فهرست شلوغ و آمار گمراه‌کننده نشود.
+                DateTime receivedAt = message.ReceivedAt ?? DateTime.Now;
+                bool seen = await _db.InboxMessages.AsNoTracking().AnyAsync(x =>
+                    x.DeviceID == device.DeviceID && x.Body == body && x.ReceivedDate == receivedAt, cancellationToken);
+                if (seen) continue;
+
                 var links = _inbox.ExtractLinks(body);
                 var match = await _inbox.MatchAsync(body, message.Sender, cancellationToken);
 
@@ -58,7 +66,7 @@ namespace DentalRay.Api.Controllers
                     SenderMobile = SmsInboxService.NormalizeMobile(message.Sender),
                     Body = body,
                     Links = links.Count == 0 ? null : string.Join("\n", links),
-                    ReceivedDate = message.ReceivedAt ?? DateTime.Now,
+                    ReceivedDate = receivedAt,
                     PatientID = match.PatientID,
                     MatchMethod = match.Method,
                     Status = match.PatientID.HasValue ? (byte)1 : (byte)0,
@@ -75,7 +83,7 @@ namespace DentalRay.Api.Controllers
                     {
                         var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
                         fetched += files.Count;
-                        var result = await _inbox.ImportToPatientAsync(row.PatientID.Value, files, cancellationToken);
+                        var result = await _inbox.ImportToPatientAsync(row.PatientID.Value, files, studyID: null, cancellationToken);
                         imported += result.Imported;
                         studyID ??= result.StudyID;
                     }
@@ -147,7 +155,7 @@ namespace DentalRay.Api.Controllers
             {
                 var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
                 fetched += files.Count;
-                var result = await _inbox.ImportToPatientAsync(patient.PatientID, files, cancellationToken);
+                var result = await _inbox.ImportToPatientAsync(patient.PatientID, files, studyID: null, cancellationToken);
                 imported += result.Imported;
                 studyID ??= result.StudyID;
             }
@@ -182,6 +190,48 @@ namespace DentalRay.Api.Controllers
             row.Note = "توسط منشی رد شد.";
             await _db.SaveChangesAsync(cancellationToken);
             return Ok(new { success = true });
+        }
+
+        /// <summary>
+        /// سناریوی ۱ - بخش «ب»: بیمار پیامک را به گوشی مطب فوروارد کرده و منشی
+        /// داخل همان Study ایستاده است. هر آنچه برای این بیمار آمده برمی‌داشته
+        /// می‌شود و فقط به همین Study می‌چسبد (تکراری‌ها کپی نمی‌شوند).
+        /// </summary>
+        [HttpPost("/api/studies/{studyID:int}/pull-inbox")]
+        public async Task<IActionResult> PullForStudy(int studyID, CancellationToken cancellationToken)
+        {
+            var study = await _db.RadiologyStudies.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.StudyID == studyID, cancellationToken);
+            if (study == null) return NotFound(new { success = false, message = "Study پیدا نشد." });
+
+            var rows = await _db.InboxMessages.AsNoTracking()
+                .Where(x => x.PatientID == study.PatientID && x.Links != null)
+                .OrderByDescending(x => x.CreatedDate)
+                .Take(20)
+                .ToListAsync(cancellationToken);
+
+            int imported = 0, fetched = 0, handled = 0;
+            foreach (var row in rows)
+            {
+                var links = _inbox.ExtractLinks(row.Links);
+                if (links.Count == 0) continue;
+                handled++;
+                foreach (string link in links)
+                {
+                    var files = await _inbox.FetchSharedImagesAsync(link, cancellationToken);
+                    fetched += files.Count;
+                    var result = await _inbox.ImportToPatientAsync(study.PatientID, files, studyID, cancellationToken);
+                    imported += result.Imported;
+                }
+            }
+
+            string message = handled == 0
+                ? "هنوز پیامک دریافتی‌ای برای این بیمار وجود ندارد."
+                : imported > 0
+                    ? $"{imported} تصویر دریافت و به همین Study وصل شد."
+                    : $"هر {fetched} تصویر قبلاً در پرونده بود و حالا در همین Study نمایش داده می‌شود.";
+
+            return Ok(new { success = true, handled, fetched, imported, studyID, message });
         }
     }
 }

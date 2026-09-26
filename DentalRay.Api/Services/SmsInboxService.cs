@@ -261,15 +261,19 @@ namespace DentalRay.Api.Services
         // Saving what was fetched into the patient's own images
         // ------------------------------------------------------------
         /// <summary>
-        /// Stores the fetched files as patient-owned images and shows them in
-        /// the patient's newest Study. Attaching here (rather than leaving them
-        /// loose) is what makes an imported picture visible where staff look;
-        /// a file already stored for this patient is attached again instead of
-        /// being copied, so repeated SMS messages never duplicate a picture.
+        /// Stores the fetched files as patient-owned images and shows them in a
+        /// Study: the one the caller names (the secretary opened it), or the
+        /// patient's newest Study when none was named. A file already stored
+        /// for this patient is attached again instead of being copied, so
+        /// repeated SMS messages never duplicate a picture.
         /// </summary>
         public sealed record ImportResult(int Imported, int? StudyID);
 
-        public async Task<ImportResult> ImportToPatientAsync(int patientID, IReadOnlyList<FetchedImage> files, CancellationToken cancellationToken = default)
+        public async Task<ImportResult> ImportToPatientAsync(
+            int patientID,
+            IReadOnlyList<FetchedImage> files,
+            int? studyID = null,
+            CancellationToken cancellationToken = default)
         {
             if (files.Count == 0) return new ImportResult(0, null);
             var patient = await _db.Patients.AsNoTracking()
@@ -333,24 +337,34 @@ namespace DentalRay.Api.Services
 
             if (touched.Count == 0) return new ImportResult(0, null);
 
-            // آخرین Study بیمار که تصویر باید در آن دیده شود
-            int? latestStudy = await _db.RadiologyStudies.AsNoTracking()
-                .Where(x => x.PatientID == patientID)
-                .OrderByDescending(x => x.StudyDate)
-                .ThenByDescending(x => x.StudyID)
-                .Select(x => (int?)x.StudyID)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Study مقصد: آنچه منشی باز کرده، وگرنه آخرین Study بیمار
+            int? targetStudy = studyID;
+            if (targetStudy.HasValue)
+            {
+                bool belongs = await _db.RadiologyStudies.AsNoTracking()
+                    .AnyAsync(x => x.StudyID == targetStudy.Value && x.PatientID == patientID, cancellationToken);
+                if (!belongs) targetStudy = null;
+            }
+            if (!targetStudy.HasValue)
+            {
+                targetStudy = await _db.RadiologyStudies.AsNoTracking()
+                    .Where(x => x.PatientID == patientID)
+                    .OrderByDescending(x => x.StudyDate)
+                    .ThenByDescending(x => x.StudyID)
+                    .Select(x => (int?)x.StudyID)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
 
-            if (latestStudy.HasValue)
+            if (targetStudy.HasValue)
             {
                 foreach (long imageID in touched)
                 {
                     bool linked = await _db.RadiologyStudyImages.AsNoTracking()
-                        .AnyAsync(x => x.StudyID == latestStudy.Value && x.ImageID == imageID, cancellationToken);
+                        .AnyAsync(x => x.StudyID == targetStudy.Value && x.ImageID == imageID, cancellationToken);
                     if (linked) continue;
                     _db.RadiologyStudyImages.Add(new RadiologyStudyImage
                     {
-                        StudyID = latestStudy.Value,
+                        StudyID = targetStudy.Value,
                         ImageID = imageID,
                         CreatedDate = DateTime.Now
                     });
@@ -358,7 +372,7 @@ namespace DentalRay.Api.Services
                 await _db.SaveChangesAsync(cancellationToken);
             }
 
-            return new ImportResult(imported, latestStudy);
+            return new ImportResult(imported, targetStudy);
         }
     }
 }
