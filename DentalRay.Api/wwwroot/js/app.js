@@ -482,7 +482,7 @@ del.onclick=async ev=>{
     else if(selectedPatientID)openPatient(selectedPatientID);
   }catch(e){showToast(e.message||"حذف تصویر انجام نشد.","error");}
 };
-card.appendChild(del);}
+card.appendChild(del);
 grid.appendChild(card);});}
 let imageViewScale=1,imageViewRotation=0,imageViewFlipX=1,imageViewX=0,imageViewY=0,imageDragging=false,imageDragStartX=0,imageDragStartY=0;
 function applyImageView(){E.largeImage.style.transform=`translate(${imageViewX}px,${imageViewY}px) scale(${imageViewScale}) rotate(${imageViewRotation}deg) scaleX(${imageViewFlipX})`;}
