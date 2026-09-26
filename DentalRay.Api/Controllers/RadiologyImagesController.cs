@@ -123,7 +123,9 @@ namespace DentalRay.Api.Controllers
         public async Task<IActionResult> GetStudyImages(int studyID)
         {
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound(new { success=false,message="Study not found." });
-            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=t!=null?t.ImageTypeName:null,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate }).ToListAsync();
+            // linkCount = به چند مراجعه متصل است؛ رابط کاربری بر اساس آن بین
+            // «حذف تصویر» (فقط یک مراجعه) و «جدا کردن از این مراجعه» (چند مراجعه) انتخاب می‌کند.
+            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=t!=null?t.ImageTypeName:null,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate,linkCount=_context.RadiologyStudyImages.Count(l2=>l2.ImageID==i.ImageID) }).ToListAsync();
             return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
@@ -149,19 +151,47 @@ namespace DentalRay.Api.Controllers
             var accessibleImageIDs=_context.RadiologyStudyImages.AsNoTracking().Where(l=>accessibleStudyIDs.Contains(l.StudyID)).Select(l=>l.ImageID).Distinct();
             var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==study.PatientID && (StudyAccessService.IsSuperAdmin(User) || accessibleImageIDs.Contains(x.ImageID)))
                 .OrderByDescending(x=>x.FileName).Select(x=>new { x.ImageID,x.ImageTypeID,ImageTypeName=_context.ImageTypes.Where(t=>t.ImageTypeID==x.ImageTypeID).Select(t=>t.ImageTypeName).FirstOrDefault(),x.FileName,x.ContentType,attached=attached.Contains(x.ImageID) }).ToListAsync();
-            return Ok(new { success=true,studyID,images });
+
+            // مراجعه‌هایی که هم‌اکنون به هر تصویر متصل‌اند؛ با این می‌توان فهمید الصاق،
+            // در واقع «انتقال» از مراجعهٔ قبلی است یا اتصال اول (بدون هیچ مراجعه‌ای).
+            var imageIDs=images.Select(x=>x.ImageID).ToList();
+            var linkRows=imageIDs.Count==0
+                ? new List<(long ImageID,int StudyID)>()
+                : (await _context.RadiologyStudyImages.AsNoTracking().Where(l=>imageIDs.Contains(l.ImageID))
+                    .Select(l=>new { l.ImageID,l.StudyID }).ToListAsync())
+                    .Select(l=>(l.ImageID,l.StudyID)).ToList();
+            var linkMap=linkRows.GroupBy(l=>l.ImageID).ToDictionary(g=>g.Key,g=>g.Select(x=>x.StudyID).ToArray());
+
+            var result=images.Select(x=>new
+            {
+                x.ImageID,x.ImageTypeID,x.ImageTypeName,x.FileName,x.ContentType,x.attached,
+                linkedStudyIDs=linkMap.TryGetValue(x.ImageID,out var ids)?ids:Array.Empty<int>()
+            }).ToList();
+
+            return Ok(new { success=true,studyID,images=result });
         }
 
-        // SuperAdmin may classify legacy images that predate Image Type support.
-        // Ordinary users cannot alter historical image classification through this maintenance endpoint.
+        // هر کسی که به Study های متصلِ این تصویر دسترسی دارد می‌تواند نوعش را
+        // تعیین کند (تصاویر دریافتی از لینک معمولاً بدون نوع می‌آیند)؛ کاربر
+        // عادی فقط وقتی اجازه دارد که همهٔ Study های متصل را ببیند.
         [HttpPatch("{imageID:long}/type")]
         public async Task<IActionResult> SetImageType(long imageID, [FromBody] SetImageTypeRequest request)
         {
-            if (!StudyAccessService.IsSuperAdmin(User)) return Forbid();
-
             var image = await _context.RadiologyImages.FirstOrDefaultAsync(x => x.ImageID == imageID);
             if (image == null)
                 return NotFound(new { success=false, message="تصویر پیدا نشد.", messageEn="Image not found." });
+
+            if (!StudyAccessService.IsSuperAdmin(User))
+            {
+                var linked = await _context.RadiologyStudyImages.AsNoTracking()
+                    .Where(x => x.ImageID == imageID).Select(x => x.StudyID).ToListAsync();
+                bool allowed = linked.Count > 0;
+                foreach (int sid in linked)
+                {
+                    if (!await _studyAccess.CanAccessStudyAsync(sid, User)) { allowed = false; break; }
+                }
+                if (!allowed) return Forbid();
+            }
 
             if (!await _context.ImageTypes.AsNoTracking().AnyAsync(x => x.ImageTypeID == request.ImageTypeID && x.IsActive))
                 return BadRequest(new { success=false, message="نوع تصویر انتخاب‌شده معتبر یا فعال نیست.", messageEn="The selected Image Type is invalid or inactive." });

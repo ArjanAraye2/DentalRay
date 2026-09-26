@@ -185,7 +185,8 @@
   // هم در صفحهٔ تصاویر Study و هم در صفحهٔ جزئیات Study، تا همیشه در دسترس باشد.
   function addShareButtons() {
     addShareButtonTo("#studyImagesSection .details-toolbar", "shareStudyImagesButton");
-    addShareButtonTo("#studyDetailsSection .details-toolbar", "shareStudyDetailsButton");
+    // در هدر مراجعه تا همیشه دیده شود (کنار دکمه‌های دریافت تصویر).
+    addShareButtonTo("#studyDetailsSection .section-header-actions", "shareStudyDetailsButton");
   }
 
   const observer = new MutationObserver(addShareButtons);

@@ -4228,3 +4228,125 @@ body { line-height: 1.75; }
     .pair-qr svg { width: 168px; height: 168px; }
     .pair-qr { padding: 10px; gap: 8px; }
 }
+
+/* ==========================================================
+   دریافت تصویر تعیین‌نشده از پرونده و الصاق به مراجعه
+   ========================================================== */
+
+.section-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.pickup-dialog {
+    position: relative;
+    width: min( 780px, 100% );
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    text-align: right;
+}
+
+.pickup-close {
+    top: 10px;
+    right: 10px;
+    left: auto;
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted-strong);
+}
+
+.pickup-hint {
+    margin: 8px 0 4px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.8;
+    text-align: right;
+}
+
+.pickup-list {
+    display: grid;
+    grid-template-columns: repeat( auto-fill, minmax( 210px, 1fr ) );
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.pickup-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-soft);
+    text-align: right;
+}
+
+.pickup-card img.pickup-thumb {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #0b2b36;
+    cursor: pointer;
+}
+
+.pickup-card .pdf-thumbnail { cursor: pointer; }
+
+.pickup-name {
+    font-size: 12px;
+    font-weight: 700;
+    direction: ltr;
+    text-align: right;
+    word-break: break-all;
+}
+
+.pickup-badge {
+    align-self: flex-start;
+    padding: 3px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--muted-strong);
+    font-size: 11px;
+}
+
+.pickup-badge.is-attached {
+    background: var(--brand-100);
+    border-color: var(--brand-200);
+    color: var(--brand-700);
+}
+
+.pickup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pickup-actions button {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.pickup-classify {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.pickup-classify select {
+    min-height: 34px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    font: inherit;
+    font-size: 13px;
+}
