@@ -1,4 +1,4 @@
-﻿// DentalRay Login UI â€” approved reference recreation
+// DentalRay Login UI — approved reference recreation
 (function () {
   'use strict';
 
@@ -27,13 +27,13 @@
       control=document.createElement('div');
       control.id='dentalRayUserControl';
       control.className='header-user-control';
-      control.innerHTML='<span id="dentalRayCurrentUserName" class="header-user-name"></span><button id="dentalRayLogoutButton" type="button" class="secondary-button header-logout-button">Ø®Ø±ÙˆØ¬</button>';
+      control.innerHTML='<span id="dentalRayCurrentUserName" class="header-user-name"></span><button id="dentalRayLogoutButton" type="button" class="secondary-button header-logout-button">خروج</button>';
       const headerContent=header.querySelector('.header-content')||header;
       headerContent.appendChild(control);
       document.getElementById('dentalRayLogoutButton').addEventListener('click',window.dentalRayLogout);
     }
     const name=document.getElementById('dentalRayCurrentUserName');
-    if(name)name.textContent=user.isSuperAdmin?'Ù…Ø¯ÛŒØ± Ø³ÛŒØ³ØªÙ…':`${user.firstName||''} ${user.lastName||''}`.trim();
+    if(name)name.textContent=user.isSuperAdmin?'مدیر سیستم':`${user.firstName||''} ${user.lastName||''}`.trim();
     control.classList.remove('hidden');
   }
 
@@ -66,34 +66,34 @@
     screen.className='login-screen';
     screen.innerHTML=`
       <div class="login-shell">
-        <section class="login-form-panel" aria-label="ÙØ±Ù… ÙˆØ±ÙˆØ¯">
+        <section class="login-form-panel" aria-label="فرم ورود">
           <div class="login-form-logo">
             <span class="login-logo-tooth">${toothSvg()}</span>
             <span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span>
           </div>
           <div class="login-form-heading">
-            <h2>ÙˆØ±ÙˆØ¯ Ø¨Ù‡ Dentix</h2>
-            <p>Ø¨Ø±Ø§ÛŒ ÙˆØ±ÙˆØ¯ØŒ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ø­Ø³Ø§Ø¨ Ø®ÙˆØ¯ Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯.</p>
+            <h2>ورود به Dentix</h2>
+            <p>برای ورود، اطلاعات حساب خود را وارد کنید.</p>
           </div>
           <form id="dentalRayLoginForm" autocomplete="on">
             <div class="login-field">
-              <label for="loginUserName">Ú©Ø¯ Ù…Ù„ÛŒ</label>
+              <label for="loginUserName">کد ملی</label>
               <span class="login-field-icon">${iconSvg('id')}</span>
-              <input id="loginUserName" name="username" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" required placeholder="Ú©Ø¯ Ù…Ù„ÛŒ Ø®ÙˆØ¯ Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯" />
+              <input id="loginUserName" name="username" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" required placeholder="کد ملی خود را وارد کنید" />
             </div>
             <div class="login-field">
-              <label for="loginPassword">Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±</label>
+              <label for="loginPassword">رمز عبور</label>
               <div class="login-password-row">
                 <span class="login-field-icon">${iconSvg('lock')}</span>
-                <input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± Ø®ÙˆØ¯ Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯" />
-                <button id="toggleLoginPassword" type="button" class="login-password-toggle" aria-label="Ù†Ù…Ø§ÛŒØ´ Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±">${iconSvg('eye')}</button>
+                <input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="رمز عبور خود را وارد کنید" />
+                <button id="toggleLoginPassword" type="button" class="login-password-toggle" aria-label="نمایش رمز عبور">${iconSvg('eye')}</button>
               </div>
             </div>
             <div id="loginStatus" class="login-status" role="status"></div>
-            <button id="loginSubmit" class="login-submit" type="submit"><span>ÙˆØ±ÙˆØ¯</span><span class="login-submit-arrow">â†</span></button>
+            <button id="loginSubmit" class="login-submit" type="submit"><span>ورود</span><span class="login-submit-arrow">←</span></button>
           </form>
-          <button id="forgotPasswordButton" type="button" class="login-recovery-link"><span class="login-recovery-help">ØŸ</span><span>Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± Ø±Ø§ ÙØ±Ø§Ù…ÙˆØ´ Ú©Ø±Ø¯Ù‡â€ŒØ§ÛŒØ¯ØŸ</span></button>
-          <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ÙˆØ±ÙˆØ¯ Ø´Ù…Ø§ Ø¨Ù‡ Ù…Ø¹Ù†Ø§ÛŒ Ù¾Ø°ÛŒØ±Ø´ Ù‚ÙˆØ§Ù†ÛŒÙ† Ùˆ Ù…Ù‚Ø±Ø±Ø§Øª Dentix Ø§Ø³Øª.</p>
+          <button id="forgotPasswordButton" type="button" class="login-recovery-link"><span class="login-recovery-help">؟</span><span>رمز عبور را فراموش کرده‌اید؟</span></button>
+          <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات Dentix است.</p>
         </section>
 
         <section class="login-brand-panel" aria-label="Dentix">
@@ -101,7 +101,7 @@
             <span class="login-logo-tooth">${toothSvg()}</span>
             <span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span>
           </div>
-          <img class="login-clinic-art" src="/images/login-prosthodontic-visual.svg?v=20260920.3" alt="Ù…Ø­ÛŒØ· Ø­Ø±ÙÙ‡â€ŒØ§ÛŒ Ø¯Ù†Ø¯Ø§Ù†Ù¾Ø²Ø´Ú©ÛŒ Ùˆ Ú©Ø§Ø± Ø¨Ø§ ØªØµØ§ÙˆÛŒØ± Ø¯Ù†Ø¯Ø§Ù†ÛŒ" />
+          <img class="login-clinic-art" src="/images/login-prosthodontic-visual.svg?v=20260920.3" alt="محیط حرفه‌ای دندانپزشکی و کار با تصاویر دندانی" />
           <div class="login-brand-footer">
             <span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span>
             <span class="login-logo-tooth">${toothSvg()}</span>
@@ -123,23 +123,23 @@
       const show=password.type==='password';
       password.type=show?'text':'password';
       toggle.innerHTML=iconSvg('eye');
-      toggle.setAttribute('aria-label',show?'Ù¾Ù†Ù‡Ø§Ù† Ú©Ø±Ø¯Ù† Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±':'Ù†Ù…Ø§ÛŒØ´ Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±');
+      toggle.setAttribute('aria-label',show?'پنهان کردن رمز عبور':'نمایش رمز عبور');
     };
 
     form.onsubmit=async e=>{
       e.preventDefault();
       if(submit.disabled)return;
       status.className='login-status info';
-      status.textContent='Ø¯Ø± Ø­Ø§Ù„ ÙˆØ±ÙˆØ¯...';
+      status.textContent='در حال ورود...';
       submit.disabled=true;
       try{
         const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:userName.value.trim(),password:password.value})});
         const d=await r.json();
-        if(!r.ok||!d.success)throw new Error(d?.message||'Ú©Ø¯ Ù…Ù„ÛŒ ÛŒØ§ Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± ØµØ­ÛŒØ­ Ù†ÛŒØ³Øª.');
+        if(!r.ok||!d.success)throw new Error(d?.message||'کد ملی یا رمز عبور صحیح نیست.');
         password.value=''; showApplication(d.user);
       }catch(err){
         password.value=''; password.focus();
-        status.textContent=err.message||'ÙˆØ±ÙˆØ¯ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
+        status.textContent=err.message||'ورود انجام نشد.';
         status.className='login-status error';
       }finally{submit.disabled=false;}
     };
@@ -151,26 +151,26 @@
     const panel=screen.querySelector('.login-form-panel');
     panel.innerHTML=`
       <div class="login-form-logo"><span class="login-logo-tooth">${toothSvg()}</span><span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span></div>
-      <div class="login-form-heading"><h2>Ø¨Ø§Ø²ÛŒØ§Ø¨ÛŒ Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±</h2><p>Ú©Ø¯ Ù…Ù„ÛŒ Ø®ÙˆØ¯ Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯. Ø§Ú¯Ø± Ø´Ù…Ø§Ø±Ù‡ Ø¨Ø§Ø²ÛŒØ§Ø¨ÛŒ Ù…Ø¹ØªØ¨Ø± Ø«Ø¨Øª Ø´Ø¯Ù‡ Ø¨Ø§Ø´Ø¯ØŒ Ú©Ø¯ Ø¨Ø±Ø§ÛŒ Ø´Ù…Ø§ Ø§Ø±Ø³Ø§Ù„ Ù…ÛŒâ€ŒØ´ÙˆØ¯.</p></div>
+      <div class="login-form-heading"><h2>بازیابی رمز عبور</h2><p>کد ملی خود را وارد کنید. اگر شماره بازیابی معتبر ثبت شده باشد، کد برای شما ارسال می‌شود.</p></div>
       <form id="recoveryRequestForm">
-        <div class="login-field"><label for="recoveryNationalCode">Ú©Ø¯ Ù…Ù„ÛŒ</label><span class="login-field-icon">${iconSvg('id')}</span><input id="recoveryNationalCode" type="text" inputmode="numeric" maxlength="10" value="${String(nationalCode).replace(/"/g,'&quot;')}" required /></div>
+        <div class="login-field"><label for="recoveryNationalCode">کد ملی</label><span class="login-field-icon">${iconSvg('id')}</span><input id="recoveryNationalCode" type="text" inputmode="numeric" maxlength="10" value="${String(nationalCode).replace(/"/g,'&quot;')}" required /></div>
         <div id="recoveryStatus" class="login-status"></div>
-        <button class="login-submit" type="submit"><span>Ø§Ø±Ø³Ø§Ù„ Ú©Ø¯ Ø¨Ø§Ø²ÛŒØ§Ø¨ÛŒ</span></button>
+        <button class="login-submit" type="submit"><span>ارسال کد بازیابی</span></button>
       </form>
-      <button id="backToLogin" type="button" class="login-recovery-link">Ø¨Ø§Ø²Ú¯Ø´Øª Ø¨Ù‡ ÙˆØ±ÙˆØ¯</button>
-      <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ÙˆØ±ÙˆØ¯ Ø´Ù…Ø§ Ø¨Ù‡ Ù…Ø¹Ù†Ø§ÛŒ Ù¾Ø°ÛŒØ±Ø´ Ù‚ÙˆØ§Ù†ÛŒÙ† Ùˆ Ù…Ù‚Ø±Ø±Ø§Øª Dentix Ø§Ø³Øª.</p>`;
+      <button id="backToLogin" type="button" class="login-recovery-link">بازگشت به ورود</button>
+      <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات Dentix است.</p>`;
     const input=document.getElementById('recoveryNationalCode');
     input.addEventListener('input',()=>input.value=input.value.replace(/\D/g,'').slice(0,10));
     document.getElementById('backToLogin').onclick=()=>{screen.remove();createLogin();};
     document.getElementById('recoveryRequestForm').onsubmit=async e=>{
       e.preventDefault();
       const status=document.getElementById('recoveryStatus');
-      status.className='login-status info'; status.textContent='Ø¯Ø± Ø­Ø§Ù„ Ø§Ø±Ø³Ø§Ù„...';
+      status.className='login-status info'; status.textContent='در حال ارسال...';
       try{
         const r=await fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nationalCode:input.value.trim()})});
-        const d=await r.json(); status.textContent=d.message||'Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ø«Ø¨Øª Ø´Ø¯.';
+        const d=await r.json(); status.textContent=d.message||'درخواست ثبت شد.';
         setTimeout(()=>showVerify(screen,input.value.trim()),700);
-      }catch(_){status.textContent='Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯. Ø¯ÙˆØ¨Ø§Ø±Ù‡ Ø§Ù…ØªØ­Ø§Ù† Ú©Ù†ÛŒØ¯.';status.className='login-status error';}
+      }catch(_){status.textContent='درخواست انجام نشد. دوباره امتحان کنید.';status.className='login-status error';}
     };
   }
 
@@ -178,24 +178,24 @@
     const panel=screen.querySelector('.login-form-panel');
     panel.innerHTML=`
       <div class="login-form-logo"><span class="login-logo-tooth">${toothSvg()}</span><span class="login-logo-name"><strong>Den<span style="color:#1ba7c0">tix</span></strong><small>Dental Imaging System</small></span></div>
-      <div class="login-form-heading"><h2>ØªØ£ÛŒÛŒØ¯ Ø¨Ø§Ø²ÛŒØ§Ø¨ÛŒ</h2><p>Ú©Ø¯ Û¶ Ø±Ù‚Ù…ÛŒ Ø§Ø±Ø³Ø§Ù„â€ŒØ´Ø¯Ù‡ Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯ Ùˆ Ø³Ù¾Ø³ Ø±Ù…Ø² Ø¬Ø¯ÛŒØ¯ Ø±Ø§ ØªØ¹ÛŒÛŒÙ† Ú©Ù†ÛŒØ¯.</p></div>
+      <div class="login-form-heading"><h2>تأیید بازیابی</h2><p>کد ۶ رقمی ارسال‌شده را وارد کنید و سپس رمز جدید را تعیین کنید.</p></div>
       <form id="verifyRecoveryForm">
-        <div class="login-field"><label for="recoveryCode">Ú©Ø¯ ØªØ£ÛŒÛŒØ¯</label><input id="recoveryCode" type="text" inputmode="numeric" maxlength="6" required /></div>
-        <div class="login-field"><label for="newRecoveryPassword">Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± Ø¬Ø¯ÛŒØ¯</label><input id="newRecoveryPassword" type="password" minlength="8" required /></div>
-        <div class="login-field"><label for="newRecoveryPassword2">ØªÚ©Ø±Ø§Ø± Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±</label><input id="newRecoveryPassword2" type="password" minlength="8" required /></div>
+        <div class="login-field"><label for="recoveryCode">کد تأیید</label><input id="recoveryCode" type="text" inputmode="numeric" maxlength="6" required /></div>
+        <div class="login-field"><label for="newRecoveryPassword">رمز عبور جدید</label><input id="newRecoveryPassword" type="password" minlength="8" required /></div>
+        <div class="login-field"><label for="newRecoveryPassword2">تکرار رمز عبور</label><input id="newRecoveryPassword2" type="password" minlength="8" required /></div>
         <div id="recoveryVerifyStatus" class="login-status"></div>
-        <button class="login-submit" type="submit">ØªØºÛŒÛŒØ± Ø±Ù…Ø² Ø¹Ø¨ÙˆØ±</button>
+        <button class="login-submit" type="submit">تغییر رمز عبور</button>
       </form>`;
     document.getElementById('recoveryCode').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,6));
     document.getElementById('verifyRecoveryForm').onsubmit=async e=>{
       e.preventDefault();
       const status=document.getElementById('recoveryVerifyStatus');
       const p1=document.getElementById('newRecoveryPassword').value,p2=document.getElementById('newRecoveryPassword2').value;
-      if(p1!==p2){status.textContent='Ø¯Ùˆ Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± ÛŒÚ©Ø³Ø§Ù† Ù†ÛŒØ³ØªÙ†Ø¯.';status.className='login-status error';return;}
+      if(p1!==p2){status.textContent='دو رمز عبور یکسان نیستند.';status.className='login-status error';return;}
       const r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nationalCode,code:document.getElementById('recoveryCode').value,newPassword:p1})});
       const d=await r.json();
-      if(!r.ok||!d.success){status.textContent=d.message||'Ú©Ø¯ Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª.';status.className='login-status error';return;}
-      status.textContent='Ø±Ù…Ø² Ø¹Ø¨ÙˆØ± ØªØºÛŒÛŒØ± Ú©Ø±Ø¯. Ø¯Ø± Ø­Ø§Ù„ Ø¨Ø§Ø²Ú¯Ø´Øª Ø¨Ù‡ ÙˆØ±ÙˆØ¯...';status.className='login-status info';
+      if(!r.ok||!d.success){status.textContent=d.message||'کد معتبر نیست.';status.className='login-status error';return;}
+      status.textContent='رمز عبور تغییر کرد. در حال بازگشت به ورود...';status.className='login-status info';
       setTimeout(()=>{screen.remove();createLogin();},1000);
     };
     document.getElementById('recoveryCode').focus();

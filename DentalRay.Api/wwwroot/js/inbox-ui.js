@@ -546,7 +546,6 @@
       button.disabled = false;
     }
   }
-  }
 
   let pairTimer = null;
   function searchPatientForPairing() {
