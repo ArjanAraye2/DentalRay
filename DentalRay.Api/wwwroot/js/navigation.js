@@ -260,6 +260,48 @@
         if (network.serverNameUrl) root.appendChild(createAccessLink(network.serverNameUrl, "نام سرور"));
         (network.localUrls || []).forEach(url => root.appendChild(createAccessLink(url, "IP محلی")));
         if (network.publicUrl) root.appendChild(createAccessLink(network.publicUrl, "IP استاتیک"));
+        root.appendChild(createPublicIpRow());
+    }
+
+    // IP عمومی همان عددی است که کاوه‌نگار هنگام ارسال پیامک می‌بیند. چون IP
+    // مطب معمولاً داینامیک است، نمایش همین‌جا کنار لینک‌های اجرا باعث می‌شود
+    // وقتی از محدودهٔ ثبت‌شده در پنل کاوه‌نگار بیرون رفت، همان اول دیده شود.
+    function createPublicIpRow() {
+        const row = document.createElement("div");
+        row.className = "dashboard-access-row";
+        const title = document.createElement("span");
+        title.textContent = "آی‌پی عمومی اینترنت";
+        const value = document.createElement("code");
+        value.className = "dashboard-access-ip";
+        value.textContent = "در حال دریافت...";
+        const copy = document.createElement("button");
+        copy.type = "button"; copy.className = "secondary-button"; copy.textContent = "کپی";
+        copy.onclick = async () => {
+            try { await navigator.clipboard.writeText(value.textContent); copy.textContent = "کپی شد"; setTimeout(() => copy.textContent = "کپی", 1500); }
+            catch { window.prompt("آی‌پی را کپی کنید:", value.textContent); }
+        };
+        const refresh = document.createElement("button");
+        refresh.type = "button"; refresh.className = "secondary-button"; refresh.textContent = "تازه‌سازی";
+        const hint = document.createElement("small");
+        hint.textContent = "کاوه‌نگار پیامک را فقط از IP های ثبت‌شده در «تنظیمات ← تنظیمات آی‌پی مجاز ← وب‌سرویس» می‌پذیرد؛ اگر این عدد از محدودهٔ ثبت‌شده بیرون رفت، پیامک ارسال نمی‌شود.";
+        row.append(title, value, copy, refresh, hint);
+
+        const load = async () => {
+            value.textContent = "در حال دریافت...";
+            refresh.disabled = true;
+            try {
+                const r = await fetch("/api/communications/public-ip", { cache: "no-store" });
+                // پاسخ 401/403 بدنهٔ خالی دارد؛ اگر JSON نبود نباید کل بارگذاری بترسد.
+                let d = {}; try { d = await r.json(); } catch { d = {}; }
+                value.textContent = r.ok && d.success
+                    ? d.ip
+                    : (d.message || ((r.status === 401 || r.status === 403) ? "نیاز به دسترسی مدیر سیستم" : "دریافت IP ممکن نشد"));
+            } catch { value.textContent = "ارتباط با سرور برقرار نشد."; }
+            finally { refresh.disabled = false; }
+        };
+        refresh.onclick = load;
+        load();
+        return row;
     }
     function createAccessLink(url, label) {
         const row = document.createElement("div"); row.className = "dashboard-access-row";
@@ -276,6 +318,11 @@
     // camera instead of typing the address. qrcode-generator draws the standard
     // four-module quiet zone (margin below); the card around it adds more white
     // space so neighbouring codes stay far enough apart to scan reliably.
+    //
+    // Phone cameras disagree about how big a module has to be: an iPhone locks on
+    // around three pixels, while Xiaomi (MIUI) usually needs four or more, and the
+    // run-link QR carries the longest payload. One click opens the same code full
+    // screen, which is what makes it scannable on the stricter cameras.
     function createAccessQr(url, label) {
         if (typeof qrcode !== "function") return null;
         try {
@@ -286,14 +333,47 @@
             box.className = "dashboard-access-qr";
             box.innerHTML = code.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: `کیوکد لینک ${label}` });
             const hint = document.createElement("small");
-            hint.textContent = "برای باز کردن Dentix روی موبایل، دوربین را روی این کد بگیرید.";
+            hint.textContent = "برای باز کردن Dentix روی موبایل، دوربین را روی این کد بگیرید. برای اسکن آسان‌تر، روی کد کلیک کنید.";
             box.append(hint);
+            box.tabIndex = 0;
+            box.setAttribute("role", "button");
+            box.setAttribute("aria-label", `بزرگ‌نمایی کیوآرکد ${label}`);
+            box.onclick = () => DentalRayQrZoom(box, label);
+            box.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); box.click(); } };
             return box;
         } catch {
             // A broken QR must never take the dashboard down; the plain link stays.
             return null;
         }
     }
+
+    // نمای تمام‌صفحهٔ یک کیوآرکد؛ همان کد، فقط بزرگ‌تر تا هر دوربینی بگیردش.
+    function DentalRayQrZoom(box, label) {
+        let overlay = document.getElementById("qrZoomOverlay");
+        if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = "qrZoomOverlay";
+            overlay.className = "qr-zoom-overlay hidden";
+            overlay.innerHTML =
+                '<div class="qr-zoom-card">' +
+                '<button class="modal-close-button" type="button" aria-label="بستن">×</button>' +
+                '<div class="qr-zoom-body"></div>' +
+                '<small class="qr-zoom-hint"></small>' +
+                "</div>";
+            document.body.appendChild(overlay);
+            const close = () => overlay.classList.add("hidden");
+            overlay.querySelector(".modal-close-button").onclick = close;
+            overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+            document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+        }
+        const svg = box?.querySelector("svg");
+        const body = overlay.querySelector(".qr-zoom-body");
+        body.replaceChildren(svg ? svg.cloneNode(true) : document.createTextNode("کیوآرکد در دسترس نیست."));
+        overlay.querySelector(".qr-zoom-hint").textContent =
+            `${label ? `کیوآرکد ${label} — ` : ""}گوشی را ۱۰ تا ۱۵ سانتی‌متر از صفحه فاصله بدهید و ثابت نگه دارید.`;
+        overlay.classList.remove("hidden");
+    }
+    window.DentalRayQrZoom = DentalRayQrZoom;
     function renderRecentStudies(items) {
         const root = document.getElementById("dashboardRecentStudies"); root.replaceChildren();
         if (!items.length) { root.textContent = "مطالعه‌ای ثبت نشده است."; return; }

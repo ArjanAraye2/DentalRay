@@ -3734,16 +3734,75 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 /* Sized box so every code looks the same, whatever the length of the address.
    The padding is white space around the quiet zone: a camera needs a clear
    margin on all four sides before it locks on. */
+.dashboard-access-qr {
+    cursor: zoom-in;
+}
+
 .dashboard-access-qr svg {
     display: block;
-    width: 172px;
-    height: 172px;
+    width: 210px;
+    height: 210px;
     box-sizing: border-box;
     padding: 10px;
     border: 1px solid #d8e7ec;
     border-radius: 12px;
     background: #ffffff;
     image-rendering: pixelated;
+}
+
+/* نمای تمام‌صفحهٔ کیوآرکد: همان کد با خانه‌های بسیار بزرگ‌تر، برای
+   دوربین‌هایی که به خانهٔ کوچک حساس‌اند (مثلاً شیائومی). */
+.qr-zoom-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 6500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(12, 55, 70, 0.62);
+    backdrop-filter: blur(2px);
+}
+
+.qr-zoom-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    max-width: min(92vw, 560px);
+    padding: 22px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+}
+
+.qr-zoom-card .modal-close-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted-strong);
+}
+
+.qr-zoom-body svg {
+    display: block;
+    width: min(78vw, 460px);
+    height: min(78vw, 460px);
+    image-rendering: pixelated;
+}
+
+.qr-zoom-hint {
+    color: #55707e;
+    font-size: 12.5px;
+    line-height: 1.9;
+    text-align: center;
 }
 
 .dashboard-access-qr small { color: #55707e; font-size: 11px; line-height: 1.7; }
@@ -3758,6 +3817,21 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 }
 
 .dashboard-access-row button { min-height: 28px; padding: 4px 9px; font-size: 12px; }
+
+.dashboard-access-ip {
+    direction: ltr;
+    text-align: left;
+    font-weight: 700;
+    color: #0f5165;
+    overflow-wrap: anywhere;
+}
+
+.dashboard-access-row > small {
+    grid-column: 1 / -1;
+    color: #55707e;
+    font-size: 11.5px;
+    line-height: 1.8;
+}
 .dashboard-network-note { margin: 9px 2px 0; color: #55707e; font-size: 12px; }
 
 .dashboard-network-settings-button {
