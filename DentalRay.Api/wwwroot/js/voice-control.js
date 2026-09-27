@@ -21,6 +21,7 @@
   let lastHeard = "";
   let lastHeardAt = 0;
   let lastExecuteAt = 0;             // آخرین فرمانِ اجرا‌شده (تا تأییدش فوری بازنویسی نشود)
+  let totalResults = 0;              // چند دسته نتیجه از مرورگر رسیده (برای ضربان تشخیصی)
   let lastResultAt = 0;              // آخرین بار که چیزی (حتی موقت) شنیده شد
   let recActive = false;             // آیا چرخهٔ گوش دادن روشن است؟
 
@@ -42,7 +43,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۳۲";
+  const VOICE_VERSION = "۳۳";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -358,6 +359,7 @@
       recognition.onresult = (event) => {
         if (!alive()) return;
         lastResultAt = Date.now();
+        totalResults++;
         // لاگ نتیجه: با این مشخص می‌شود هنگام «قفل» مرورگر اصلاً صدایی می‌رسد یا نه.
         {
           const first = event.results && event.results[event.resultIndex];
@@ -607,6 +609,21 @@
       if (listening && !recActive) { noteRecovery("watchdog"); renewRecognition(); }
     }, 500);
   }, 5000);
+
+  // ضربان تشخیصی: هر ۱۰ ثانیه وضعیت را می‌نویسد تا هنگام «قفل» از روی لاگ
+  // مشخص شود مشکل کجاست:
+  //   idle در حال رشد  ← کروم دیگر صدا نمی‌فرستد (سطح سیستم/مرورگر)
+  //   idle کم ولی فرمان اجرا نمی‌شود ← باگ در کد ما
+  //   نبودِ ضربان    ← گوش دادن اصلاً روشن نیست
+  setInterval(() => {
+    if (!listening) return;
+    console.log("[Dentix صدا] ضربان", {
+      چرخه: recActive,
+      سکوت_ثانیه: Math.round((Date.now() - lastResultAt) / 1000),
+      نتایج: totalResults,
+      آخرین: lastHeard
+    });
+  }, 10000);
 
   window.DentalRayVoice = {
     start, stop, isListening: () => listening, goNext, goPrev,
