@@ -43,7 +43,10 @@
     toggle.setAttribute("aria-expanded",open?"true":"false");
     root.querySelector(".study-finance-arrow").textContent=open?"⌃":"⌄";
   };
-  toggle.addEventListener("click",()=>setOpen(body.classList.contains("hidden")));
+  toggle.addEventListener("click",()=>{root.__userToggled=true;setOpen(body.classList.contains("hidden"));});
+  // «دریافت‌ها» فقط وقتی مانده‌ای هست باز می‌شود (طلب باید دیده شود)؛ اگر کاربر
+  // خودش باز/بستش کرد، تصمیم او تا آخرِ این نشست می‌ماند.
+  root.__setOpen=setOpen;
   return root;
  }
  // پنل اقدامات: فشرده، همیشه باز، بالای تصاویر — جایی که دست است. شرح + مبلغ
@@ -252,6 +255,8 @@
     root.querySelector("[data-head-summary]").textContent=state.text;
     root.classList.remove("is-due","is-settled","is-ok","is-none");
     root.classList.add("is-"+state.kind);
+    // ماندهٔ باز ⇒ باز شود؛ تسویه‌شده ⇒ بسته بماند (سرِ بسته هم مانده را نشان می‌دهد).
+    if(!root.__userToggled)root.__setOpen?.(state.kind==="due");
     const card=root.closest(".study-scroll-card");
     if(card)paintHeaderChip(card,state);
     renderActions(root,x.actions||[]);
@@ -272,11 +277,15 @@
     root.__actions=actions;
     const body=card.querySelector(".study-scroll-body");
     if(body){
+      // ترتیب نهایی: نمودار ← اقدامات ← دریافت‌ها ← تصاویر. هر دو پنلِ پول بالای
+      // تصاویر و تمام‌عرض می‌نشینند؛ تصاویر که بلند است می‌ماند آخر.
       const place=()=>{
         const imgs=body.querySelector(".study-scroll-images");
-        if(imgs){if(actions.nextElementSibling!==imgs)body.insertBefore(actions,imgs);}
-        else if(actions.parentElement!==body)body.appendChild(actions);
-        if(body.lastElementChild!==root)body.appendChild(root);
+        if(imgs){if(root.parentElement!==body||root.nextElementSibling!==imgs)body.insertBefore(root,imgs);}
+        else if(root.parentElement!==body||body.lastElementChild!==root)body.appendChild(root);
+        const anchor=(root.parentElement===body)?root:imgs;
+        if(anchor){if(actions.parentElement!==body||actions.nextElementSibling!==anchor)body.insertBefore(actions,anchor);}
+        else if(actions.parentElement!==body||body.lastElementChild!==actions)body.appendChild(actions);
       };
       place();
       new MutationObserver(place).observe(body,{childList:true});
