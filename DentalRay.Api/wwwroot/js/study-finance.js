@@ -30,7 +30,9 @@
    +'<div class="study-finance-summary"><div><span>جمع هزینه</span><strong data-s="gross">۰</strong></div><div><span>جمع تخفیف</span><strong data-s="discount">۰</strong></div><div><span>مبلغ خالص</span><strong data-s="net">۰</strong></div><div><span>دریافتی</span><strong data-s="received">۰</strong></div><div class="finance-balance"><span>مانده</span><strong data-s="balance">۰</strong></div></div>'
    +'<div class="study-finance-columns"></div><div class="study-finance-status"></div></div>';
   const cols=root.querySelector(".study-finance-columns");
-  cols.append(createActionBox(root),createPaymentBox(root));
+  // ثبت اقدام کارِ حسابداری نیست؛ پس در پنل جداگانهٔ بالای تصاویر می‌نشیند
+  // (createActionPanel) و این پنل فقط سمتِ پول را نگه می‌دارد.
+  cols.append(createPaymentBox(root));
 
   // Open/close. The whole head is the hit area, with the keyboard covered too.
   const toggle=root.querySelector(".study-finance-toggle");
@@ -44,11 +46,39 @@
   toggle.addEventListener("click",()=>setOpen(body.classList.contains("hidden")));
   return root;
  }
- function createActionBox(root){
-  const box=document.createElement("section");box.className="study-finance-box";box.innerHTML="<h6>اقدامات Study</h6>";
-  const form=document.createElement("div");form.className="study-finance-form";const desc=field("شرح اقدام"),amount=field("هزینه","number"),discount=field("تخفیف","number"),add=button("+ افزودن");discount.value="0";form.append(desc,amount,discount,add);
-  const list=document.createElement("div");list.className="study-finance-list";list.dataset.list="actions";box.append(form,list);
-  add.onclick=()=>saveAction(root,{description:desc.value,amount:num(amount),discountAmount:num(discount)},()=>{desc.value="";amount.value="";discount.value="0";});return box;
+ // پنل اقدامات: فشرده، همیشه باز، بالای تصاویر — جایی که دست است. شرح + مبلغ
+ // در یک خط تایپ می‌شود و هر اقدام فقط یک ردیف کوتاه است. (دیکتهٔ صوتی بعداً
+ // به همین ردیف اضافه می‌شود.) داده از همان یک فراخوانی «مالی» می‌آید.
+ function createActionPanel(financeRoot){
+  const root=document.createElement("section");
+  root.className="study-actions";
+  root.dataset.studyId=String(financeRoot.dataset.studyId);
+
+  const head=document.createElement("header");head.className="study-actions-head";
+  const title=document.createElement("strong");title.textContent="اقدامات این مراجعه";
+  const chip=document.createElement("span");chip.className="study-actions-chip";
+  chip.dataset.actionsSummary="";chip.textContent="بدون اقدام";
+  head.append(title,chip);
+
+  const body=document.createElement("div");body.className="study-actions-body";
+  const form=document.createElement("div");form.className="study-actions-form";
+  const desc=field("شرح اقدام"),amount=field("هزینه","number"),discount=field("تخفیف","number"),add=button("+ ثبت");
+  discount.value="0";
+  form.append(desc,amount,discount,add);
+
+  const list=document.createElement("div");list.className="study-actions-list";
+  // برچسب‌ها یک بار در بالای فهرست، نه در هر سطر: ده اقدام هم یک صفحه می‌ماند
+  // و سطرها فقط عدد و شرح‌اند.
+  list.innerHTML='<div class="study-actions-list-head"><span>شرح اقدام</span><span>هزینه</span><span>تخفیف</span><span>خالص</span><span></span></div>'
+    +'<div class="study-actions-rows" data-list="actions"></div>';
+  const status=document.createElement("div");status.className="study-actions-status";
+
+  body.append(form,list,status);
+  root.append(head,body);
+  // ذخیرهٔ موفق، نشانگر را به اولین فیلد برمی‌گرداند تا اقدام بعدی سریع ثبت شود.
+  add.onclick=()=>saveAction(financeRoot,{description:desc.value,amount:num(amount),discountAmount:num(discount)},
+    ()=>{desc.value="";amount.value="";discount.value="0";desc.focus();});
+  return root;
  }
  function createPaymentBox(root){
   const box=document.createElement("section");box.className="study-finance-box";box.innerHTML="<h6>دریافت‌های Study</h6>";
@@ -79,13 +109,39 @@
       ()=>{method.value="";amount.value="";desc.value="";refundBox.checked=false;applyRefundMode();});};
   return box;
  }
- function setStatus(root,message,error=false){const s=root.querySelector(".study-finance-status");s.textContent=message||"";s.classList.toggle("error",error);}
+ // پیام وضعیت در هر دو جا دیده می‌شود: پنل مالی (که ممکن است بسته باشد) و پنل
+ // اقدامات — چون این پیام معمولاً برای همان اقدام است.
+ function setStatus(root,message,error=false){
+  const paint=el=>{if(!el)return;el.textContent=message||"";el.classList.toggle("error",!!error);};
+  paint(root.querySelector(".study-finance-status"));
+  paint(root.__actions&&root.__actions.querySelector(".study-actions-status"));
+ }
  // Empty input must become 0, not NaN: Number("") is 0 but Number(" ") is also 0,
  // while Number("abc") is NaN which would be sent to the API.
  const num=el=>{const v=Number(String(el.value).replace(/[^\d.\-]/g,""));return Number.isFinite(v)?v:0;};
  async function saveAction(root,data,done,id){try{if(!data.description.trim())throw new Error("شرح اقدام را وارد کنید.");setStatus(root,"در حال ذخیره...");const base=`/api/studies/${root.dataset.studyId}/finance/actions`;await api(id?`${base}/${id}`:base,{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});done?.();await load(root);}catch(e){setStatus(root,e.message,true);}}
  async function savePayment(root,data,done,id){try{if(!(data.amount>0))throw new Error(data.isRefund?"مبلغ بازپرداخت را وارد کنید.":"مبلغ دریافت را وارد کنید.");setStatus(root,"در حال ذخیره...");const base=`/api/studies/${root.dataset.studyId}/finance/payments`;await api(id?`${base}/${id}`:base,{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});done?.();await load(root);}catch(e){setStatus(root,e.message,true);}}
- function renderActions(root,items){const list=root.querySelector('[data-list="actions"]');list.replaceChildren();if(!items.length){list.innerHTML='<div class="study-finance-empty">اقدامی ثبت نشده است.</div>';return;}items.forEach(x=>{const row=document.createElement("div");row.className="study-finance-row";[x.description,`هزینه: ${money(x.amount)}`,`تخفیف: ${money(x.discountAmount)}`,`خالص: ${money(x.amount-x.discountAmount)}`].forEach(v=>{const s=document.createElement("span");s.textContent=v;row.appendChild(s);});const actions=document.createElement("span");actions.className="row-actions";const edit=button("ویرایش","secondary-button"),del=button("حذف","danger-button");edit.onclick=()=>{const description=prompt("شرح اقدام",x.description);if(description===null)return;const amount=prompt("مبلغ هزینه",x.amount);if(amount===null)return;const discountAmount=prompt("مبلغ تخفیف",x.discountAmount);if(discountAmount===null)return;saveAction(root,{description,amount:Number(amount)||0,discountAmount:Number(discountAmount)||0},null,x.studyActionID);};del.onclick=()=>remove(root,`actions/${x.studyActionID}`);actions.append(edit,del);row.append(actions);list.append(row);});}
+ function renderActions(root,items){
+  // فهرست اقدامات در پنل جداگانه است؛ اگر جایی نبود (هنوز ساخته نشده) خودِ پنل مالی.
+  const host=root.__actions||root;
+  const list=host.querySelector('[data-list="actions"]');
+  if(!list)return;
+  const chip=host.querySelector("[data-actions-summary]");
+  const netOf=x=>Number(x.amount||0)-Number(x.discountAmount||0);
+  if(chip)chip.textContent=items.length?`${items.length.toLocaleString("fa-IR")} اقدام · خالص ${money(items.reduce((s,x)=>s+netOf(x),0))}`:"بدون اقدام";
+  list.replaceChildren();
+  if(!items.length){list.innerHTML='<div class="study-finance-empty">اقدامی ثبت نشده است.</div>';return;}
+  items.forEach(x=>{
+    const row=document.createElement("div");row.className="study-actions-row";
+    // بدون برچسب در سطر (برچسب در بالای فهرست است) تا سطر کوتاه بماند.
+    [x.description,money(x.amount),money(x.discountAmount),money(netOf(x))].forEach(v=>{const s=document.createElement("span");s.textContent=v;row.appendChild(s);});
+    const actions=document.createElement("span");actions.className="row-actions";
+    const edit=button("ویرایش","secondary-button"),del=button("حذف","danger-button");
+    edit.onclick=()=>{const description=prompt("شرح اقدام",x.description);if(description===null)return;const amount=prompt("مبلغ هزینه",x.amount);if(amount===null)return;const discountAmount=prompt("مبلغ تخفیف",x.discountAmount);if(discountAmount===null)return;saveAction(root,{description,amount:Number(amount)||0,discountAmount:Number(discountAmount)||0},null,x.studyActionID);};
+    del.onclick=()=>remove(root,`actions/${x.studyActionID}`);
+    actions.append(edit,del);row.append(actions);list.append(row);
+  });
+ }
  function renderPayments(root,items){
   const list=root.querySelector('[data-list="payments"]');list.replaceChildren();
   if(!items.length){list.innerHTML='<div class="study-finance-empty">دریافتی ثبت نشده است.</div>';return;}
@@ -209,16 +265,23 @@
     if(card.dataset.financeReady)return;
     card.dataset.financeReady="1";
     const root=createPanel(Number(card.dataset.studyId));
+    // اقدامات از پنل مالی جدا شد: بالای تصاویر می‌نشیند (جایی که دست است) و
+    // مالی همیشه آخرِ کارت می‌ماند. app.js هر دو بخش را موقع «نمایش» می‌سازد،
+    // پس جای‌گذاری با هر تغییرِ فرزندانِ بدنه دوباره انجام می‌شود.
+    const actions=createActionPanel(root);
+    root.__actions=actions;
     const body=card.querySelector(".study-scroll-body");
     if(body){
-      // The finance panel belongs with the rest of the Study content, after the
-      // chart and the images. app.js builds those when the Study is first opened, so
-      // keep the panel last whenever the body gains children.
-      const keepLast=()=>{if(body.lastElementChild!==root)body.appendChild(root);};
-      keepLast();
-      new MutationObserver(keepLast).observe(body,{childList:true});
+      const place=()=>{
+        const imgs=body.querySelector(".study-scroll-images");
+        if(imgs){if(actions.nextElementSibling!==imgs)body.insertBefore(actions,imgs);}
+        else if(actions.parentElement!==body)body.appendChild(actions);
+        if(body.lastElementChild!==root)body.appendChild(root);
+      };
+      place();
+      new MutationObserver(place).observe(body,{childList:true});
     }else{
-      card.appendChild(root);
+      card.append(actions,root);
     }
     load(root);
   });
