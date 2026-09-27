@@ -412,7 +412,7 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    }
    const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="مشاهده / ویرایش";
    edit.onclick=e=>{e.stopPropagation();openStudyDetails(study);};
-   const addImage=document.createElement("button");addImage.type="button";addImage.textContent="+ افزودن تصویر";
+   const addImage=document.createElement("button");addImage.type="button";addImage.textContent="+ آپلود تصویر";
    addImage.onclick=e=>{e.stopPropagation();openUploadImageForm(study);};
    actions.append(toggle,edit,addImage);
 
