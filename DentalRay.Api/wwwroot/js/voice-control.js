@@ -322,18 +322,43 @@
       recognition.continuous = true;
       recognition.interimResults = true;
 
+      // کروم بعد از هر جمله/سکوت، گوش دادن را قطع می‌کند و با onend دوباره وصل
+      // می‌شویم؛ هر بار باید شمارندهٔ نتایج صفر شود وگرنه همهٔ فرمان‌های بعدی
+      // به‌عنوان «قبلاً اجرا شده» نادیده گرفته می‌شوند.
+      // تکه‌های قطعیِ یک جمله انباشته می‌شوند و ۳۲۰ میلی‌ثانیه بعد اجرا می‌شوند؛
+      // چون کروم بعد از هر قطع/وصل، اولین تکه را ناقص می‌دهد (مثلاً «دنت» و بعد
+      // «یکس بعدی»). بدون انباشت، فقط همان «دنت» اجرا می‌شد.
+      let finalBuffer = "";
+      let finalTimer = null;
+      recognition.onstart = () => {
+        finalSeen = 0;
+        lastHeard = "";
+        finalBuffer = "";
+        if (finalTimer) { clearTimeout(finalTimer); finalTimer = null; }
+      };
+
       recognition.onresult = (event) => {
+        // نشست تازه (آرایهٔ کوتاه‌تر از شمارنده) یعنی قطع و وصل شده؛ از نو بشمار.
+        if (finalSeen > event.results.length) { finalSeen = 0; finalBuffer = ""; }
         let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const res = event.results[i];
           const t = res && res[0] ? (res[0].transcript || "").trim() : "";
           if (!t) continue;
           if (res.isFinal) {
-            // فقط نتیجهٔ قطعی اجرا می‌شود؛ اجرای هم‌زمان روی متن موقت باعث
-            // می‌شد هر فرمان دو بار انجام شود.
+            // فقط نتیجهٔ قطعی در اجرا شرکت می‌کند؛ اجرای هم‌زمان روی متن موقت
+            // باعث می‌شد هر فرمان دو بار انجام شود.
             if (i < finalSeen) continue;
             finalSeen = i + 1;
-            handle(t);
+            // بدون فاصله می‌چسبیم: اگر «دنتیکس» دو تکه شده باشد («دنت» + «یکس بعدی»)
+            // نباید وسط کلمهٔ بیداری شکسته شود.
+            finalBuffer += t;
+            if (finalTimer) clearTimeout(finalTimer);
+            finalTimer = setTimeout(() => {
+              const text = finalBuffer;
+              finalBuffer = ""; finalTimer = null;
+              if (text) handle(text);
+            }, 320);
           } else {
             interim += t;
           }
@@ -357,11 +382,14 @@
         setStatus("خطا: " + e.error, "is-error");
       };
 
-      // کروم بعد از سکوت خودش قطع می‌کند؛ اگر کاربر نخواسته، دوباره وصل می‌کنیم.
+      // کروم بعد از سکوت خودش قطع می‌کند؛ با کمی تأخیر وصل می‌شود تا اولین
+      // جملهٔ بعدی ناقص بریده نشود.
       recognition.onend = () => {
-        if (listening) {
+        if (!listening) return;
+        setTimeout(() => {
+          if (!listening) return;
           try { recognition.start(); } catch (e) { /* هم‌زمان اجرا شده */ }
-        }
+        }, 250);
       };
     }
 
