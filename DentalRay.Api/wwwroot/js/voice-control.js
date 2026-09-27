@@ -32,13 +32,17 @@
   }
 
   /* ---------------- وضعیت روی صفحه ---------------- */
+  // هم در هدر مراجعه و هم داخل بینندهٔ تصویر، چون بیننده تمام‌صفحه است و
+  // هدر را می‌پوشاند؛ بدون این، کاربر فکر می‌کند فرمان اصلاً اجرا نشده است.
   function setStatus(text, state) {
-    const el = $("voiceStatus");
-    if (!el) return;
-    el.classList.remove("hidden", "is-listening", "is-error");
-    if (state) el.classList.add(state);
-    el.textContent = text || "";
-    if (!text) el.classList.add("hidden");
+    ["voiceStatus", "voiceStatusViewer"].forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      el.classList.remove("hidden", "is-listening", "is-error");
+      if (state) el.classList.add(state);
+      el.textContent = text || "";
+      if (!text) el.classList.add("hidden");
+    });
   }
 
   function button() { return $("voiceControlButton"); }

@@ -3883,6 +3883,26 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
     border-color: #b42318;
     color: #ffffff;
 }
+
+/* بازخورد فرمان داخل بینندهٔ تمام‌صفحه، جایی که هدر دیده نمی‌شود */
+.voice-status-viewer {
+    position: absolute;
+    bottom: 14px;
+    right: 50%;
+    transform: translateX(50%);
+    max-width: 80%;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(12, 55, 70, 0.88);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.voice-status-viewer.is-error { background: rgba(180, 35, 24, 0.92); }
 .dashboard-network-note { margin: 9px 2px 0; color: #55707e; font-size: 12px; }
 
 .dashboard-network-settings-button {
