@@ -54,6 +54,19 @@
 
   function button() { return $("voiceControlButton"); }
 
+  // دکمه در دو جاست: هدرِ مراجعه و نوار ابزارِ صفحهٔ تصاویر (کاربر معمولاً
+  // هنگام دیدن تصویر در همان صفحهٔ تصاویر است، نه هدر).
+  function buttons() {
+    return ["voiceControlButton", "voiceControlButtonImages"].map($).filter(Boolean);
+  }
+
+  function setButtonState(listeningState, label) {
+    buttons().forEach((b) => {
+      b.classList.toggle("is-listening", !!listeningState);
+      b.textContent = label;
+    });
+  }
+
   function currentVisit() {
     const v = (typeof selectedStudy === "object" && selectedStudy) ? selectedStudy : (window.selectedStudy || null);
     if (v) { lastVisit = v; return v; }
@@ -283,8 +296,7 @@
     try { recognition.start(); } catch (e) { /* قبلاً شروع شده */ }
     listening = true;
     resetSilence();
-    const b = button();
-    if (b) { b.classList.add("is-listening"); b.textContent = "توقف گوش دادن"; }
+    setButtonState(true, "توقف گوش دادن");
     setStatus(`در حال گوش دادن — ${label}`, "is-listening");
   }
 
@@ -292,8 +304,7 @@
     listening = false;
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     try { recognition && recognition.stop(); } catch (e) { /* بی‌اثر */ }
-    const b = button();
-    if (b) { b.classList.remove("is-listening"); b.textContent = "کنترل صوتی"; }
+    setButtonState(false, "کنترل صوتی");
     setStatus("", null);
     if (bySilence) setStatus("به دلیل سکوت، گوش دادن قطع شد.", null);
   }
@@ -309,15 +320,15 @@
 
   /* ---------------- نمایش دکمه فقط برای دندانپزشک/مدیر ---------------- */
   function refreshVisibility() {
-    const b = button();
-    if (!b) return;
+    const list = buttons();
+    if (!list.length) return;
     const ok = allowedUser();
-    b.classList.toggle("hidden", !ok);
+    list.forEach((b) => b.classList.toggle("hidden", !ok));
     if (!ok && listening) stop(false);
     if (!ok) setStatus("", null);
     // لاگ تشخیصی: اگر دکمه دیده نشد، همین یک خط در Console مرورگر کافی است
     // تا بفهمیم مشکل از نقش کاربر است یا از چیز دیگری.
-    console.log("[Dentix صدا]", { shown: !b.classList.contains("hidden"), user: window.dentalRayCurrentUser || null });
+    console.log("[Dentix صدا]", { shown: list.some((b) => !b.classList.contains("hidden")), user: window.dentalRayCurrentUser || null });
   }
 
   // اگر کاربر از هر دو بخش مراجعه خارج شد، گوش دادن قطع شود تا فرمانی روی
@@ -363,8 +374,11 @@
     wireViewerNav();
     watchStudySection();
     watchImageViewer();
-    const b = button();
-    if (b && !b.dataset.wired) { b.dataset.wired = "1"; b.onclick = toggle; }
+    buttons().forEach((b) => {
+      if (b.dataset.wired) return;
+      b.dataset.wired = "1";
+      b.onclick = toggle;
+    });
     // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم
     // تا اگر رویداد auth از دست رفت، دکمه برای مدیر/دندانپزشک نهایتاً دیده شود.
     [400, 1500, 4000].forEach((ms) => setTimeout(refreshVisibility, ms));
