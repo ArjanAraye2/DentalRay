@@ -31,21 +31,26 @@
   }
   lastVisit = recallVisit();
 
-  // ---- کلمهٔ بیداری (مثل سیری): هر فرمان باید «دنتیکس» داشته باشد تا صدای
-  // محیط (مکالمهٔ اتاق، تلویزیون، صدای دستگاه) فرمان اشتباه اجرا نکند.
-  const WAKE_WORDS = ["دنتیکس", "دنتکس", "دنتيکس", "dentix"];
+  // ---- کلمهٔ بیداری (مثل سیری): هر فرمان باید این واژه را داشته باشد تا صدای
+  // محیط (مکالمهٔ اتاق، تلویزیون) فرمان اشتباه اجرا نکند.
+  // واژهٔ اصلی «دنتا» است؛ بقیه به‌عنوان معادل پذیرفته می‌شوند تا اگر مدل
+  // گفتار واژه را طور دیگری شنید («دنت»، «دنتیکس») فرمان از دست نرود.
+  const WAKE_DISPLAY = "دنتا";
+  const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
 
-  // خروجی: رشتهٔ باقی‌مانده بعد از کلمهٔ بیداری | "" اگر فقط «دنتیکس» گفته شده
-  //         | null اگر کلمهٔ بیداری اصلاً نبود.
+  // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
+  //         | null اگر واژهٔ بیداری اصلاً نبود.
   function stripWake(raw) {
     const t = normalize(raw);
     if (!t) return null;
+    let at = -1, word = "";
     for (const w of WAKE_WORDS) {
       const i = t.indexOf(w);
       if (i < 0) continue;
-      return t.slice(i + w.length).replace(/^[\s،,.!?؟\-–]+/, "");
+      if (at < 0 || i < at) { at = i; word = w; }   // نزدیک‌ترین/اولین وقوع
     }
-    return null;
+    if (at < 0) return null;
+    return t.slice(at + word.length).replace(/^[\s،,.!?؟\-–]+/, "");
   }
 
   function matchingRule(text) {
@@ -63,7 +68,7 @@
     if (rest === null) {
       // بدون کلمهٔ بیداری فرمانی اجرا نمی‌شود؛ اگر شبیه یک فرمان بود، راهنمایی می‌کنیم.
       const rule = matchingRule(text);
-      setStatus(rule ? `اول «دنتیکس» را بگویید — مثلاً: دنتیکس ${rule.label}` : `شنیده شد: ${text}`, null);
+      setStatus(rule ? `اول «دنتا» را بگویید — مثلاً: دنتا ${rule.label}` : `شنیده شد: ${text}`, null);
       return;
     }
     if (!rest) { setStatus("در خدمتم — بفرمایید.", "is-listening"); return; }
@@ -398,7 +403,7 @@
     lastHeard = "";
     listening = true;
     resetSilence();
-    setStatus(`در حال گوش دادن — ${label} (فرمان‌ها را با «دنتیکس» شروع کنید)`, "is-listening");
+    setStatus(`در حال گوش دادن — ${label} (فرمان‌ها را با «دنتا» شروع کنید)`, "is-listening");
   }
 
   function stop(bySilence) {
