@@ -76,11 +76,30 @@
     display: flex;
     align-items: center;
     gap: 9px;
+    width: 100%;
     padding: 8px 12px;
-    background: linear-gradient(180deg, #fbfdff, #f3f7fb);
+    border: 0;
     border-bottom: 1px solid var(--border );
+    background: linear-gradient(180deg, #fbfdff, #f3f7fb);
+    color: var(--heading );
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
 }
+.study-actions-head:focus-visible { outline: 2px solid var(--primary ); outline-offset: -2px; }
 .study-actions-head strong { color: var(--heading ); font-size: var(--fs-sm ); }
+.study-actions-arrow { flex: 0 0 auto; color: var(--primary ); font-size: 18px; line-height: 1; }
+/* خلاصهٔ شرح‌ها در وسطِ هدر؛ هنگامِ بستن هم دیده می‌شود. */
+.study-actions-desc {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted );
+    font-size: var(--fs-xs );
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
 .study-actions-chip {
     padding: 2px 9px;
     border-radius: 999px;
@@ -94,7 +113,7 @@
 .study-actions-body { display: grid; gap: 7px; padding: 9px 10px 10px; }
 .study-actions-form {
     display: grid;
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, .7fr) minmax(0, .7fr) auto;
+    grid-template-columns: minmax(0, 3.2fr) minmax(0, .9fr) minmax(0, .9fr) auto;
     gap: 6px;
 }
 .study-actions-list { display: grid; gap: 5px; }
@@ -102,7 +121,7 @@
 .study-actions-list-head,
 .study-actions-row {
     display: grid;
-    grid-template-columns: minmax(0, 2.2fr) minmax(0, .7fr) minmax(0, .7fr) minmax(0, .7fr) auto;
+    grid-template-columns: minmax(0, 3fr) minmax(0, .7fr) minmax(0, .7fr) minmax(0, .7fr) auto;
     gap: 7px;
     align-items: center;
 }
@@ -178,7 +197,7 @@
 .study-finance-summary .finance-balance { background: var( --warning-soft ); border-color: #e8cf9a; }
 .study-finance-summary .finance-balance strong { color: var( --warning ); }
 
-.study-finance-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.study-finance-columns { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .study-finance-box { padding: 11px; border-radius: var( --radius ); background: var( --surface ); border: 1px solid var( --border ); }
 .study-finance-box h6 { margin: 0 0 9px; color: var( --heading ); font-size: var( --fs-sm ); }
 
@@ -189,8 +208,27 @@
     margin-bottom: 8px;
 }
 .study-finance-form.payment {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, .75fr) minmax(0, .7fr) minmax(0, 1.2fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, 2.6fr) auto;
 }
+/* جای‌گذاریِ صریحِ فیلدها: ویجتِ تاریخ یک div و یک برچسبِ روزِ هفته اضافه می‌کند و
+   بدون این کلاس‌ها، همهٔ ستون‌ها یکی به‌راست می‌رفتند و «شرح» در ستونِ باریک
+   می‌نشست. شرح در ستونِ بلند می‌ماند و روزِ هفته زیرِ تاریخ می‌نشیند. */
+.study-finance-form.payment > .f-date { grid-area: 1 / 1; }
+.study-finance-form.payment > .f-date-note { grid-area: 2 / 1; }
+.study-finance-form.payment > .f-method { grid-area: 1 / 2; }
+.study-finance-form.payment > .f-amount { grid-area: 1 / 3; }
+.study-finance-form.payment > .f-desc { grid-area: 1 / 4; }
+.study-finance-form.payment > .f-refund { grid-area: 1 / 5; }
+.study-finance-form.payment > .f-add { grid-area: 2 / 5; }
+/* در ویرایشِ درون‌خطی، روزِ هفته جا نمی‌گیرد — سطر تک‌خطی می‌ماند. */
+.study-finance-row.edit-row > .f-date { grid-area: 1 / 1; }
+.study-finance-row.edit-row > .f-date-note { display: none; }
+.study-finance-row.edit-row > .f-method { grid-area: 1 / 2; }
+.study-finance-row.edit-row > .f-amount { grid-area: 1 / 3; }
+.study-finance-row.edit-row > .f-desc { grid-area: 1 / 4; }
+.study-finance-row.edit-row > .f-refund { grid-area: 1 / 5; }
+.study-finance-row.edit-row > .f-save { grid-area: 1 / 6; }
+.study-finance-row.edit-row > .f-cancel { grid-area: 1 / 7; }
 .study-finance-form input,
 .study-finance-form select,
 .study-actions-form input {
@@ -225,11 +263,11 @@
     font-size: var( --fs-xs );
 }
 .study-finance-row.payment {
-    grid-template-columns: minmax(0, .8fr) minmax(0, .65fr) minmax(0, .7fr) minmax(0, 1.2fr) auto auto;
+    grid-template-columns: minmax(0, .9fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, 2.4fr) auto auto;
 }
 /* Inline edit row: the fields replace the read-only spans. */
 .study-finance-row.edit-row {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, .75fr) minmax(0, .7fr) minmax(0, 1.2fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .7fr) minmax(0, .8fr) minmax(0, 3fr) auto auto auto;
     background: var( --surface );
     border-color: var( --primary );
     box-shadow: 0 0 0 3px rgba( 12, 55, 70, 0.08 );

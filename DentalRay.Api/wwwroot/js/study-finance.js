@@ -57,11 +57,18 @@
   root.className="study-actions";
   root.dataset.studyId=String(financeRoot.dataset.studyId);
 
-  const head=document.createElement("header");head.className="study-actions-head";
+  // سرِ هدر دکمهٔ باز/بسته است: فلش + عنوان + خلاصهٔ شرح‌ها + چیپ. خلاصهٔ شرح‌ها
+  // هنگامِ بستن هم می‌ماند تا بدانید چه داخلِ این پنل است.
+  const head=document.createElement("button");
+  head.type="button";head.className="study-actions-head";
+  head.setAttribute("aria-expanded","true");
+  const arrow=document.createElement("span");arrow.className="study-actions-arrow";arrow.setAttribute("aria-hidden","true");arrow.textContent="⌃";
   const title=document.createElement("strong");title.textContent="اقدامات این مراجعه";
+  const descLine=document.createElement("span");descLine.className="study-actions-desc";
+  descLine.dataset.actionsDesc="";descLine.textContent="";
   const chip=document.createElement("span");chip.className="study-actions-chip";
   chip.dataset.actionsSummary="";chip.textContent="بدون اقدام";
-  head.append(title,chip);
+  head.append(arrow,title,descLine,chip);
 
   const body=document.createElement("div");body.className="study-actions-body";
   const form=document.createElement("div");form.className="study-actions-form";
@@ -78,6 +85,9 @@
 
   body.append(form,list,status);
   root.append(head,body);
+  // باز/بسته: پیش‌فرض باز (محلِ کارِ روزمره) و تصمیمِ دستیِ کاربر تا آخرِ نشست می‌ماند.
+  const setOpen=open=>{body.classList.toggle("hidden",!open);root.classList.toggle("is-collapsed",!open);head.setAttribute("aria-expanded",open?"true":"false");arrow.textContent=open?"⌃":"⌄";};
+  head.addEventListener("click",()=>setOpen(body.classList.contains("hidden")));
   // ذخیرهٔ موفق، نشانگر را به اولین فیلد برمی‌گرداند تا اقدام بعدی سریع ثبت شود.
   add.onclick=()=>saveAction(financeRoot,{description:desc.value,amount:num(amount),discountAmount:num(discount)},
     ()=>{desc.value="";amount.value="";discount.value="0";desc.focus();});
@@ -92,8 +102,15 @@
   const refundBox=isRefund.querySelector("input");
   const add=button("+ دریافت");
   date.dataset.jalaliDatetime="";date.value=window.toEnglishJalaliInput?.(new Date(),true)||"";
+  // کلاس‌های جای‌گذاری: ویجتِ تاریخ یک div و یک برچسبِ روزِ هفته کنارِ فیلد
+  // می‌سازد؛ بدون این کلاس‌ها ستون‌ها یکی به‌راست می‌رفتند و «شرح دریافت»
+  // در ستونِ باریکِ آخر می‌نشست.
+  date.classList.add("f-date");method.classList.add("f-method");amount.classList.add("f-amount");
+  desc.classList.add("f-desc");isRefund.classList.add("f-refund");add.classList.add("f-add");
   form.append(date,method,amount,desc,isRefund,add);
   window.DentalRayJalali?.enhanceAll(date);
+  const wrap=date.closest(".jalali-input-wrap");if(wrap)wrap.classList.add("f-date");
+  form.querySelector(":scope > .jalali-weekday-name")?.classList.add("f-date-note");
 
   // A refund reverses money, so the wording and the button change with it.
   const applyRefundMode=()=>{
@@ -132,6 +149,9 @@
   const chip=host.querySelector("[data-actions-summary]");
   const netOf=x=>Number(x.amount||0)-Number(x.discountAmount||0);
   if(chip)chip.textContent=items.length?`${items.length.toLocaleString("fa-IR")} اقدام · خالص ${money(items.reduce((s,x)=>s+netOf(x),0))}`:"بدون اقدام";
+  // خلاصهٔ شرح‌ها در هدر: با « · » از هم جدا می‌شود و کلِ متن در تولتیپ است.
+  const descEl=host.querySelector("[data-actions-desc]");
+  if(descEl){const text=items.map(x=>x.description||"-").join(" · ");descEl.textContent=text;descEl.title=text;}
   list.replaceChildren();
   if(!items.length){list.innerHTML='<div class="study-finance-empty">اقدامی ثبت نشده است.</div>';return;}
   items.forEach(x=>{
@@ -199,9 +219,14 @@
   refundLabel.innerHTML='<input type="checkbox" /> <span>بازپرداخت</span>';
   const refundBox=refundLabel.querySelector("input");refundBox.checked=!!x.isRefund;
   const save=button("ذخیره"),cancel=button("انصراف","secondary-button");
+  // همان جای‌گذاریِ صریح (ویجتِ تاریخ دو جایگاه اضافه می‌کند).
+  date.classList.add("f-date");method.classList.add("f-method");amount.classList.add("f-amount");
+  desc.classList.add("f-desc");refundLabel.classList.add("f-refund");save.classList.add("f-save");cancel.classList.add("f-cancel");
   form.append(date,method,amount,desc,refundLabel,save,cancel);
   row.replaceWith(form);
   window.DentalRayJalali?.enhanceAll(form);
+  const wrap=date.closest(".jalali-input-wrap");if(wrap)wrap.classList.add("f-date");
+  form.querySelector(":scope > .jalali-weekday-name")?.classList.add("f-date-note");
   save.onclick=()=>{let paymentDate;try{paymentDate=window.parsePersianDateForBackend(date.value,true);}catch(e){setStatus(root,e.message,true);return;}
     savePayment(root,{paymentDate,paymentMethod:Number(method.value),amount:num(amount),description:desc.value,isRefund:refundBox.checked},null,x.studyPaymentID);};
   cancel.onclick=()=>form.replaceWith(row);
