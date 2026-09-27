@@ -41,7 +41,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۲۳";
+  const VOICE_VERSION = "۲۵";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -200,7 +200,7 @@
   function openAt(list, index) {
     const i = Math.max(0, Math.min(list.length - 1, index));
     if (typeof window.openLargeImage === "function") window.openLargeImage(list[i]);
-    setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
+    setStatus(`تصویر ${i + 1} از ${list.length} · صدا ${VOICE_VERSION}`, "is-listening");
   }
 
   function galleryError(list) {
@@ -380,6 +380,16 @@
         if (interim) setStatus(`شنیده شد: ${interim}`, null);
       };
 
+      // وصلِ مجدد بعد از قطع، همیشه از اولی نمی‌گیرد؛ بدون چند تلاش پشت سر هم،
+      // کاربر تا رسیدن نگهبان (۲۰ ثانیه) هیچ‌چیز نمی‌شنید — همان «۳۰ ثانیه» گزارش‌شده.
+      const scheduleRestart = () => {
+        if (!listening) return;
+        [250, 700, 1500, 3000].forEach((d) => setTimeout(() => {
+          if (!listening || recActive) return;
+          try { recognition.start(); } catch (e) { /* تلاش بعدی */ }
+        }, d));
+      };
+
       recognition.onerror = (e) => {
         if (e.error === "no-speech" || e.error === "aborted") return;   // عادی است
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
@@ -393,17 +403,14 @@
           return;
         }
         setStatus("خطا: " + e.error, "is-error");
+        scheduleRestart();
       };
 
       // کروم بعد از سکوت خودش قطع می‌کند؛ با کمی تأخیر وصل می‌شود تا اولین
       // جملهٔ بعدی ناقص بریده نشود.
       recognition.onend = () => {
         recActive = false;
-        if (!listening) return;
-        setTimeout(() => {
-          if (!listening) return;
-          try { recognition.start(); } catch (e) { /* هم‌زمان اجرا شده */ }
-        }, 250);
+        scheduleRestart();
       };
     }
 
@@ -482,11 +489,11 @@
       const pill = $("voiceStatusViewer");
       if (Array.isArray(list) && list.length) {
         const i = currentIndex(list);
-        if (i >= 0) setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
-        else setStatus(`آمادهٔ فرمان — واژهٔ بیداری: ${WAKE_DISPLAY}`, "is-listening");
+        if (i >= 0) setStatus(`تصویر ${i + 1} از ${list.length} · صدا ${VOICE_VERSION}`, "is-listening");
+        else setStatus(`آمادهٔ فرمان — واژهٔ بیداری: ${WAKE_DISPLAY} · صدا ${VOICE_VERSION}`, "is-listening");
       } else if (pill && !pill.textContent) {
         // هرگز خالی نماند؛ وگرنه کاربر فکر می‌کند صوت اصلاً روشن نشده است.
-        setStatus(`آمادهٔ فرمان — واژهٔ بیداری: ${WAKE_DISPLAY}`, "is-listening");
+        setStatus(`آمادهٔ فرمان — واژهٔ بیداری: ${WAKE_DISPLAY} · صدا ${VOICE_VERSION}`, "is-listening");
       }
     });
     obs.observe(modal, { attributes: true, attributeFilter: ["class"] });
@@ -525,12 +532,12 @@
   setInterval(() => {
     if (!listening || !recognition) return;
     if (!recActive) { try { recognition.start(); } catch (e) { /* در حال اجرا */ } return; }
-    if (Date.now() - lastResultAt < 20000) return;
-    // ۲۰ ثانیه سکوتِ مطلق: چرخه را تازه می‌کنیم. اگر سالم باشد stop آن را قطع و
+    if (Date.now() - lastResultAt < 12000) return;
+    // ۱۲ ثانیه سکوتِ مطلق: چرخه را تازه می‌کنیم. اگر سالم باشد stop آن را قطع و
     // وصل می‌کند؛ اگر «قفل» شده باشد (onend نیامد)، استارت دستی بعدی بیدارش می‌کند.
     try { recognition.stop(); } catch (e) { /* بی‌اثر */ }
-    setTimeout(() => { if (listening) { try { recognition.start(); } catch (e) { /* از قبل روشن */ } } }, 500);
-  }, 5000);
+    setTimeout(() => { if (listening) { try { recognition.start(); } catch (e) { /* از قبل روشن */ } } }, 400);
+  }, 3000);
 
   window.DentalRayVoice = {
     start, stop, isListening: () => listening, goNext, goPrev,
