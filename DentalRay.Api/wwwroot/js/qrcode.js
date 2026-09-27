@@ -508,6 +508,10 @@ var qrcode = function() {
       cellSize = cellSize || 2;
       margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
 
+      // حاشیهٔ امن حداقل ۶ خانه: بعضی دوربین‌ها (مخصوصاً شیائومی) با حاشیهٔ
+      // کم اصلاً واکنشی نشان نمی‌دهند؛ اینجا برای همهٔ کیوآرکدها اعمال می‌شود.
+      margin = Math.max(margin, cellSize * 6);
+
       // Compose alt property surrogate
       alt = (typeof alt === 'string') ? {text: alt} : alt || {};
       alt.text = alt.text || null;
@@ -528,6 +532,9 @@ var qrcode = function() {
       qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
       qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
       qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      // لبه‌های تیز خانه‌ها: با رندر نرم، لبه‌ها می‌لرزند و دوربین‌های سخت‌گیر
+      // (شیائومی) قفل نمی‌کنند در حالی که آیفون مشکلی ندارد.
+      qrSvg += ' shape-rendering="crispEdges"';
       qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
           escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
       qrSvg += '>';
