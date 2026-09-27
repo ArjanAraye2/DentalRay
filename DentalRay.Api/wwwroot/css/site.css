@@ -4723,3 +4723,27 @@ body { line-height: 1.75; }
     color: var(--muted);
     font-size: 12px;
 }
+
+/* کیوآرکدِ همان لینک، داخل پنجرهٔ «ارسال لینک تصویر با پیامک» */
+.share-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.share-qr svg {
+    width: 150px;
+    height: 150px;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.share-qr small {
+    color: #55707e;
+    font-size: 11.5px;
+}

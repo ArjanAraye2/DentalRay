@@ -292,12 +292,32 @@ namespace DentalRay.Api.Controllers
 
             Console.WriteLine($"[DentalRay PatientDetails] IMAGE COUNTS loaded Count={imageCounts.Count}");
 
+            // «حذف مراجعه» فقط برای مراجعهٔ خالی مجاز است؛ تعداد اقدام‌ها و پرداخت‌ها
+            // را همین‌جا می‌گیریم تا رابط کاربری دکمهٔ حذف را نشان ندهد.
+            var actionCounts = studyIDs.Count == 0
+                ? new Dictionary<int, int>()
+                : await _context.StudyActions.AsNoTracking()
+                    .Where(x => studyIDs.Contains(x.StudyID))
+                    .GroupBy(x => x.StudyID)
+                    .Select(g => new { StudyID = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.StudyID, x => x.Count);
+
+            var paymentCounts = studyIDs.Count == 0
+                ? new Dictionary<int, int>()
+                : await _context.StudyPayments.AsNoTracking()
+                    .Where(x => studyIDs.Contains(x.StudyID))
+                    .GroupBy(x => x.StudyID)
+                    .Select(g => new { StudyID = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.StudyID, x => x.Count);
+
             var studyList = studies.Select(s => new
             {
                 s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID, s.StudyTypeName,
                 s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
                 s.Status, s.FollowUpDate, s.FollowUpNote, s.WaitStageID, s.WaitStageName,
-                imageCount = imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0
+                imageCount = imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0,
+                actionCount = actionCounts.TryGetValue(s.StudyID, out int ac) ? ac : 0,
+                paymentCount = paymentCounts.TryGetValue(s.StudyID, out int pc) ? pc : 0
             }).ToList();
 
             int totalImageCount = studyList.Sum(s => s.imageCount);

@@ -28,6 +28,13 @@
           </div>
         </div>
 
+        <!-- همان لینک، به‌صورت کیوآرکد: برای وقتی که بیمار جلوی ماست یا شماره‌ای نداریم -->
+        <div class="form-field">
+          <label>یا کیوآرکد همان لینک</label>
+          <div class="pair-qr share-qr" id="shareQr"></div>
+          <small class="field-hint">برای نمایش به بیمار، روی کیوآرکد کلیک کنید تا تمام‌صفحه شود.</small>
+        </div>
+
         <div class="form-field">
           <label for="shareRecipient">گیرنده</label>
           <select id="shareRecipient">
@@ -78,6 +85,24 @@
     });
   }
 
+  // کیوآرکد همان لینک: برای نمایش به بیمارِ جلوی رو، بدون نیاز به پیامک.
+  // از همان مولد کیوآرکد بقیهٔ برنامه استفاده می‌شود (لبهٔ تیز + حاشیهٔ۶ خانه).
+  function renderShareQr(url) {
+    const box = $("shareQr");
+    if (!box) return;
+    box.replaceChildren();
+    if (!url || typeof qrcode !== "function") return;
+    try {
+      const code = qrcode(0, "M");
+      code.addData(url);
+      code.make();
+      box.innerHTML = code.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: "کیوآرکد لینک تصاویر این مراجعه" });
+      const hint = document.createElement("small");
+      hint.textContent = "کیوآرکد همان لینک بالا";
+      box.appendChild(hint);
+    } catch (e) { /* کیوآرکد خراب نباید ارسال را متوقف کند */ }
+  }
+
   function close() {
     const dialog = $("shareImagesDialog");
     if (dialog) dialog.classList.add("hidden");
@@ -126,8 +151,10 @@
       shareID = data.shareID;
       $("shareLinkInput").value = data.url;
       $("shareMessage").value = data.message || "";
+      renderShareQr(data.url);
       status("", false);
     } catch (e) {
+      const box = $("shareQr"); if (box) box.replaceChildren();
       status(e.message || "ساخت لینک انجام نشد.", true);
     }
   }

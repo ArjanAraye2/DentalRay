@@ -169,7 +169,9 @@ async function openPatient(id){selectedPatientID=id;const request=beginPatientOp
 // Publishing it here keeps one source of truth: whenever the record renders,
 // window.selectedPatient matches what is on screen.
 function publishSelectedPatient(p){window.selectedPatient=p||null;window.selectedPatientID=Number(p?.patientID)||null;}
-function renderPatientDetails(x){const p=x.patient,patientCode=formatPatientCode(p.patientID),studies=x.studies||[];E.patientFullName.textContent=`${p.firstName} ${p.lastName}`;E.patientDisplayCode.textContent=`شناسه پرونده: ${patientCode}`;E.patientNationalCode.textContent=`کد ملی: ${p.nationalCode}`;E.detailPatientCode.textContent=patientCode;E.detailFirstName.textContent=p.firstName||"-";E.detailLastName.textContent=p.lastName||"-";E.detailNationalCode.textContent=p.nationalCode||"-";E.detailMobile.textContent=p.mobile||"-";E.detailBirthDate.textContent=formatPersianDate(p.birthDate);E.detailGender.textContent=formatPatientGender(p.gender);E.detailIsActive.textContent=p.isActive?"فعال":"غیرفعال";E.detailAddress.textContent=p.address||"-";E.detailDescription.textContent=p.description||"-";E.studyCount.textContent=x.studyCount;E.totalImageCount.textContent=x.totalImageCount;E.lastStudyDateSummary.textContent=studies.length?formatPersianDate(studies[0].studyDate):"-";E.patientStatusBadge.textContent=p.isActive?"فعال":"غیرفعال";E.patientStatusBadge.className=`status-badge ${p.isActive?"active":"inactive"}`;E.deactivatePatientButton.textContent=p.isActive?"غیرفعال کردن":"فعال کردن";if(E.patientProfilePhoto){E.patientProfilePhoto.src=`/api/patients/${p.patientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.onerror=()=>{E.patientProfilePhoto.removeAttribute("src");E.patientProfilePhoto.classList.add("empty");};E.patientProfilePhoto.classList.remove("empty");}renderRecentStudiesSummary(studies);renderStudiesSafe(studies);}
+function renderPatientDetails(x){const p=x.patient,patientCode=formatPatientCode(p.patientID),studies=x.studies||[];E.patientFullName.textContent=`${p.firstName} ${p.lastName}`;E.patientDisplayCode.textContent=`شناسه پرونده: ${patientCode}`;E.patientNationalCode.textContent=`کد ملی: ${p.nationalCode}`;E.detailPatientCode.textContent=patientCode;E.detailFirstName.textContent=p.firstName||"-";E.detailLastName.textContent=p.lastName||"-";E.detailNationalCode.textContent=p.nationalCode||"-";E.detailMobile.textContent=p.mobile||"-";E.detailBirthDate.textContent=formatPersianDate(p.birthDate);E.detailGender.textContent=formatPatientGender(p.gender);E.detailIsActive.textContent=p.isActive?"فعال":"غیرفعال";E.detailAddress.textContent=p.address||"-";E.detailDescription.textContent=p.description||"-";E.studyCount.textContent=x.studyCount;E.totalImageCount.textContent=x.totalImageCount;applyAttachAvailability(Number(x.totalImageCount)||0>0);E.lastStudyDateSummary.textContent=studies.length?formatPersianDate(studies[0].studyDate):"-";E.patientStatusBadge.textContent=p.isActive?"فعال":"غیرفعال";E.patientStatusBadge.className=`status-badge ${p.isActive?"active":"inactive"}`;E.deactivatePatientButton.textContent=p.isActive?"غیرفعال کردن":"فعال کردن";if(E.patientProfilePhoto){E.patientProfilePhoto.src=`/api/patients/${p.patientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.onerror=()=>{E.patientProfilePhoto.removeAttribute("src");E.patientProfilePhoto.classList.add("empty");};E.patientProfilePhoto.classList.remove("empty");}renderRecentStudiesSummary(studies);renderStudiesSafe(studies);
+// بعد از ساخت کارت‌ها، چون خودِ کارت‌ها هم دکمهٔ «الصاق» دارند.
+applyAttachAvailability(Number(x.totalImageCount)||0>0);}
 
 async function renderRecentStudiesSummary(studies){
  E.recentStudiesSummary.replaceChildren();const recent=(studies||[]).slice(0,3);
@@ -376,6 +378,10 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    const card=document.createElement("article");
    card.className="study-scroll-card";
    card.dataset.studyId=String(study.studyID);
+    // For the delete button: a visit with images, actions or payments is never deletable.
+    card.dataset.imageCount=String(study.imageCount||0);
+    card.dataset.actionCount=String(study.actionCount||0);
+    card.dataset.paymentCount=String(study.paymentCount||0);
 
    // --- header: a clickable summary row -------------------------------------
    const header=document.createElement("header");
@@ -419,12 +425,14 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    imageMenuButton.setAttribute("aria-haspopup","true");imageMenuButton.setAttribute("aria-expanded","false");
    const imageMenuBox=document.createElement("div");
    imageMenuBox.className="study-image-menu-box hidden";
-   [["عکس/فایل جدید (دوربین یا کامپیوتر)",()=>openUploadImageForm(study)],
-    ["الصاق تصویر موجود از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
-    ["دریافت از بیمار با لینک/کیوآرکد",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
-    ["ارسال لینک تصویر با پیامک",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
-   .forEach(([label,run])=>{
+   [["عکس/فایل جدید (دوربین یا کامپیوتر)",()=>openUploadImageForm(study),false],
+    ["الصاق تصویر موجود از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();},true],
+    ["دریافت از بیمار با لینک/کیوآرکد",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();},false],
+    ["ارسال لینک تصویر با پیامک",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();},false]]
+   .forEach(([label,run,needsImages])=>{
      const item=document.createElement("button");item.type="button";item.className="study-image-menu-item";item.textContent=label;
+     // اگر بیمار هیچ تصویری نداشته باشد، «الصاق» معنا ندارد و مخفی می‌ماند.
+     if(needsImages)item.setAttribute("data-needs-images","1");
      item.onclick=ev=>{ev.stopPropagation();closeStudyImageMenus();run();};
      imageMenuBox.appendChild(item);
    });
@@ -462,13 +470,18 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      // دقیقاً همین‌جاست و نباید برای آپلود/الصاق برگردد به جای دیگر.
      const imageActions=document.createElement("div");
      imageActions.className="study-card-image-actions";
-     [["عکس/فایل جدید (دوربین یا کامپیوتر)",()=>openUploadImageForm(study)],
-      ["الصاق تصویر موجود از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
-      ["دریافت از بیمار با لینک/کیوآرکد",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
-      ["ارسال لینک تصویر با پیامک",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
-     .forEach(([label,run],i)=>{
+     [["عکس/فایل جدید (دوربین یا کامپیوتر)",()=>openUploadImageForm(study),false],
+      ["الصاق تصویر موجود از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();},true],
+      ["دریافت از بیمار با لینک/کیوآرکد",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();},false],
+      ["ارسال لینک تصویر با پیامک",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();},false]]
+     .forEach(([label,run,needsImages],i)=>{
        const b=document.createElement("button");
        b.type="button";b.className="secondary-button"+(i===3?" is-out":"");b.textContent=label;
+       if(needsImages){
+         b.setAttribute("data-needs-images","1");
+         // این ردیف هنگام باز شدن کارت ساخته می‌شود؛ وضعیت را از پرچم فعلی می‌خوانیم.
+         if(!patientHasImages)b.classList.add("hidden");
+       }
        b.onclick=ev=>{ev.stopPropagation();run();};
        imageActions.appendChild(b);
      });
@@ -558,6 +571,13 @@ function closeStudyImageMenus(){
 }
 document.addEventListener("click",closeStudyImageMenus);
 
+// اگر بیمار هیچ تصویری نداشته باشد، «الصاق تصویر موجود از پرونده» معنا ندارد.
+let patientHasImages = true;
+function applyAttachAvailability(hasImages){
+ patientHasImages = hasImages;
+ document.querySelectorAll("[data-needs-images]").forEach(el=>el.classList.toggle("hidden",!hasImages));
+}
+
 // مبدأ را قبل از عوض شدن صفحه ثبت می‌کنیم تا «بازگشت به مراجعه» دقیقاً به
 // همان‌جایی برگردد که آپلود از آنجا صدا زده شده (مراجعه، صفحهٔ تصاویر، یا پرونده).
 let uploadReturnTo = null;
@@ -577,7 +597,7 @@ function syncFilePickerNames(){[["imageFileInput","فایلی انتخاب نش�
 ["imageFileInput","cameraFileInput"].forEach(id=>byId(id)?.addEventListener("change",syncFilePickerNames));
 syncFilePickerNames();
 E.retakeCameraButton?.addEventListener("click",()=>{resetCameraCapture();E.cameraFileInput.click();});
-async function uploadImage(){try{if(!selectedStudyID)throw new Error("رادیولوژی انتخاب نشده است.");const imageTypeID=Number(E.uploadImageType.value);if(!imageTypeID)throw new Error("ابتدا «نوع تصویر» را از فهرست انتخاب کنید؛ بدون آن ذخیره ممکن نیست.");const file=pendingCameraFile||E.imageFileInput.files?.[0];if(!file)throw new Error("یک فایل یا تصویر دوربین انتخاب کنید.");const isImage=(file.type||"").toLowerCase().startsWith("image/"),isPdf=(file.type||"").toLowerCase()==="application/pdf"||(file.name||"").toLowerCase().endsWith(".pdf");if(!isImage&&!isPdf)throw new Error("فایل انتخاب‌شده باید تصویر یا PDF باشد.");const send=(allowDuplicate)=>{const fd=new FormData();fd.append("file",file);return fetch(`/api/radiologyimages?studyID=${selectedStudyID}&imageTypeID=${imageTypeID}${allowDuplicate?"&allowDuplicate=true":""}`,{method:"POST",body:fd});};setFormStatus(E.uploadImageStatus,"در حال ذخیره و اتصال فایل...",false);let r=await send(false),x=await readApiJson(r);if(r.status===409&&x&&x.duplicate){/* The same picture was already stored for this patient. The server stopped before saving; only the operator can decide it is not a mistake. */const when=x.existing?.createdDate?new Date(x.existing.createdDate).toLocaleDateString("fa-IR"):"";const go=await askConfirmation({title:"تصویر تکراری",message:`${x.message}${when?` تاریخ ثبت قبلی: ${when}.`: ""} آیا می‌خواهید با این حال ذخیره شود؟`,confirmText:"ذخیره شود",danger:false});if(!go){setFormStatus(E.uploadImageStatus,"ذخیره لغو شد؛ تصویر تکراری ثبت نشد.",false);return;}r=await send(true);x=await readApiJson(r);}if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ذخیره فایل انجام نشد."));resetCameraCapture();E.uploadImageType.classList.remove("field-missing");if(selectedStudy){selectedStudy.imageCount=(selectedStudy.imageCount||0)+1;openStudyImages(selectedStudy);}else await openPatient(selectedPatientID);showToast(`فایل با موفقیت ذخیره شد: ${x.fileName}`);}catch(e){setFormStatus(E.uploadImageStatus,e.message,true);/* The status line sits above the buttons and is easy to miss on a phone, so failures are repeated as a toast. */showToast(e.message,"error");if(!Number(E.uploadImageType?.value))E.uploadImageType?.classList.add("field-missing");}}
+async function uploadImage(){try{if(!selectedStudyID)throw new Error("رادیولوژی انتخاب نشده است.");const imageTypeID=Number(E.uploadImageType.value);if(!imageTypeID)throw new Error("ابتدا «نوع تصویر» را از فهرست انتخاب کنید؛ بدون آن ذخیره ممکن نیست.");const file=pendingCameraFile||E.imageFileInput.files?.[0];if(!file)throw new Error("یک فایل یا تصویر دوربین انتخاب کنید.");const isImage=(file.type||"").toLowerCase().startsWith("image/"),isPdf=(file.type||"").toLowerCase()==="application/pdf"||(file.name||"").toLowerCase().endsWith(".pdf");if(!isImage&&!isPdf)throw new Error("فایل انتخاب‌شده باید تصویر یا PDF باشد.");const send=(allowDuplicate)=>{const fd=new FormData();fd.append("file",file);return fetch(`/api/radiologyimages?studyID=${selectedStudyID}&imageTypeID=${imageTypeID}${allowDuplicate?"&allowDuplicate=true":""}`,{method:"POST",body:fd});};setFormStatus(E.uploadImageStatus,"در حال ذخیره و اتصال فایل...",false);let r=await send(false),x=await readApiJson(r);if(r.status===409&&x&&x.duplicate){/* The same picture was already stored for this patient. The server stopped before saving; only the operator can decide it is not a mistake. */const when=x.existing?.createdDate?new Date(x.existing.createdDate).toLocaleDateString("fa-IR"):"";const go=await askConfirmation({title:"تصویر تکراری",message:`${x.message}${when?` تاریخ ثبت قبلی: ${when}.`: ""} آیا می‌خواهید با این حال ذخیره شود؟`,confirmText:"ذخیره شود",danger:false});if(!go){setFormStatus(E.uploadImageStatus,"ذخیره لغو شد؛ تصویر تکراری ثبت نشد.",false);return;}r=await send(true);x=await readApiJson(r);}if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ذخیره فایل انجام نشد."));resetCameraCapture();E.uploadImageType.classList.remove("field-missing");if(selectedStudy){selectedStudy.imageCount=(selectedStudy.imageCount||0)+1;applyAttachAvailability(true);openStudyImages(selectedStudy);}else await openPatient(selectedPatientID);showToast(`فایل با موفقیت ذخیره شد: ${x.fileName}`);}catch(e){setFormStatus(E.uploadImageStatus,e.message,true);/* The status line sits above the buttons and is easy to miss on a phone, so failures are repeated as a toast. */showToast(e.message,"error");if(!Number(E.uploadImageType?.value))E.uploadImageType?.classList.add("field-missing");}}
 
 function patientPayload(prefix){const f=E[`${prefix}FirstName`].value.trim(),l=E[`${prefix}LastName`].value.trim(),n=normalizeDigits(E[`${prefix}NationalCode`].value.trim()),m=normalizePhone(E[`${prefix}Mobile`].value);validatePatientFields(f,l,n,m);return{nationalCode:n,firstName:f,lastName:l,birthDate:parsePersianDateForBackend(E[`${prefix}BirthDate`].value,false),gender:E[`${prefix}Gender`].value===""?null:+E[`${prefix}Gender`].value,mobile:m,address:emptyToNull(E[`${prefix}Address`].value),description:emptyToNull(E[`${prefix}Description`].value)};}
 function openNewPatientForm(){E.newPatientForm.reset();setFormStatus(E.newPatientStatus,"",false);hideMainSections();E.newPatientSection.classList.remove("hidden");E.newFirstName.focus();}
