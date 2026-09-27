@@ -419,10 +419,10 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    imageMenuButton.setAttribute("aria-haspopup","true");imageMenuButton.setAttribute("aria-expanded","false");
    const imageMenuBox=document.createElement("div");
    imageMenuBox.className="study-image-menu-box hidden";
-   [["آپلود تصویر جدید",()=>openUploadImageForm(study)],
-    ["الصاق تصویر از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
-    ["دریافت تصویر برای این مراجعه",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
-    ["ارسال لینک تصویر",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
+   [["عکس/فایل جدید (دوربین یا کامپیوتر)",()=>openUploadImageForm(study)],
+    ["الصاق تصویر موجود از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
+    ["دریافت از بیمار با لینک/کیوآرکد",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
+    ["ارسال لینک تصویر با پیامک",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
    .forEach(([label,run])=>{
      const item=document.createElement("button");item.type="button";item.className="study-image-menu-item";item.textContent=label;
      item.onclick=ev=>{ev.stopPropagation();closeStudyImageMenus();run();};
@@ -462,10 +462,10 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      // دقیقاً همین‌جاست و نباید برای آپلود/الصاق برگردد به جای دیگر.
      const imageActions=document.createElement("div");
      imageActions.className="study-card-image-actions";
-     [["آپلود تصویر جدید",()=>openUploadImageForm(study)],
-      ["الصاق تصویر از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
-      ["دریافت تصویر برای این مراجعه",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
-      ["ارسال لینک تصویر",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
+     [["عکس/فایل جدید (دوربین یا کامپیوتر)",()=>openUploadImageForm(study)],
+      ["الصاق تصویر موجود از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
+      ["دریافت از بیمار با لینک/کیوآرکد",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
+      ["ارسال لینک تصویر با پیامک",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
      .forEach(([label,run],i)=>{
        const b=document.createElement("button");
        b.type="button";b.className="secondary-button"+(i===3?" is-out":"");b.textContent=label;
@@ -760,7 +760,7 @@ function goBackFromUpload(){
  openPatient((r && r.patientID) || selectedPatientID);
 }
 [E.cancelUploadImageButton,E.cancelUploadImageButtonBottom].forEach(b=>b.onclick=goBackFromUpload);
-// دکمهٔ «آپلود تصویر جدید» در هدر مراجعه (کنار بقیهٔ کارهای تصویر)
+// دکمهٔ «عکس/فایل جدید» در هدر مراجعه (کنار بقیهٔ کارهای تصویر)
 document.getElementById("visitHeaderUploadButton")?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});
 E.patientPhotoButton?.addEventListener("click",()=>E.patientPhotoInput?.click());
 E.patientPhotoInput?.addEventListener("change",async()=>{const file=E.patientPhotoInput.files?.[0];if(!file||!selectedPatientID)return;try{const fd=new FormData();fd.append("file",file);const r=await fetch(`/api/patients/${selectedPatientID}/photo`,{method:"POST",body:fd}),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ذخیره تصویر بیمار انجام نشد."));E.patientProfilePhoto.src=`/api/patients/${selectedPatientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.classList.remove("empty");showToast("تصویر بیمار ذخیره شد.");}catch(e){showToast(e.message||"ذخیره تصویر بیمار انجام نشد.","error");}finally{E.patientPhotoInput.value="";}});

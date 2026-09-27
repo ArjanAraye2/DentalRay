@@ -70,7 +70,7 @@
     tourBody.className = "form-guide-body";
     tourBody.appendChild(part(
       "چهار گام کار امروز",
-      "جست‌وجوی بیمار ← ثبت بیمار ← ثبت مراجعه ← آپلود تصویر جدید. برای نیروی تازه همین چهارقدم کل کار روزانه است."
+      "جست‌وجوی بیمار ← ثبت بیمار ← ثبت مراجعه ← عکس/فایل جدید. برای نیروی تازه همین چهارقدم کل کار روزانه است."
     ));
     var tourRow = document.createElement("p");
     tourRow.className = "tour-actions";

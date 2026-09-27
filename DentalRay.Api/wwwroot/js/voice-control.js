@@ -31,13 +31,43 @@
   }
   lastVisit = recallVisit();
 
-  // یک عبارت قطعی در چند صدا (یا دو بار رسیدن) نباید دو بار اجرا شود.
+  // ---- کلمهٔ بیداری (مثل سیری): هر فرمان باید «دنتیکس» داشته باشد تا صدای
+  // محیط (مکالمهٔ اتاق، تلویزیون، صدای دستگاه) فرمان اشتباه اجرا نکند.
+  const WAKE_WORDS = ["دنتیکس", "دنتکس", "دنتيکس", "dentix"];
+
+  // خروجی: رشتهٔ باقی‌مانده بعد از کلمهٔ بیداری | "" اگر فقط «دنتیکس» گفته شده
+  //         | null اگر کلمهٔ بیداری اصلاً نبود.
+  function stripWake(raw) {
+    const t = normalize(raw);
+    if (!t) return null;
+    for (const w of WAKE_WORDS) {
+      const i = t.indexOf(w);
+      if (i < 0) continue;
+      return t.slice(i + w.length).replace(/^[\s،,.!?؟\-–]+/, "");
+    }
+    return null;
+  }
+
+  function matchingRule(text) {
+    const t = normalize(text);
+    return RULES.find((r) => r.re.test(t)) || null;
+  }
+
   function handle(text) {
     if (!text) return;
     if (text === lastHeard && Date.now() - lastHeardAt < 2500) return;
     lastHeard = text; lastHeardAt = Date.now();
     resetSilence();
-    const done = runCommand(text);
+
+    const rest = stripWake(text);
+    if (rest === null) {
+      // بدون کلمهٔ بیداری فرمانی اجرا نمی‌شود؛ اگر شبیه یک فرمان بود، راهنمایی می‌کنیم.
+      const rule = matchingRule(text);
+      setStatus(rule ? `اول «دنتیکس» را بگویید — مثلاً: دنتیکس ${rule.label}` : `شنیده شد: ${text}`, null);
+      return;
+    }
+    if (!rest) { setStatus("در خدمتم — بفرمایید.", "is-listening"); return; }
+    const done = runCommand(rest);
     if (!done) setStatus(`شنیده شد: ${text}`, null);
   }
 
@@ -340,7 +370,7 @@
     lastHeard = "";
     listening = true;
     resetSilence();
-    setStatus(`در حال گوش دادن — ${label}`, "is-listening");
+    setStatus(`در حال گوش دادن — ${label} (فرمان‌ها را با «دنتیکس» شروع کنید)`, "is-listening");
   }
 
   function stop(bySilence) {

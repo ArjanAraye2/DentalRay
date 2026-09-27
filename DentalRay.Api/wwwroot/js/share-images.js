@@ -177,7 +177,7 @@
     btn.type = "button";
     btn.id = id;
     btn.className = "secondary-button";
-    btn.textContent = "ارسال لینک تصویر";
+    btn.textContent = "ارسال لینک تصویر با پیامک";
     btn.onclick = open;
     toolbar.appendChild(btn);
   }

@@ -216,7 +216,7 @@
     btn.type = "button";
     btn.id = "studyReceiveImagesButton";
     btn.className = "secondary-button";
-    btn.textContent = "دریافت تصویر برای این مراجعه";
+    btn.textContent = "دریافت از بیمار با لینک/کیوآرکد";
     btn.onclick = openDialog;
     toolbar.appendChild(btn);
   }
