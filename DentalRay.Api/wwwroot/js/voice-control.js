@@ -20,6 +20,8 @@
   let finalSeen = 0;                 // چند نتیجهٔ قطعی قبلاً اجرا شده (جلوگیری از تکرار)
   let lastHeard = "";
   let lastHeardAt = 0;
+  let lastResultAt = 0;              // آخرین بار که چیزی (حتی موقت) شنیده شد
+  let recActive = false;             // آیا چرخهٔ گوش دادن روشن است؟
 
   // بعد از رفرش صفحه، مراجعهٔ باز از یاد نرود.
   const VISIT_KEY = "dentix-last-visit";
@@ -336,6 +338,8 @@
       let finalBuffer = "";
       let finalTimer = null;
       recognition.onstart = () => {
+        recActive = true;
+        lastResultAt = Date.now();
         finalSeen = 0;
         lastHeard = "";
         finalBuffer = "";
@@ -343,6 +347,7 @@
       };
 
       recognition.onresult = (event) => {
+        lastResultAt = Date.now();
         // نشست تازه (آرایهٔ کوتاه‌تر از شمارنده) یعنی قطع و وصل شده؛ از نو بشمار.
         if (finalSeen > event.results.length) { finalSeen = 0; finalBuffer = ""; }
         let interim = "";
@@ -390,6 +395,7 @@
       // کروم بعد از سکوت خودش قطع می‌کند؛ با کمی تأخیر وصل می‌شود تا اولین
       // جملهٔ بعدی ناقص بریده نشود.
       recognition.onend = () => {
+        recActive = false;
         if (!listening) return;
         setTimeout(() => {
           if (!listening) return;
@@ -402,6 +408,8 @@
     finalSeen = 0;
     lastHeard = "";
     listening = true;
+    recActive = true;
+    lastResultAt = Date.now();
     resetSilence();
     setStatus(`در حال گوش دادن — ${label} (فرمان‌ها را با «دنتا» شروع کنید)`, "is-listening");
   }
@@ -502,6 +510,19 @@
 
   // پنجرهٔ تصویر ممکن است بعداً ساخته شود؛ دکمه‌های قبلی/بعدی را هر چند لحظه وصل می‌کنیم.
   setInterval(wireViewerNav, 1500);
+
+  // نگهبان سلامتِ گوش دادن: بعضی وقت‌ها کروم چرخه را بی‌صدا قطع می‌کند یا
+  // دیگر هیچ صدایی برنمی‌گرداند و همه‌چیز «قفل» می‌شود. اگر ۲۰ ثانیه است هیچ
+  // چیزی (حتی صدای محیط) نشنیده‌ایم یا چرخه خاموش است، آن را تازه می‌کنیم.
+  setInterval(() => {
+    if (!listening || !recognition) return;
+    if (!recActive) { try { recognition.start(); } catch (e) { /* در حال اجرا */ } return; }
+    if (Date.now() - lastResultAt < 20000) return;
+    // ۲۰ ثانیه سکوتِ مطلق: چرخه را تازه می‌کنیم. اگر سالم باشد stop آن را قطع و
+    // وصل می‌کند؛ اگر «قفل» شده باشد (onend نیامد)، استارت دستی بعدی بیدارش می‌کند.
+    try { recognition.stop(); } catch (e) { /* بی‌اثر */ }
+    setTimeout(() => { if (listening) { try { recognition.start(); } catch (e) { /* از قبل روشن */ } } }, 500);
+  }, 5000);
 
   window.DentalRayVoice = {
     start, stop, isListening: () => listening, goNext, goPrev,
