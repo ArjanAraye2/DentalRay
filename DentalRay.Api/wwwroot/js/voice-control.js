@@ -39,6 +39,9 @@
   // گفتار واژه را طور دیگری شنید («دنت»، «دنتیکس») فرمان از دست نرود.
   const WAKE_DISPLAY = "دنتا";
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
+  // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
+  // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
+  const VOICE_VERSION = "۲۳";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -411,7 +414,7 @@
     recActive = true;
     lastResultAt = Date.now();
     resetSilence();
-    setStatus(`در حال گوش دادن — ${label} (فرمان‌ها را با «دنتا» شروع کنید)`, "is-listening");
+    setStatus(`در حال گوش دادن — ${label} (واژه: ${WAKE_DISPLAY} | صدا ${VOICE_VERSION})`, "is-listening");
   }
 
   function stop(bySilence) {
@@ -437,7 +440,7 @@
     const ok = allowedUser();
     if (!ok && listening) stop(false);
     if (!ok) setStatus("", null);
-    console.log("[Dentix صدا]", { allowed: ok, listening: listening, user: window.dentalRayCurrentUser || null });
+    console.log("[Dentix صدا]", { v: VOICE_VERSION, allowed: ok, listening: listening, user: window.dentalRayCurrentUser || null });
   }
 
   // اگر کاربر از هر دو بخش مراجعه خارج شد، گوش دادن قطع شود تا فرمانی روی
@@ -476,9 +479,14 @@
       }
       if (allowedUser() && !listening) start();
       const list = await visitGallery();
+      const pill = $("voiceStatusViewer");
       if (Array.isArray(list) && list.length) {
         const i = currentIndex(list);
         if (i >= 0) setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
+        else setStatus(`آمادهٔ فرمان — واژهٔ بیداری: ${WAKE_DISPLAY}`, "is-listening");
+      } else if (pill && !pill.textContent) {
+        // هرگز خالی نماند؛ وگرنه کاربر فکر می‌کند صوت اصلاً روشن نشده است.
+        setStatus(`آمادهٔ فرمان — واژهٔ بیداری: ${WAKE_DISPLAY}`, "is-listening");
       }
     });
     obs.observe(modal, { attributes: true, attributeFilter: ["class"] });
