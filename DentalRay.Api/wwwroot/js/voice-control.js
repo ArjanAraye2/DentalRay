@@ -41,7 +41,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۲۹";
+  const VOICE_VERSION = "۳۰";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -356,6 +356,12 @@
       recognition.onresult = (event) => {
         if (!alive()) return;
         lastResultAt = Date.now();
+        // لاگ نتیجه: با این مشخص می‌شود هنگام «قفل» مرورگر اصلاً صدایی می‌رسد یا نه.
+        {
+          const first = event.results && event.results[event.resultIndex];
+          const txt0 = first && first[0] ? String(first[0].transcript || "").slice(0, 40) : "";
+          if (txt0) console.log("[Dentix صدا] نتیجه", { f: !!(first && first.isFinal), t: txt0 });
+        }
         // نشست تازه (آرایهٔ کوتاه‌تر از شمارنده) یعنی قطع و وصل شده؛ از نو بشمار.
         if (finalSeen > event.results.length) { finalSeen = 0; finalBuffer = ""; }
         let interim = "";
@@ -419,6 +425,7 @@
       // جملهٔ بعدی ناقص بریده نشود.
       recognition.onend = () => {
         if (!alive()) return;
+        console.log("[Dentix صدا] پایان چرخه", { listening: listening });
         recActive = false;
         scheduleRestart();
       };
