@@ -54,10 +54,10 @@
 
   function button() { return $("voiceControlButton"); }
 
-  // دکمه در دو جاست: هدرِ مراجعه و نوار ابزارِ صفحهٔ تصاویر (کاربر معمولاً
-  // هنگام دیدن تصویر در همان صفحهٔ تصاویر است، نه هدر).
+  // دکمه در دو جاست: هدرِ مراجعه و نوارِ خودِ بینندهٔ تصویر — جایی که دکتر
+  // واقعاً با تصویر کار می‌کند. (دکمه در نوار صفحهٔ تصاویر نیست.)
   function buttons() {
-    return ["voiceControlButton", "voiceControlButtonImages"].map($).filter(Boolean);
+    return ["voiceControlButton", "voiceControlButtonViewer"].map($).filter(Boolean);
   }
 
   function setButtonState(listeningState, label) {
