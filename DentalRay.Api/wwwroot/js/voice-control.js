@@ -19,13 +19,19 @@
   let lastVisit = null;              // آخرین مراجعهٔ شناخته‌شده (اگر انتخابش پاک شد)
 
   /* ---------------- نقش کاربر: فقط دندانپزشک یا مدیر ---------------- */
+  function truthyFlag(v) { return v === true || v === "true" || v === 1 || v === "1"; }
+
   function allowedUser() {
     const u = window.dentalRayCurrentUser;
-    if (!u) return false;
-    // بسته به مسیر ورود، isSuperAdmin ممکن است boolean یا رشته باشد؛
-    // دیده نشدن دکمه برای مدیر، کل کار را بی‌معنا می‌کند پس هر دو را می‌پذیریم.
-    if (u.isSuperAdmin === true || u.isSuperAdmin === "true" || u.IsSuperAdmin === true) return true;
-    return Number(u.staffType) === 2;          // 2 = دندانپزشک (طبق StudyAccessService)
+    if (!u) return false;                                   // ورود نشده
+    if (truthyFlag(u.isSuperAdmin) || truthyFlag(u.IsSuperAdmin)) return true;
+    if (Number(u.staffType) === 2) return true;             // 2 = دندانپزشک
+    // اگر نقش کاملاً معلوم نیست (بعضی مسیرهای ورود فیلد را برنمی‌گردانند) ولی
+    // کاربر وارد شده، دکمه را نشان می‌دهیم؛ پنهان ماندن دکمه برای مدیر از هر
+    // اشتباهی بدتر است. فقط وقتی صریحاً غیردندانپزشک باشد مخفی می‌ماند.
+    const hasRole = u.staffType !== undefined && u.staffType !== null && u.staffType !== "";
+    if (hasRole) return false;                              // کارمند/منشی
+    return true;
   }
 
   function supportedBrowser() {
@@ -309,6 +315,9 @@
     b.classList.toggle("hidden", !ok);
     if (!ok && listening) stop(false);
     if (!ok) setStatus("", null);
+    // لاگ تشخیصی: اگر دکمه دیده نشد، همین یک خط در Console مرورگر کافی است
+    // تا بفهمیم مشکل از نقش کاربر است یا از چیز دیگری.
+    console.log("[Dentix صدا]", { shown: !b.classList.contains("hidden"), user: window.dentalRayCurrentUser || null });
   }
 
   // اگر کاربر از هر دو بخش مراجعه خارج شد، گوش دادن قطع شود تا فرمانی روی
@@ -333,10 +342,27 @@
     });
   }
 
+  // به‌محض باز شدن بیننده، جای تصویر در مراجعه نشان داده شود؛
+  // این هم تأیید است که فهرست تصاویر درست خوانده شده و هم نقطهٔ شروع فرمان‌ها.
+  function watchImageViewer() {
+    const modal = $("imageModal");
+    if (!modal || modal.dataset.voiceWatched) return;
+    modal.dataset.voiceWatched = "1";
+    const obs = new MutationObserver(async () => {
+      if (modal.classList.contains("hidden")) { setStatus("", null); return; }
+      const list = await visitGallery();
+      if (!Array.isArray(list) || !list.length) return;   // هنگام باز شدن، خطا را شلوغ نمی‌کنیم
+      const i = currentIndex(list);
+      if (i >= 0) setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
+    });
+    obs.observe(modal, { attributes: true, attributeFilter: ["class"] });
+  }
+
   function init() {
     refreshVisibility();
     wireViewerNav();
     watchStudySection();
+    watchImageViewer();
     const b = button();
     if (b && !b.dataset.wired) { b.dataset.wired = "1"; b.onclick = toggle; }
     // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم
