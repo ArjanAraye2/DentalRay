@@ -41,7 +41,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۲۶";
+  const VOICE_VERSION = "۲۷";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -332,15 +332,14 @@
       recognition.continuous = true;
       recognition.interimResults = true;
 
-      // کروم بعد از هر جمله/سکوت، گوش دادن را قطع می‌کند و با onend دوباره وصل
-      // می‌شویم؛ هر بار باید شمارندهٔ نتایج صفر شود وگرنه همهٔ فرمان‌های بعدی
-      // به‌عنوان «قبلاً اجرا شده» نادیده گرفته می‌شوند.
-      // تکه‌های قطعیِ یک جمله انباشته می‌شوند و ۳۲۰ میلی‌ثانیه بعد اجرا می‌شوند؛
-      // چون کروم بعد از هر قطع/وصل، اولین تکه را ناقص می‌دهد (مثلاً «دنت» و بعد
-      // «یکس بعدی»). بدون انباشت، فقط همان «دنت» اجرا می‌شد.
-      let finalBuffer = "";
-      let finalTimer = null;
+      // نمونهٔ فعلی را نگه می‌داریم: اگر بعداً دور انداخته شود (renew)، رویدادهای
+      // همان نمونهٔ قدیمی نباید وضعیت مشترک را خراب کنند — علت حلقهٔ بی‌پایان
+      // «بازیابی ⇄ بازیابی ناموفق» در کنسول همین بود.
+      const inst = recognition;
+      const alive = () => recognition === inst;
+
       recognition.onstart = () => {
+        if (!alive()) return;
         recActive = true;
         lastResultAt = Date.now();
         finalSeen = 0;
@@ -349,7 +348,11 @@
         if (finalTimer) { clearTimeout(finalTimer); finalTimer = null; }
       };
 
+      let finalBuffer = "";
+      let finalTimer = null;
+
       recognition.onresult = (event) => {
+        if (!alive()) return;
         lastResultAt = Date.now();
         // نشست تازه (آرایهٔ کوتاه‌تر از شمارنده) یعنی قطع و وصل شده؛ از نو بشمار.
         if (finalSeen > event.results.length) { finalSeen = 0; finalBuffer = ""; }
@@ -385,14 +388,16 @@
       const scheduleRestart = () => {
         if (!listening) return;
         [250, 700, 1500, 3000].forEach((d) => setTimeout(() => {
-          if (!listening || recActive) return;
+          if (!listening || recActive || recognition !== inst) return;
           try { recognition.start(); } catch (e) { /* تلاش بعدی */ }
         }, d));
         // اگر هیچ‌کدام نگرفت، نمونه را دور می‌اندازیم و تازه می‌سازیم.
-        setTimeout(() => { if (listening && !recActive) { noteRecovery("restart-failed"); renewRecognition(); } }, 4200);
+        setTimeout(() => { if (listening && !recActive && recognition === inst) { noteRecovery("restart-failed"); renewRecognition(); } }, 4200);
       };
 
       recognition.onerror = (e) => {
+        if (!alive()) return;
+        console.log("[Dentix صدا] خطا", { e: e.error });
         if (e.error === "no-speech" || e.error === "aborted") return;   // عادی است
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           stop(false);
@@ -411,6 +416,7 @@
       // کروم بعد از سکوت خودش قطع می‌کند؛ با کمی تأخیر وصل می‌شود تا اولین
       // جملهٔ بعدی ناقص بریده نشود.
       recognition.onend = () => {
+        if (!alive()) return;
         recActive = false;
         scheduleRestart();
       };
