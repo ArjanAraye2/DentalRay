@@ -107,11 +107,12 @@
     return list;
   }
 
-  // خروجی: آرایه = فهرست | null = مراجعه‌ای انتخاب نشده | undefined = دریافت ناموفق
+  // خروجی: آرایه = فهرست | null = مراجعه‌ای شناخته نشد | undefined = دریافت ناموفق
   async function visitGallery() {
     const dom = scanGallery();
     if (dom.length) return dom;
-    const visit = currentVisit();
+    let visit = currentVisit();
+    if (!visit) visit = await visitFromImage();      // از خودِ تصویرِ باز، مراجعه را پیدا می‌کنیم
     if (!visit) return null;
     try {
       const r = await fetch(`/api/radiologyimages/study/${visit.studyID}`, { cache: "no-store" });
@@ -124,6 +125,24 @@
         imageTypeName: i.imageTypeName || null
       }));
     } catch (e) { return undefined; }
+  }
+
+  // آخرین راه: از تصویرِ باز شده بپرسیم به کدام مراجعه‌ها وصل است.
+  async function visitFromImage() {
+    const el = $("largeImage");
+    const m = el && el.src ? (el.src.match(/radiologyimages\/(\d+)/) || []) : [];
+    if (!m[1]) return null;
+    try {
+      const r = await fetch(`/api/radiologyimages/${m[1]}/studies`, { cache: "no-store" });
+      if (!r.ok) return null;
+      const x = await r.json();
+      const list = x.studies || [];
+      if (!list.length) return null;
+      const chosen = (lastVisit && list.find((s) => s.studyID === lastVisit.studyID)) || list[0];
+      lastVisit = chosen;
+      rememberVisit(chosen);
+      return chosen;
+    } catch (e) { return null; }
   }
 
   function currentIndex(list) {
@@ -399,6 +418,16 @@
     wireViewerNav();
     watchStudySection();
     watchImageViewer();
+    // هر لحظه که برنامه مراجعه‌ای را انتخاب کرد به‌خاطر می‌سپاریم؛ چون انتخاب
+    // ممکن است وسط کار پاک شود (رفرش پرونده) و بدون این، «بعدی» با پیام غلط
+    // «مراجعه را انتخاب کن» مواجه می‌شود.
+    setInterval(() => {
+      const v = (typeof selectedStudy === "object" && selectedStudy) ? selectedStudy : (window.selectedStudy || null);
+      if (v && v.studyID && (!lastVisit || lastVisit.studyID !== v.studyID)) {
+        lastVisit = v;
+        rememberVisit(v);
+      }
+    }, 1000);
     // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم.
     [400, 1500, 4000].forEach((ms) => setTimeout(refreshVisibility, ms));
   }

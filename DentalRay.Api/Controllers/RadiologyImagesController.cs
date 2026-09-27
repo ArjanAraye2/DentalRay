@@ -129,6 +129,22 @@ namespace DentalRay.Api.Controllers
             return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
+        // تصویر به کدام مراجعه‌ها وصل است؟ برای کنترل صوتی لازم است: اگر وضعیت
+        // انتخاب مراجعه در صفحه پاک شده باشد، باز هم می‌شود فهمید «بعدی» برای
+        // کدام مراجعه است — وگرنه کاربر با پیام غلط «مراجعه را انتخاب کن» مواجه می‌شود.
+        [HttpGet("{imageID:long}/studies")]
+        public async Task<IActionResult> GetImageStudies(long imageID)
+        {
+            if (!await CanAccessImageAsync(imageID)) return NotFound(new { success=false, message="تصویر پیدا نشد." });
+            var studies = await (
+                from l in _context.RadiologyStudyImages.AsNoTracking()
+                join s in _context.RadiologyStudies.AsNoTracking() on l.StudyID equals s.StudyID
+                where l.ImageID == imageID
+                orderby s.StudyDate descending
+                select new { s.StudyID, s.PatientID, s.StudyTypeID, s.StudyDate }).ToListAsync();
+            return Ok(new { success=true, imageID, studies });
+        }
+
         // Only images reachable through at least one accessible Study are returned to ordinary users.
         [HttpGet("patient/{patientID:int}")]
         public async Task<IActionResult> GetPatientImages(int patientID)
