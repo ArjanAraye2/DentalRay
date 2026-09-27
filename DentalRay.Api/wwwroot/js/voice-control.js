@@ -20,6 +20,7 @@
   let finalSeen = 0;                 // چند نتیجهٔ قطعی قبلاً اجرا شده (جلوگیری از تکرار)
   let lastHeard = "";
   let lastHeardAt = 0;
+  let lastExecuteAt = 0;             // آخرین فرمانِ اجرا‌شده (تا تأییدش فوری بازنویسی نشود)
   let lastResultAt = 0;              // آخرین بار که چیزی (حتی موقت) شنیده شد
   let recActive = false;             // آیا چرخهٔ گوش دادن روشن است؟
 
@@ -41,7 +42,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۳۱";
+  const VOICE_VERSION = "۳۲";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -295,10 +296,11 @@
       try { out = rule.act(); } catch (e) { setStatus("انجام نشد: " + rule.label, "is-error"); return true; }
       if (out && typeof out.then === "function") {
         if (!rule.selfStatus) {
-          out.then(() => { if (!rule.selfStatus) setStatus(`انجام شد: ${rule.label}`, "is-listening"); })
+          out.then(() => { if (!rule.selfStatus) { lastExecuteAt = Date.now(); setStatus(`انجام شد: ${rule.label}`, "is-listening"); } })
              .catch(() => setStatus("انجام نشد: " + rule.label, "is-error"));
         }
       } else if (!rule.selfStatus) {
+        lastExecuteAt = Date.now();
         setStatus(`انجام شد: ${rule.label}`, "is-listening");
       }
       return true;
@@ -387,8 +389,9 @@
             interim += t;
           }
         }
-        // متن موقت فقط نمایش داده می‌شود تا بدانید چه شنیده شده است.
-        if (interim) setStatus(`شنیده شد: ${interim}`, null);
+        // متن موقت فقط نمایش داده می‌شود تا بدانید چه شنیده شده است — ولی اگر
+        // تازه فرمانی اجرا شده، تأییدش را ۱٫۵ ثانیه نگه می‌داریم تا دیده شود.
+        if (interim && Date.now() - lastExecuteAt > 1500) setStatus(`شنیده شد: ${interim}`, null);
       };
 
       // وصلِ مجدد بعد از قطع، همیشه از اولی نمی‌گیرد؛ بدون چند تلاش پشت سر هم،
