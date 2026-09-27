@@ -75,38 +75,6 @@
     });
   }
 
-  // راهنمای فرمان‌ها: فقط وقتی گوش دادن فعال است زیر کلیدها دیده می‌شود.
-  const COMMAND_HINTS = [
-    "تصویر بعدی", "تصویر قبلی", "بزرگ‌تر", "کوچک‌تر", "صددرصد",
-    "بالا / پایین / چپ / راست", "چرخش", "بستن"
-  ];
-  const COMMAND_BOXES = ["voiceCommandsViewer", "voiceCommandsHeader"];
-
-  function renderCommands() {
-    COMMAND_BOXES.forEach((id) => {
-      const box = $(id);
-      if (!box) return;
-      box.replaceChildren();
-      const label = document.createElement("span");
-      label.className = "vc-label";
-      label.textContent = "فرمان‌ها:";
-      box.appendChild(label);
-      COMMAND_HINTS.forEach((t) => {
-        const chip = document.createElement("span");
-        chip.className = "vc-chip";
-        chip.textContent = t;
-        box.appendChild(chip);
-      });
-    });
-  }
-
-  function showCommands(show) {
-    COMMAND_BOXES.forEach((id) => {
-      const box = $(id);
-      if (box) box.classList.toggle("hidden", !show);
-    });
-  }
-
   function currentVisit() {
     const v = (typeof selectedStudy === "object" && selectedStudy) ? selectedStudy : (window.selectedStudy || null);
     if (v) { lastVisit = v; rememberVisit(v); return v; }
@@ -237,6 +205,7 @@
   const zoomOut = () => ensureViewer().then((ok) => ok && clickViewer("zoomOutImageButton"));
   const reset = () => ensureViewer().then((ok) => ok && clickViewer("resetImageViewButton"));
   const rotate = () => ensureViewer().then((ok) => ok && clickViewer("rotateLeftImageButton"));
+  const rotateRight = () => ensureViewer().then((ok) => ok && clickViewer("rotateRightImageButton"));
   const move = (dx, dy) => ensureViewer().then((ok) => ok && pan(dx, dy));
 
   // ترتیب مهم است: هر فرمان پیش از همسایه‌هایش خوانده می‌شود.
@@ -246,7 +215,8 @@
     { re: /(صد\s*در\s*صد|صددرصد|اندازه اصلی|اصلي|اصلی|\breset\b)/, label: "اندازهٔ اصلی", act: reset },
     { re: /(بزرگ\s*تر|بزرگ\s*نمایی|زوم\s*(in|این)|zoom\s*in)/, label: "بزرگ‌نمایی", act: zoom },
     { re: /(کوچک\s*تر|کوچک\s*نمایی|زوم\s*(out|اوت)|zoom\s*out)/, label: "کوچک‌نمایی", act: zoomOut },
-    { re: /(بچرخان|چرخش|\brotate\b)/, label: "چرخش", act: rotate },
+    { re: /(چرخش به راست|بچرخان به راست|راست بچرخان|rotate right)/, label: "چرخش به راست", act: rotateRight },
+    { re: /(چرخش به چپ|بچرخان به چپ|چپ بچرخان|چرخش|بچرخان|\brotate left\b)/, label: "چرخش به چپ", act: rotate },
     { re: /(تصویر بعدی|بعدی|عکس بعدی|\bnext\b)/, label: "تصویر بعدی", act: goNext, selfStatus: true },
     { re: /(تصویر قبلی|قبلی|عکس قبلی|\bprevious\b|\bprev\b)/, label: "تصویر قبلی", act: goPrev, selfStatus: true },
     { re: /(^|\s)بالا(تر)?(\s|$| کن)/, label: "بالا", act: () => move(0, -70) },
@@ -351,7 +321,6 @@
     lastHeard = "";
     listening = true;
     resetSilence();
-    showCommands(true);
     setStatus(`در حال گوش دادن — ${label}`, "is-listening");
   }
 
@@ -359,7 +328,6 @@
     listening = false;
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     try { recognition && recognition.stop(); } catch (e) { /* بی‌اثر */ }
-    showCommands(false);
     setStatus("", null);
     if (bySilence) setStatus("به دلیل سکوت، گوش دادن قطع شد.", null);
   }
@@ -431,7 +399,6 @@
     wireViewerNav();
     watchStudySection();
     watchImageViewer();
-    renderCommands();
     // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم.
     [400, 1500, 4000].forEach((ms) => setTimeout(refreshVisibility, ms));
   }
@@ -446,6 +413,6 @@
 
   window.DentalRayVoice = {
     start, stop, isListening: () => listening, goNext, goPrev,
-    runCommand, visitGallery, handle, renderCommands, showCommands
+    runCommand, visitGallery, handle
   };
 })();

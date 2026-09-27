@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dentix</title>
     <link rel="stylesheet" href="/css/fonts.css?v=20260920.1" />
-    <link rel="stylesheet" href="/css/site.css?v=20260927.8" />
+    <link rel="stylesheet" href="/css/site.css?v=20260927.9" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20260921.5" />
     <!-- Loaded up-front so Study/Dental forms never flash unstyled; the JS
          helpers use these ids and therefore skip injecting them again. -->
@@ -104,7 +104,6 @@
     </div>
 
     <div id="studyDetailsStatus" class="status-message"></div>
-    <div id="voiceCommandsHeader" class="voice-commands voice-commands--light hidden"></div>
 
     <section class="study-form-card">
       <h3 class="study-form-card-title">اطلاعات اصلی</h3>
@@ -202,7 +201,7 @@
 </section>
 </main>
 </div>
-<div id="imageModal" class="image-modal hidden"><div class="image-modal-content"><div class="image-viewer-toolbar"><button id="prevImageButton" type="button" data-voice="قبلی" title="تصویر قبلی (فرمان صوتی: قبلی)">›</button><button id="nextImageButton" type="button" data-voice="بعدی" title="تصویر بعدی (فرمان صوتی: بعدی)">‹</button><button id="zoomOutImageButton" type="button" data-voice="کوچک‌تر">−</button><button id="zoomInImageButton" type="button" data-voice="بزرگ‌تر">+</button><button id="rotateLeftImageButton" type="button" data-voice="چرخش">↺</button><button id="rotateRightImageButton" type="button">↻</button><button id="flipHorizontalImageButton" type="button">پشت‌ورو</button><button id="resetImageViewButton" type="button" data-voice="صددرصد">100%</button></div><button id="closeImageModalButton" type="button" class="modal-close-button" data-voice="بستن" title="بستن (فرمان صوتی: بستن)">×</button><img id="largeImage" alt="تصویر رادیولوژی" /><div id="largeImageCaption" class="image-caption"></div><div id="voiceStatusViewer" class="voice-status-viewer hidden"></div><div id="voiceCommandsViewer" class="voice-commands voice-commands--dark hidden"></div></div></div>
+<div id="imageModal" class="image-modal hidden"><div class="image-modal-content"><div class="image-viewer-toolbar"><button id="prevImageButton" type="button" data-voice="قبلی" title="فرمان صوتی: تصویر قبلی | قبلی | عکس قبلی | previous">›</button><button id="nextImageButton" type="button" data-voice="بعدی" title="فرمان صوتی: تصویر بعدی | بعدی | عکس بعدی | next">‹</button><button id="zoomOutImageButton" type="button" data-voice="کوچک‌تر" title="فرمان صوتی: کوچک‌تر | کوچک‌نمایی | زوم اوت | zoom out">−</button><button id="zoomInImageButton" type="button" data-voice="بزرگ‌تر" title="فرمان صوتی: بزرگ‌تر | بزرگ‌نمایی | زوم این | zoom in">+</button><button id="rotateLeftImageButton" type="button" data-voice="چرخش چپ" title="فرمان صوتی: چرخش به چپ | بچرخان به چپ | چرخش">↺</button><button id="rotateRightImageButton" type="button" data-voice="چرخش راست" title="فرمان صوتی: چرخش به راست | بچرخان به راست">↻</button><button id="flipHorizontalImageButton" type="button">پشت‌ورو</button><button id="resetImageViewButton" type="button" data-voice="صددرصد" title="فرمان صوتی: صددرصد | صد درصد | اندازهٔ اصلی | reset">100%</button></div><button id="closeImageModalButton" type="button" class="modal-close-button" data-voice="بستن" title="فرمان صوتی: بستن | ببند | close">×</button><img id="largeImage" alt="تصویر رادیولوژی" /><div id="largeImageCaption" class="image-caption"></div><div id="voiceStatusViewer" class="voice-status-viewer hidden"></div></div></div>
 <div id="confirmModal" class="confirm-overlay hidden"><div class="confirm-dialog"><div id="confirmIcon" class="confirm-icon">!</div><h3 id="confirmTitle">تأیید عملیات</h3><p id="confirmMessage"></p><div class="confirm-actions"><button id="confirmYesButton" type="button" class="danger-button">تأیید</button><button id="confirmNoButton" type="button" class="secondary-button">انصراف</button></div></div></div>
 <div id="toastContainer" class="toast-container"></div>
 <script src="/js/jalali-picker.js?v=20260921.2"></script>
@@ -234,7 +233,7 @@
 <script src="/js/form-guides.js?v=20260927.2"></script>
 <script src="/js/help-page.js?v=20260927.2"></script>
 <script src="/js/first-run-tour.js?v=20260927.2"></script>
-<script src="/js/voice-control.js?v=20260927.11"></script>
+<script src="/js/voice-control.js?v=20260927.12"></script>
 <script src="/js/toolbar-more.js?v=20260927.1"></script>
 </body>
 </html>

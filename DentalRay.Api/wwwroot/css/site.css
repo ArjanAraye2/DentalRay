@@ -3935,52 +3935,7 @@ img.dashboard-recent-icon { padding: 0; object-fit: cover; background: #0f5165; 
 .voice-status-viewer.is-error { background: rgba(180, 35, 24, 0.92); }
 
 /* راهنمای فرمان‌ها — فقط وقتی گوش دادن فعال است، زیر کلیدها دیده می‌شود */
-.voice-commands {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border-radius: 12px;
-    font-size: 12.5px;
-    line-height: 1.9;
-}
-
-.voice-commands--dark {
-    position: absolute;
-    bottom: 14px;
-    right: 50%;
-    transform: translateX(50%);
-    max-width: 92%;
-    background: rgba(12, 55, 70, 0.9);
-    color: #ffffff;
-    z-index: 5;
-    pointer-events: none;
-    justify-content: center;
-}
-
-.voice-commands--light {
-    margin-top: 10px;
-    background: #f5fbfd;
-    border: 1px solid var(--border);
-    color: #0f5165;
-}
-
-.voice-commands .vc-label { font-weight: 700; }
-
-.voice-commands .vc-chip {
-    padding: 2px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
-    white-space: nowrap;
-}
-
-.voice-commands--light .vc-chip {
-    background: #ffffff;
-    border-color: var(--border);
-    color: #0d3f4f;
-}
+/* راهنمای فرمان‌ها حذف شد: برچسب صوتی زیر هر دکمه + توضیح کامل در tooltip همان دکمه است. */
 .dashboard-network-note { margin: 9px 2px 0; color: #55707e; font-size: 12px; }
 
 .dashboard-network-settings-button {
