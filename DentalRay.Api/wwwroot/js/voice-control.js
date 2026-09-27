@@ -16,6 +16,7 @@
   let listening = false;
   let lastSpeechAt = 0;
   let silenceTimer = null;
+  let lastVisit = null;              // آخرین مراجعهٔ شناخته‌شده (اگر انتخابش پاک شد)
 
   /* ---------------- نقش کاربر: فقط دندانپزشک یا مدیر ---------------- */
   function allowedUser() {
@@ -48,8 +49,11 @@
   function button() { return $("voiceControlButton"); }
 
   function currentVisit() {
-    if (typeof selectedStudy === "object" && selectedStudy) return selectedStudy;
-    return window.selectedStudy || null;
+    const v = (typeof selectedStudy === "object" && selectedStudy) ? selectedStudy : (window.selectedStudy || null);
+    if (v) { lastVisit = v; return v; }
+    // انتخاب مراجعه ممکن است وسط کار پاک شود (مثلاً بعد از رفرش پرونده) در حالی
+    // که کاربر هنوز داخل همان مراجعه است؛ به آخرین مراجعهٔ شناخته‌شده برمی‌گردیم.
+    return lastVisit;
   }
 
   /* ---------------- فهرست تصاویر همین مراجعه ---------------- */
@@ -307,16 +311,26 @@
     if (!ok) setStatus("", null);
   }
 
-  // اگر کاربر از مراجعه خارج شد (بخش مخفی شد) گوش دادن قطع شود تا فرمانی
-  // روی مراجعهٔ دیگر اشتباه اعمال نشود.
+  // اگر کاربر از هر دو بخش مراجعه خارج شد، گوش دادن قطع شود تا فرمانی روی
+  // مراجعهٔ دیگر اشتباه اعمال نشود. «تصاویر این مراجعه» صفحهٔ جداگانه‌ای است و
+  // هدر مراجعه را مخفی می‌کند؛ پس نباید به تنهایی باعث قطع شدن شود.
+  function anyVisitVisible() {
+    const details = $("studyDetailsSection");
+    const images = $("studyImagesSection");
+    return (details && !details.classList.contains("hidden")) ||
+           (images && !images.classList.contains("hidden"));
+  }
+
   function watchStudySection() {
     const host = $("studyDetailsSection");
     if (!host || host.dataset.voiceWatched) return;
     host.dataset.voiceWatched = "1";
     const obs = new MutationObserver(() => {
-      if (host.classList.contains("hidden") && listening) stop(false);
+      if (!anyVisitVisible() && listening) stop(false);
     });
-    obs.observe(host, { attributes: true, attributeFilter: ["class"] });
+    [host, $("studyImagesSection")].filter(Boolean).forEach((el) => {
+      obs.observe(el, { attributes: true, attributeFilter: ["class"] });
+    });
   }
 
   function init() {
