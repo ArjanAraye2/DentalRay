@@ -41,7 +41,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۲۵";
+  const VOICE_VERSION = "۲۶";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -388,6 +388,8 @@
           if (!listening || recActive) return;
           try { recognition.start(); } catch (e) { /* تلاش بعدی */ }
         }, d));
+        // اگر هیچ‌کدام نگرفت، نمونه را دور می‌اندازیم و تازه می‌سازیم.
+        setTimeout(() => { if (listening && !recActive) { noteRecovery("restart-failed"); renewRecognition(); } }, 4200);
       };
 
       recognition.onerror = (e) => {
@@ -433,6 +435,19 @@
   }
 
   function toggle() { if (listening) stop(false); else start(); }
+
+  // آخرین راه وقتی نمونهٔ گفتار «شروع‌شده ولی بی‌صدا» گیر کرده: نه stop رویداد
+  // می‌دهد نه start قبول می‌شود. تنها درمان، دور انداختن نمونه و ساختن تازه است.
+  function noteRecovery(via) { console.log("[Dentix صدا] بازیابی", { via: via }); }
+
+  function renewRecognition() {
+    if (!listening || !recognition) return;
+    try { recognition.abort(); } catch (e) { /* بی‌اثر */ }
+    recognition = null;
+    recActive = false;
+    noteRecovery("renew");
+    try { start(); } catch (e) { /* ساخت در start انجام می‌شود */ }
+  }
 
   /* ---------------- دکمه‌های قبلی/بعدی در نوار بیننده ---------------- */
   function wireViewerNav() {
@@ -536,7 +551,11 @@
     // ۱۲ ثانیه سکوتِ مطلق: چرخه را تازه می‌کنیم. اگر سالم باشد stop آن را قطع و
     // وصل می‌کند؛ اگر «قفل» شده باشد (onend نیامد)، استارت دستی بعدی بیدارش می‌کند.
     try { recognition.stop(); } catch (e) { /* بی‌اثر */ }
-    setTimeout(() => { if (listening) { try { recognition.start(); } catch (e) { /* از قبل روشن */ } } }, 400);
+    setTimeout(() => {
+      if (!listening) return;
+      noteRecovery("watchdog");
+      renewRecognition();
+    }, 600);
   }, 3000);
 
   window.DentalRayVoice = {
