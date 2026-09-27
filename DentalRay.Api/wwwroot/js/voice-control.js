@@ -21,7 +21,9 @@
   function allowedUser() {
     const u = window.dentalRayCurrentUser;
     if (!u) return false;
-    if (u.isSuperAdmin === true) return true;
+    // بسته به مسیر ورود، isSuperAdmin ممکن است boolean یا رشته باشد؛
+    // دیده نشدن دکمه برای مدیر، کل کار را بی‌معنا می‌کند پس هر دو را می‌پذیریم.
+    if (u.isSuperAdmin === true || u.isSuperAdmin === "true" || u.IsSuperAdmin === true) return true;
     return Number(u.staffType) === 2;          // 2 = دندانپزشک (طبق StudyAccessService)
   }
 
@@ -275,6 +277,9 @@
     watchStudySection();
     const b = button();
     if (b && !b.dataset.wired) { b.dataset.wired = "1"; b.onclick = toggle; }
+    // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم
+    // تا اگر رویداد auth از دست رفت، دکمه برای مدیر/دندانپزشک نهایتاً دیده شود.
+    [400, 1500, 4000].forEach((ms) => setTimeout(refreshVisibility, ms));
   }
 
   window.addEventListener("dentalray-auth-changed", refreshVisibility);
