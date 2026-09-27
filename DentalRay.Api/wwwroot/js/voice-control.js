@@ -47,16 +47,23 @@
 
   function button() { return $("voiceControlButton"); }
 
-  /* ---------------- گالری تصاویر همین مراجعه ---------------- */
-  // از خودِ شبکهٔ تصاویر خوانده می‌شود تا نیازی به تغییر در app.js نباشد.
-  function galleryImages() {
+  function currentVisit() {
+    if (typeof selectedStudy === "object" && selectedStudy) return selectedStudy;
+    return window.selectedStudy || null;
+  }
+
+  /* ---------------- فهرست تصاویر همین مراجعه ---------------- */
+  // اول از شبکهٔ تصاویرِ روی صفحه خوانده می‌شود (سریع). اگر خالی بود — مثلاً
+  // وقتی تصویر از پنجرهٔ «الصاق تصویر» باز شده — از سرور گرفته می‌شود تا
+  // پیام غلط «تصویری در این مراجعه نیست» ندهد.
+  function scanGallery() {
     const grid = $("studyDetailsImagesGrid");
     if (!grid) return [];
     const list = [];
     grid.querySelectorAll(".image-card").forEach((card) => {
       const img = card.querySelector("img[src*='/api/radiologyimages/']");
       const pdf = card.querySelector(".pdf-thumbnail");
-      const m = img ? (img.src.match(/radiologyimages\/(\d+)/) || []) : [];
+      const m = img ? (img.getAttribute("src").match(/radiologyimages\/(\d+)/) || []) : [];
       if (!m[1] && !pdf) return;
       const title = card.querySelector(".image-card-title");
       list.push({
@@ -67,6 +74,25 @@
       });
     });
     return list;
+  }
+
+  // خروجی: آرایه = فهرست | null = مراجعه‌ای انتخاب نشده | undefined = دریافت ناموفق
+  async function visitGallery() {
+    const dom = scanGallery();
+    if (dom.length) return dom;
+    const visit = currentVisit();
+    if (!visit) return null;
+    try {
+      const r = await fetch(`/api/radiologyimages/study/${visit.studyID}`, { cache: "no-store" });
+      if (!r.ok) return undefined;
+      const x = await r.json();
+      return (x.images || []).map((i) => ({
+        imageID: i.imageID,
+        contentType: i.contentType || "image/jpeg",
+        fileName: i.fileName,
+        imageTypeName: i.imageTypeName || null
+      }));
+    } catch (e) { return undefined; }
   }
 
   function currentIndex(list) {
@@ -82,24 +108,29 @@
   }
 
   function openAt(list, index) {
-    if (!list.length) { setStatus("تصویری در این مراجعه نیست.", "is-error"); return; }
     const i = Math.max(0, Math.min(list.length - 1, index));
     if (typeof window.openLargeImage === "function") window.openLargeImage(list[i]);
     setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
   }
 
-  function goNext() {
-    const list = galleryImages();
-    if (!list.length) { setStatus("تصویری در این مراجعه نیست.", "is-error"); return; }
+  function galleryError(list) {
+    if (list === null) setStatus("ابتدا یک مراجعه را باز کنید.", "is-error");
+    else if (list === undefined) setStatus("فهرست تصاویر دریافت نشد.", "is-error");
+    else setStatus("تصویری در این مراجعه نیست.", "is-error");
+  }
+
+  async function goNext() {
+    const list = await visitGallery();
+    if (!Array.isArray(list) || !list.length) { galleryError(list); return; }
     const i = currentIndex(list);
     if (i < 0) { openAt(list, 0); return; }
     if (i >= list.length - 1) { setStatus("آخرین تصویر است.", "is-listening"); return; }
     openAt(list, i + 1);
   }
 
-  function goPrev() {
-    const list = galleryImages();
-    if (!list.length) { setStatus("تصویری در این مراجعه نیست.", "is-error"); return; }
+  async function goPrev() {
+    const list = await visitGallery();
+    if (!Array.isArray(list) || !list.length) { galleryError(list); return; }
     const i = currentIndex(list);
     if (i < 0) { openAt(list, list.length - 1); return; }
     if (i <= 0) { setStatus("اولین تصویر است.", "is-listening"); return; }
@@ -119,10 +150,10 @@
     } catch (e) { return false; }
   }
 
-  function ensureViewer() {
+  async function ensureViewer() {
     if (viewerOpen()) return true;
-    const list = galleryImages();
-    if (!list.length) { setStatus("تصویری در این مراجعه نیست.", "is-error"); return false; }
+    const list = await visitGallery();
+    if (!Array.isArray(list) || !list.length) { galleryError(list); return false; }
     openAt(list, 0);
     return true;
   }
@@ -139,31 +170,44 @@
       .toLowerCase();
   }
 
+  const zoom = () => ensureViewer().then((ok) => ok && clickViewer("zoomInImageButton"));
+  const zoomOut = () => ensureViewer().then((ok) => ok && clickViewer("zoomOutImageButton"));
+  const reset = () => ensureViewer().then((ok) => ok && clickViewer("resetImageViewButton"));
+  const rotate = () => ensureViewer().then((ok) => ok && clickViewer("rotateLeftImageButton"));
+  const move = (dx, dy) => ensureViewer().then((ok) => ok && pan(dx, dy));
+
   // ترتیب مهم است: هر فرمان پیش از همسایه‌هایش خوانده می‌شود.
+  // selfStatus = خودِ تابع پیام را روی صفحه می‌گذارد.
   const RULES = [
     { re: /(ببند|بستن|ببندش|\bclose\b)/, label: "بستن تصویر", act: () => { if (typeof window.closeLargeImage === "function") window.closeLargeImage(); } },
-    { re: /(بزرگ\s*تر|بزرگ\s*نمایی|زوم\s*(in|این)|zoom\s*in|\+\+)/, label: "بزرگ‌نمایی", act: () => { if (ensureViewer()) clickViewer("zoomInImageButton"); } },
-    { re: /(کوچک\s*تر|کوچک\s*نمایی|زوم\s*(out|اوت)|zoom\s*out)/, label: "کوچک‌نمایی", act: () => { if (ensureViewer()) clickViewer("zoomOutImageButton"); } },
-    { re: /(صد\s*در\s*صد|صددرصد|صد در صد|اندازه اصلی|اصلي|اصلی|\breset\b|۱۰۰\s*در\s*صد)/, label: "اندازهٔ اصلی", act: () => { if (ensureViewer()) clickViewer("resetImageViewButton"); } },
-    { re: /(بچرخان|چرخش|چپ|کلیک کن|\brotate left\b)/, label: "چرخش", act: () => { if (ensureViewer()) clickViewer("rotateLeftImageButton"); } },
-    { re: /(تصویر بعدی|بعدی|عکس بعدی|\bnext\b)/, label: "تصویر بعدی", act: goNext },
-    { re: /(تصویر قبلی|قبلی|عکس قبلی|\bprevious\b|\bprev\b)/, label: "تصویر قبلی", act: goPrev },
-    { re: /(^|\s)بالا(تر)?(\s|$| کن)/, label: "بالا", act: () => { if (ensureViewer()) pan(0, -70); } },
-    { re: /(^|\s)پایین(تر)?(\s|$| کن)/, label: "پایین", act: () => { if (ensureViewer()) pan(0, 70); } },
-    { re: /(^|\s)چپ(تر)?(\s|$| کن)/, label: "چپ", act: () => { if (ensureViewer()) pan(-70, 0); } },
-    { re: /(^|\s)راست(تر)?(\s|$| کن)/, label: "راست", act: () => { if (ensureViewer()) pan(70, 0); } },
-    { re: /(\bzoom in\b|بزرگ\s*نمایی)/, label: "بزرگ‌نمایی", act: () => { if (ensureViewer()) clickViewer("zoomInImageButton"); } }
+    { re: /(صد\s*در\s*صد|صددرصد|اندازه اصلی|اصلي|اصلی|\breset\b)/, label: "اندازهٔ اصلی", act: reset },
+    { re: /(بزرگ\s*تر|بزرگ\s*نمایی|زوم\s*(in|این)|zoom\s*in)/, label: "بزرگ‌نمایی", act: zoom },
+    { re: /(کوچک\s*تر|کوچک\s*نمایی|زوم\s*(out|اوت)|zoom\s*out)/, label: "کوچک‌نمایی", act: zoomOut },
+    { re: /(بچرخان|چرخش|\brotate\b)/, label: "چرخش", act: rotate },
+    { re: /(تصویر بعدی|بعدی|عکس بعدی|\bnext\b)/, label: "تصویر بعدی", act: goNext, selfStatus: true },
+    { re: /(تصویر قبلی|قبلی|عکس قبلی|\bprevious\b|\bprev\b)/, label: "تصویر قبلی", act: goPrev, selfStatus: true },
+    { re: /(^|\s)بالا(تر)?(\s|$| کن)/, label: "بالا", act: () => move(0, -70) },
+    { re: /(^|\s)پایین(تر)?(\s|$| کن)/, label: "پایین", act: () => move(0, 70) },
+    { re: /(^|\s)چپ(تر)?(\s|$| کن)/, label: "چپ", act: () => move(-70, 0) },
+    { re: /(^|\s)راست(تر)?(\s|$| کن)/, label: "راست", act: () => move(70, 0) }
   ];
 
   function runCommand(raw) {
     const text = normalize(raw);
     if (!text) return false;
     for (const rule of RULES) {
-      if (rule.re.test(text)) {
-        try { rule.act(); } catch (e) { setStatus("انجام نشد: " + rule.label, "is-error"); return true; }
+      if (!rule.re.test(text)) continue;
+      let out;
+      try { out = rule.act(); } catch (e) { setStatus("انجام نشد: " + rule.label, "is-error"); return true; }
+      if (out && typeof out.then === "function") {
+        if (!rule.selfStatus) {
+          out.then(() => { if (!rule.selfStatus) setStatus(`انجام شد: ${rule.label}`, "is-listening"); })
+             .catch(() => setStatus("انجام نشد: " + rule.label, "is-error"));
+        }
+      } else if (!rule.selfStatus) {
         setStatus(`انجام شد: ${rule.label}`, "is-listening");
-        return true;
       }
+      return true;
     }
     return false;
   }
@@ -180,8 +224,8 @@
       setStatus("این مرورگر تشخیص گفتار ندارد؛ از کروم یا اِج استفاده کنید.", "is-error");
       return;
     }
-    const study = (typeof selectedStudy === "object" && selectedStudy) ? selectedStudy : window.selectedStudy;
-    const label = study ? `مراجعهٔ شماره ${study.studyID}` : "این مراجعه";
+    const visit = currentVisit();
+    const label = visit ? `مراجعهٔ شماره ${visit.studyID}` : "این مراجعه";
 
     if (!recognition) {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -207,7 +251,7 @@
         if (e.error === "no-speech" || e.error === "aborted") return;   // عادی است
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           stop(false);
-          setStatus("دسترسی به میکروفن داده نشده است؛ از نوار آدرس مرورگر اجازه بدهید.", "is-error");
+          setStatus("دسترسی به میکروفن داده نشده؛ از نوار آدرس مرورگر اجازه بدهید.", "is-error");
           return;
         }
         if (e.error === "network") {
@@ -240,8 +284,8 @@
     try { recognition && recognition.stop(); } catch (e) { /* بی‌اثر */ }
     const b = button();
     if (b) { b.classList.remove("is-listening"); b.textContent = "کنترل صوتی"; }
-    setStatus(bySilence ? "به دلیل سکوت، گوش دادن قطع شد." : "", bySilence ? null : null);
-    if (bySilence) setStatus("", null);
+    setStatus("", null);
+    if (bySilence) setStatus("به دلیل سکوت، گوش دادن قطع شد.", null);
   }
 
   function toggle() { if (listening) stop(false); else start(); }
@@ -259,7 +303,7 @@
     if (!b) return;
     const ok = allowedUser();
     b.classList.toggle("hidden", !ok);
-    if (!ok) stop(false);
+    if (!ok && listening) stop(false);
     if (!ok) setStatus("", null);
   }
 
@@ -294,5 +338,5 @@
   // پنجرهٔ تصویر ممکن است بعداً ساخته شود؛ دکمه‌های قبلی/بعدی را هر چند لحظه وصل می‌کنیم.
   setInterval(wireViewerNav, 1500);
 
-  window.DentalRayVoice = { start, stop, toggle, isListening: () => listening, goNext, goPrev, runCommand };
+  window.DentalRayVoice = { start, stop, toggle, isListening: () => listening, goNext, goPrev, runCommand, visitGallery };
 })();
