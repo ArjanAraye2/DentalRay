@@ -17,6 +17,29 @@
   let lastSpeechAt = 0;
   let silenceTimer = null;
   let lastVisit = null;              // آخرین مراجعهٔ شناخته‌شده (اگر انتخابش پاک شد)
+  let finalSeen = 0;                 // چند نتیجهٔ قطعی قبلاً اجرا شده (جلوگیری از تکرار)
+  let lastHeard = "";
+  let lastHeardAt = 0;
+
+  // بعد از رفرش صفحه، مراجعهٔ باز از یاد نرود.
+  const VISIT_KEY = "dentix-last-visit";
+  function rememberVisit(v) {
+    try { if (v && v.studyID) sessionStorage.setItem(VISIT_KEY, JSON.stringify(v)); } catch (e) { /* بی‌اثر */ }
+  }
+  function recallVisit() {
+    try { const s = sessionStorage.getItem(VISIT_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  }
+  lastVisit = recallVisit();
+
+  // یک عبارت قطعی در چند صدا (یا دو بار رسیدن) نباید دو بار اجرا شود.
+  function handle(text) {
+    if (!text) return;
+    if (text === lastHeard && Date.now() - lastHeardAt < 2500) return;
+    lastHeard = text; lastHeardAt = Date.now();
+    resetSilence();
+    const done = runCommand(text);
+    if (!done) setStatus(`شنیده شد: ${text}`, null);
+  }
 
   /* ---------------- نقش کاربر: فقط دندانپزشک یا مدیر ---------------- */
   function truthyFlag(v) { return v === true || v === "true" || v === 1 || v === "1"; }
@@ -52,24 +75,41 @@
     });
   }
 
-  function button() { return $("voiceControlButton"); }
+  // راهنمای فرمان‌ها: فقط وقتی گوش دادن فعال است زیر کلیدها دیده می‌شود.
+  const COMMAND_HINTS = [
+    "تصویر بعدی", "تصویر قبلی", "بزرگ‌تر", "کوچک‌تر", "صددرصد",
+    "بالا / پایین / چپ / راست", "چرخش", "بستن"
+  ];
+  const COMMAND_BOXES = ["voiceCommandsViewer", "voiceCommandsHeader"];
 
-  // دکمه در دو جاست: هدرِ مراجعه و نوارِ خودِ بینندهٔ تصویر — جایی که دکتر
-  // واقعاً با تصویر کار می‌کند. (دکمه در نوار صفحهٔ تصاویر نیست.)
-  function buttons() {
-    return ["voiceControlButton", "voiceControlButtonViewer"].map($).filter(Boolean);
+  function renderCommands() {
+    COMMAND_BOXES.forEach((id) => {
+      const box = $(id);
+      if (!box) return;
+      box.replaceChildren();
+      const label = document.createElement("span");
+      label.className = "vc-label";
+      label.textContent = "فرمان‌ها:";
+      box.appendChild(label);
+      COMMAND_HINTS.forEach((t) => {
+        const chip = document.createElement("span");
+        chip.className = "vc-chip";
+        chip.textContent = t;
+        box.appendChild(chip);
+      });
+    });
   }
 
-  function setButtonState(listeningState, label) {
-    buttons().forEach((b) => {
-      b.classList.toggle("is-listening", !!listeningState);
-      b.textContent = label;
+  function showCommands(show) {
+    COMMAND_BOXES.forEach((id) => {
+      const box = $(id);
+      if (box) box.classList.toggle("hidden", !show);
     });
   }
 
   function currentVisit() {
     const v = (typeof selectedStudy === "object" && selectedStudy) ? selectedStudy : (window.selectedStudy || null);
-    if (v) { lastVisit = v; return v; }
+    if (v) { lastVisit = v; rememberVisit(v); return v; }
     // انتخاب مراجعه ممکن است وسط کار پاک شود (مثلاً بعد از رفرش پرونده) در حالی
     // که کاربر هنوز داخل همان مراجعه است؛ به آخرین مراجعهٔ شناخته‌شده برمی‌گردیم.
     return lastVisit;
@@ -239,7 +279,13 @@
   function resetSilence() {
     lastSpeechAt = Date.now();
     if (silenceTimer) clearTimeout(silenceTimer);
-    silenceTimer = setTimeout(() => { if (listening) stop(true); }, SILENCE_STOP_MS);
+    silenceTimer = setTimeout(() => {
+      if (!listening) return;
+      // تا وقتی بینندهٔ تصویر باز است، بی‌صدا هم گوش می‌دهیم؛ دکتر ممکن است
+      // ثانیه‌ها به تصویر نگاه کند بعد بگوید «بعدی». قطع فقط با دکمه/خروج است.
+      if (viewerOpen()) { resetSilence(); return; }
+      stop(true);
+    }, SILENCE_STOP_MS);
   }
 
   function start() {
@@ -258,16 +304,23 @@
       recognition.interimResults = true;
 
       recognition.onresult = (event) => {
-        let interim = "", final = "";
+        let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const t = event.results[i][0].transcript;
-          if (event.results[i].isFinal) final += t; else interim += t;
+          const res = event.results[i];
+          const t = res && res[0] ? (res[0].transcript || "").trim() : "";
+          if (!t) continue;
+          if (res.isFinal) {
+            // فقط نتیجهٔ قطعی اجرا می‌شود؛ اجرای هم‌زمان روی متن موقت باعث
+            // می‌شد هر فرمان دو بار انجام شود.
+            if (i < finalSeen) continue;
+            finalSeen = i + 1;
+            handle(t);
+          } else {
+            interim += t;
+          }
         }
-        const heard = (final || interim || "").trim();
-        if (!heard) return;
-        resetSilence();
-        const done = runCommand(heard);
-        if (!done) setStatus(`شنیده شد: ${heard}`, null);
+        // متن موقت فقط نمایش داده می‌شود تا بدانید چه شنیده شده است.
+        if (interim) setStatus(`شنیده شد: ${interim}`, null);
       };
 
       recognition.onerror = (e) => {
@@ -294,9 +347,11 @@
     }
 
     try { recognition.start(); } catch (e) { /* قبلاً شروع شده */ }
+    finalSeen = 0;
+    lastHeard = "";
     listening = true;
     resetSilence();
-    setButtonState(true, "توقف گوش دادن");
+    showCommands(true);
     setStatus(`در حال گوش دادن — ${label}`, "is-listening");
   }
 
@@ -304,7 +359,7 @@
     listening = false;
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     try { recognition && recognition.stop(); } catch (e) { /* بی‌اثر */ }
-    setButtonState(false, "کنترل صوتی");
+    showCommands(false);
     setStatus("", null);
     if (bySilence) setStatus("به دلیل سکوت، گوش دادن قطع شد.", null);
   }
@@ -318,17 +373,13 @@
     if (next && !next.dataset.wired) { next.dataset.wired = "1"; next.onclick = goNext; }
   }
 
-  /* ---------------- نمایش دکمه فقط برای دندانپزشک/مدیر ---------------- */
+  // صوت فقط برای دندانپزشک/مدیر فعال می‌شود؛ اگر نقش مجاز نباشد، هیچ‌وقت
+  // گوش دادن خودکار شروع نمی‌شود.
   function refreshVisibility() {
-    const list = buttons();
-    if (!list.length) return;
     const ok = allowedUser();
-    list.forEach((b) => b.classList.toggle("hidden", !ok));
     if (!ok && listening) stop(false);
     if (!ok) setStatus("", null);
-    // لاگ تشخیصی: اگر دکمه دیده نشد، همین یک خط در Console مرورگر کافی است
-    // تا بفهمیم مشکل از نقش کاربر است یا از چیز دیگری.
-    console.log("[Dentix صدا]", { shown: list.some((b) => !b.classList.contains("hidden")), user: window.dentalRayCurrentUser || null });
+    console.log("[Dentix صدا]", { allowed: ok, listening: listening, user: window.dentalRayCurrentUser || null });
   }
 
   // اگر کاربر از هر دو بخش مراجعه خارج شد، گوش دادن قطع شود تا فرمانی روی
@@ -353,18 +404,24 @@
     });
   }
 
-  // به‌محض باز شدن بیننده، جای تصویر در مراجعه نشان داده شود؛
-  // این هم تأیید است که فهرست تصاویر درست خوانده شده و هم نقطهٔ شروع فرمان‌ها.
+  // ورود به بیننده = شروع خودکار گوش دادن (بدون هیچ دکمه‌ای)؛ خروج = توقف.
+  // فقط برای دندانپزشک/مدیر.
   function watchImageViewer() {
     const modal = $("imageModal");
     if (!modal || modal.dataset.voiceWatched) return;
     modal.dataset.voiceWatched = "1";
     const obs = new MutationObserver(async () => {
-      if (modal.classList.contains("hidden")) { setStatus("", null); return; }
+      if (modal.classList.contains("hidden")) {
+        if (listening) stop(false);
+        setStatus("", null);
+        return;
+      }
+      if (allowedUser() && !listening) start();
       const list = await visitGallery();
-      if (!Array.isArray(list) || !list.length) return;   // هنگام باز شدن، خطا را شلوغ نمی‌کنیم
-      const i = currentIndex(list);
-      if (i >= 0) setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
+      if (Array.isArray(list) && list.length) {
+        const i = currentIndex(list);
+        if (i >= 0) setStatus(`تصویر ${i + 1} از ${list.length}`, "is-listening");
+      }
     });
     obs.observe(modal, { attributes: true, attributeFilter: ["class"] });
   }
@@ -374,13 +431,8 @@
     wireViewerNav();
     watchStudySection();
     watchImageViewer();
-    buttons().forEach((b) => {
-      if (b.dataset.wired) return;
-      b.dataset.wired = "1";
-      b.onclick = toggle;
-    });
-    // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم
-    // تا اگر رویداد auth از دست رفت، دکمه برای مدیر/دندانپزشک نهایتاً دیده شود.
+    renderCommands();
+    // ورود ممکن است بعد از بارگذاری صفحه تمام شود؛ چند بار دیگر هم چک می‌کنیم.
     [400, 1500, 4000].forEach((ms) => setTimeout(refreshVisibility, ms));
   }
 
@@ -392,5 +444,8 @@
   // پنجرهٔ تصویر ممکن است بعداً ساخته شود؛ دکمه‌های قبلی/بعدی را هر چند لحظه وصل می‌کنیم.
   setInterval(wireViewerNav, 1500);
 
-  window.DentalRayVoice = { start, stop, toggle, isListening: () => listening, goNext, goPrev, runCommand, visitGallery };
+  window.DentalRayVoice = {
+    start, stop, isListening: () => listening, goNext, goPrev,
+    runCommand, visitGallery, handle, renderCommands, showCommands
+  };
 })();

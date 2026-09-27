@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dentix</title>
     <link rel="stylesheet" href="/css/fonts.css?v=20260920.1" />
-    <link rel="stylesheet" href="/css/site.css?v=20260927.7" />
+    <link rel="stylesheet" href="/css/site.css?v=20260927.8" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20260921.5" />
     <!-- Loaded up-front so Study/Dental forms never flash unstyled; the JS
          helpers use these ids and therefore skip injecting them again. -->
@@ -98,13 +98,13 @@
       <div class="section-header-actions">
         <button id="studyReceiveImagesButton" type="button" class="secondary-button">دریافت تصویر برای این مراجعه</button>
         <button id="pickupHeaderButton" type="button">الصاق تصویر از پرونده</button>
-        <button id="voiceControlButton" type="button" class="secondary-button hidden">کنترل صوتی</button>
         <span id="voiceStatus" class="voice-status hidden"></span>
       </div>
       <div id="studyDetailsStatusBadge" class="study-details-badge"></div>
     </div>
 
     <div id="studyDetailsStatus" class="status-message"></div>
+    <div id="voiceCommandsHeader" class="voice-commands voice-commands--light hidden"></div>
 
     <section class="study-form-card">
       <h3 class="study-form-card-title">اطلاعات اصلی</h3>
@@ -202,7 +202,7 @@
 </section>
 </main>
 </div>
-<div id="imageModal" class="image-modal hidden"><div class="image-modal-content"><div class="image-viewer-toolbar"><button id="prevImageButton" type="button" title="تصویر قبلی">›</button><button id="nextImageButton" type="button" title="تصویر بعدی">‹</button><button id="zoomOutImageButton" type="button">−</button><button id="zoomInImageButton" type="button">+</button><button id="rotateLeftImageButton" type="button">↺</button><button id="rotateRightImageButton" type="button">↻</button><button id="flipHorizontalImageButton" type="button">پشت‌ورو</button><button id="resetImageViewButton" type="button">100%</button><button id="voiceControlButtonViewer" type="button" class="voice-toggle hidden">کنترل صوتی</button></div><button id="closeImageModalButton" type="button" class="modal-close-button">×</button><img id="largeImage" alt="تصویر رادیولوژی" /><div id="largeImageCaption" class="image-caption"></div><div id="voiceStatusViewer" class="voice-status-viewer hidden"></div></div></div>
+<div id="imageModal" class="image-modal hidden"><div class="image-modal-content"><div class="image-viewer-toolbar"><button id="prevImageButton" type="button" data-voice="قبلی" title="تصویر قبلی (فرمان صوتی: قبلی)">›</button><button id="nextImageButton" type="button" data-voice="بعدی" title="تصویر بعدی (فرمان صوتی: بعدی)">‹</button><button id="zoomOutImageButton" type="button" data-voice="کوچک‌تر">−</button><button id="zoomInImageButton" type="button" data-voice="بزرگ‌تر">+</button><button id="rotateLeftImageButton" type="button" data-voice="چرخش">↺</button><button id="rotateRightImageButton" type="button">↻</button><button id="flipHorizontalImageButton" type="button">پشت‌ورو</button><button id="resetImageViewButton" type="button" data-voice="صددرصد">100%</button></div><button id="closeImageModalButton" type="button" class="modal-close-button" data-voice="بستن" title="بستن (فرمان صوتی: بستن)">×</button><img id="largeImage" alt="تصویر رادیولوژی" /><div id="largeImageCaption" class="image-caption"></div><div id="voiceStatusViewer" class="voice-status-viewer hidden"></div><div id="voiceCommandsViewer" class="voice-commands voice-commands--dark hidden"></div></div></div>
 <div id="confirmModal" class="confirm-overlay hidden"><div class="confirm-dialog"><div id="confirmIcon" class="confirm-icon">!</div><h3 id="confirmTitle">تأیید عملیات</h3><p id="confirmMessage"></p><div class="confirm-actions"><button id="confirmYesButton" type="button" class="danger-button">تأیید</button><button id="confirmNoButton" type="button" class="secondary-button">انصراف</button></div></div></div>
 <div id="toastContainer" class="toast-container"></div>
 <script src="/js/jalali-picker.js?v=20260921.2"></script>
@@ -234,7 +234,7 @@
 <script src="/js/form-guides.js?v=20260927.2"></script>
 <script src="/js/help-page.js?v=20260927.2"></script>
 <script src="/js/first-run-tour.js?v=20260927.2"></script>
-<script src="/js/voice-control.js?v=20260927.9"></script>
+<script src="/js/voice-control.js?v=20260927.11"></script>
 <script src="/js/toolbar-more.js?v=20260927.1"></script>
 </body>
 </html>
