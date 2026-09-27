@@ -22,6 +22,7 @@
   let lastHeardAt = 0;
   let lastExecuteAt = 0;             // آخرین فرمانِ اجرا‌شده (تا تأییدش فوری بازنویسی نشود)
   let totalResults = 0;              // چند دسته نتیجه از مرورگر رسیده (برای ضربان تشخیصی)
+  let lastFinalAt = 0;               // آخرین نتیجهٔ قطعی (فرمان فقط از این‌ها اجرا می‌شود)
   let lastResultAt = 0;              // آخرین بار که چیزی (حتی موقت) شنیده شد
   let recActive = false;             // آیا چرخهٔ گوش دادن روشن است؟
 
@@ -43,7 +44,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۳۳";
+  const VOICE_VERSION = "۳۴";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -346,6 +347,7 @@
       recognition.onstart = () => {
         if (!alive()) return;
         recActive = true;
+        lastFinalAt = Date.now();
         lastResultAt = Date.now();
         finalSeen = 0;
         lastHeard = "";
@@ -378,6 +380,7 @@
             // باعث می‌شد هر فرمان دو بار انجام شود.
             if (i < finalSeen) continue;
             finalSeen = i + 1;
+            lastFinalAt = Date.now();
             // بدون فاصله می‌چسبیم: اگر «دنتیکس» دو تکه شده باشد («دنت» + «یکس بعدی»)
             // نباید وسط کلمهٔ بیداری شکسته شود.
             finalBuffer += t;
@@ -597,6 +600,16 @@
   // سکوتِ کوتاهتر از ۳۰ ثانیه هرگز دست‌مایه نمی‌شود؛ اتاق درمانی ساکت است.
   setInterval(() => {
     if (!listening || !recognition) return;
+    // گرسنگی نتیجهٔ قطعی: نتایج موقت می‌آیند ولی «قطعی» نمی‌رسد → هیچ فرمانی
+    // اجرا نمی‌شود و نگهبانِ سکوت هم کور است چون موقت‌ها زمان را تازه می‌کنند.
+    // این دقیقاً همان «بعد از چند ضربان خودبه‌خود درست شد» است؛ حالا ۸ ثانیه
+    // بعد قطع/وصل می‌کنیم تا لازم نباشد منتظر بمانید.
+    if (lastFinalAt && lastResultAt > lastFinalAt && Date.now() - lastFinalAt >= 8000) {
+      noteRecovery("no-final");
+      try { recognition.stop(); } catch (e) { /* بی‌اثر */ }
+      lastResultAt = Date.now();   // تا دوباره ۸ ثانیه صبر کند، نه اینکه هر ۳ ثانیه قطع کند
+      return;
+    }
     if (recActive) {
       if (lastResultAt && Date.now() - lastResultAt >= 30000) {
         noteRecovery("silence");
