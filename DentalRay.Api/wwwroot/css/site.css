@@ -3538,6 +3538,41 @@ table button {
 .study-card-dental-chart .dental-chart-selected { display: none; }
 .study-card-dental-chart .dental-chart-toolbar strong { font-size: 13px; }
 
+/* نمودار در کارتِ مراجعه: بستهٔ پیش‌فرض (حدود ۲۸۵px جا می‌گیرد). سطرِ سربرگ هم
+   دکمهٔ باز/بسته است و خلاصهٔ دندان‌ها را نشان می‌دهد تا هنگام بستن چیزی از دست نرود. */
+.study-chart-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #0f5165;
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+.study-chart-toggle:focus-visible { outline: 2px solid #0c7c9c; outline-offset: 3px; border-radius: 6px; }
+.study-chart-arrow { flex: 0 0 auto; color: #0c7c9c; font-size: 16px; line-height: 1; }
+.study-chart-toggle strong { display: block; color: #0f5165; font-size: 12px; font-weight: 800; }
+.study-chart-teeth {
+    min-width: 0;
+    margin-inline-start: auto;
+    overflow: hidden;
+    color: #4a6b78;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.study-scroll-chart:not(.is-collapsed) .study-chart-toggle { margin-bottom: 7px; }
+.study-scroll-chart.is-collapsed .study-card-dental-chart { display: none; }
+.study-scroll-chart.is-collapsed { padding-bottom: 9px; }
+
+/* شمارهٔ سریالِ مراجعه در هدر کارت: قدیمی‌ترین =۱ */
+.study-visit-serial { color: var(--primary); font-weight: 850; }
+
 .study-scroll-images {
     padding: 0 12px 12px;
     border-top: 1px solid #e4eff2;

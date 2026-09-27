@@ -359,6 +359,11 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
  // an image grid - which made each row tall enough to need its own scrolling. Now
  // the header carries a one-line summary and the body opens on demand, so a patient
  // with several studies stays readable.
+ // خلاصهٔ دندان‌ها برای سطرِ بستهٔ نمودار: «دندان‌ها: ۱۱، ۱۶، ۳۶»
+ function toothLineText(teeth){
+  if(!Array.isArray(teeth)||!teeth.length)return "دندانی انتخاب نشده";
+  return "دندان‌ها: "+teeth.map(n=>{const v=Number(n);return Number.isFinite(v)?v.toLocaleString("fa-IR"):String(n);}).join("، ");
+ }
  function studySummary(study){
   const parts=[];
   if(study.bodyPart)parts.push(study.bodyPart);
@@ -374,6 +379,8 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
   selectedStudyID=null;selectedStudy=null;
   if(!studies?.length){E.studiesContainer.textContent="برای این بیمار هنوز مطالعه‌ای ثبت نشده است.";return;}
   const ordered=[...studies].sort((a,b)=>new Date(b.studyDate||0)-new Date(a.studyDate||0));
+  // شمارهٔ سریالِ مراجعه: قدیمی‌ترین =۱، چون «مراجعهٔ ۱» یعنی اولین ویزیت بیمار.
+  const serialOf=new Map(ordered.map((s,i)=>[s,ordered.length-i]));
   ordered.forEach(study=>{
    const card=document.createElement("article");
    card.className="study-scroll-card";
@@ -393,7 +400,11 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    const heading=document.createElement("div");
    heading.className="study-header-main";
    const title=document.createElement("h4");
-   title.textContent=study.studyTypeName||study.studyType||`مطالعه ${study.studyID}`;
+   const serial=document.createElement("span");
+   serial.className="study-visit-serial";
+   serial.textContent=`${(serialOf.get(study)||1).toLocaleString("fa-IR")}-مراجعه`;
+   serial.title="شمارهٔ ترتیبی این مراجعه (قدیمی‌ترین = ۱)";
+   title.append(serial," ",study.studyTypeName||study.studyType||`مطالعه ${study.studyID}`);
    const date=document.createElement("time");
    date.textContent=formatPersianDateTime(study.studyDate);
    title.append(" ", date);
@@ -459,10 +470,21 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      const details=document.createElement("div");details.className="study-scroll-details";
      details.append(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));
      details.querySelectorAll(":scope > div").forEach(x=>x.classList.add("info-line"));
-     const chartSection=document.createElement("section");chartSection.className="study-scroll-chart";
+     const chartSection=document.createElement("section");chartSection.className="study-scroll-chart is-collapsed";
+     // نمودار حدود ۲۸۵px جا می‌گیرد؛ پیش‌فرض بسته است و خلاصهٔ دندان‌ها در همان
+     // یک سطر دیده می‌شود تا هنگام بستن چیزی از دست نرود؛ با کلیک باز می‌شود.
+     const chartToggle=document.createElement("button");
+     chartToggle.type="button";chartToggle.className="study-chart-toggle";
+     chartToggle.setAttribute("aria-expanded","false");
+     const chartArrow=document.createElement("span");chartArrow.className="study-chart-arrow";chartArrow.setAttribute("aria-hidden","true");chartArrow.textContent="⌄";
+     const chartTeeth=document.createElement("span");chartTeeth.className="study-chart-teeth";
+     chartTeeth.textContent=toothLineText(study.toothNumbers);chartTeeth.title=chartTeeth.textContent;
      const chartTitle=document.createElement("strong");chartTitle.textContent="نمودار دندان‌های این مطالعه";
      const chart=document.createElement("div");chart.className="study-card-dental-chart study-chart-readonly";
-     chartSection.append(chartTitle,chart);
+     chartToggle.append(chartArrow,chartTitle,chartTeeth);
+     chartSection.append(chartToggle,chart);
+     const setChartOpen=open=>{chartSection.classList.toggle("is-collapsed",!open);chartToggle.setAttribute("aria-expanded",open?"true":"false");chartArrow.textContent=open?"⌃":"⌄";};
+     chartToggle.addEventListener("click",()=>setChartOpen(chartSection.classList.contains("is-collapsed")));
      body.append(details,chartSection);
      const imagesSection=document.createElement("section");imagesSection.className="study-scroll-images";
      const imagesTitle=document.createElement("div");imagesTitle.className="study-scroll-images-title";imagesTitle.textContent="تصاویر مطالعه";
@@ -505,8 +527,13 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
  }
 async function hydrateStudyCard(study,chart,status,grid){
  const [imagesResult,studyResult]=await Promise.allSettled([fetch(`/api/radiologyimages/study/${study.studyID}`).then(async r=>({r,x:await readApiJson(r)})),fetch(`/api/radiologystudies/${study.studyID}`).then(async r=>({r,x:await readApiJson(r)}))]);
- if(studyResult.status==="fulfilled"&&studyResult.value.r.ok){const x=studyResult.value.x,teeth=x.toothNumbers||x.study?.toothNumbers||[];if(window.DentalRayDentalChart)window.DentalRayDentalChart.render(chart,teeth);}
- else if(window.DentalRayDentalChart)window.DentalRayDentalChart.render(chart,[]);
+ let teeth=[];
+ if(studyResult.status==="fulfilled"&&studyResult.value.r.ok){const x=studyResult.value.x;teeth=x.toothNumbers||x.study?.toothNumbers||[];}
+ if(window.DentalRayDentalChart)window.DentalRayDentalChart.render(chart,teeth);
+ // نمودار بسته است؛ خلاصهٔ دندان‌ها باید از همان سطر خوانده شود (در صورت خطا هم
+ // همان render بالا با لیست خالی انجام شده است).
+ const teethLine=chart.closest(".study-scroll-chart")?.querySelector(".study-chart-teeth");
+ if(teethLine){teethLine.textContent=toothLineText(teeth);teethLine.title=teethLine.textContent;}
  if(imagesResult.status==="fulfilled"){const {r,x}=imagesResult.value;if(r.ok&&x.success){renderImagesInGrid(x.images||[],grid);status.textContent=x.count?`${x.count} تصویر / فایل`:`برای این مطالعه هنوز تصویری ثبت نشده است.`;return;}status.textContent=getApiError(x,"تصاویر مطالعه دریافت نشد.");}
  else status.textContent="تصاویر مطالعه دریافت نشد.";status.classList.toggle("error",!imagesResult.value?.r?.ok);
 }
