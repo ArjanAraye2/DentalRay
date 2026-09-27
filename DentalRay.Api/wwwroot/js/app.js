@@ -412,9 +412,29 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    }
    const edit=document.createElement("button");edit.type="button";edit.className="secondary-button";edit.textContent="مشاهده / ویرایش";
    edit.onclick=e=>{e.stopPropagation();openStudyDetails(study);};
-   const addImage=document.createElement("button");addImage.type="button";addImage.textContent="+ آپلود تصویر";
-   addImage.onclick=e=>{e.stopPropagation();openUploadImageForm(study);};
-   actions.append(toggle,edit,addImage);
+   // --- کارهای تصویر زیر یک منوی «تصویر ▾» تا ردیف اکشن شلوغ نشود -----
+   const imageMenuButton=document.createElement("button");
+   imageMenuButton.type="button";imageMenuButton.className="secondary-button study-image-menu-button";
+   imageMenuButton.textContent="تصویر ▾";
+   imageMenuButton.setAttribute("aria-haspopup","true");imageMenuButton.setAttribute("aria-expanded","false");
+   const imageMenuBox=document.createElement("div");
+   imageMenuBox.className="study-image-menu-box hidden";
+   [["آپلود تصویر جدید",()=>openUploadImageForm(study)],
+    ["الصاق تصویر از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
+    ["دریافت تصویر برای این مراجعه",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
+    ["ارسال لینک تصویر",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
+   .forEach(([label,run])=>{
+     const item=document.createElement("button");item.type="button";item.className="study-image-menu-item";item.textContent=label;
+     item.onclick=ev=>{ev.stopPropagation();closeStudyImageMenus();run();};
+     imageMenuBox.appendChild(item);
+   });
+   imageMenuButton.onclick=ev=>{
+     ev.stopPropagation();
+     const willOpen=imageMenuBox.classList.contains("hidden");
+     closeStudyImageMenus();
+     if(willOpen){imageMenuBox.classList.remove("hidden");imageMenuButton.setAttribute("aria-expanded","true");}
+   };
+   actions.append(toggle,edit,imageMenuButton,imageMenuBox);
 
    // --- body: built on first open, so a closed study costs nothing ----------
    const body=document.createElement("div");
@@ -438,9 +458,23 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      body.append(details,chartSection);
      const imagesSection=document.createElement("section");imagesSection.className="study-scroll-images";
      const imagesTitle=document.createElement("div");imagesTitle.className="study-scroll-images-title";imagesTitle.textContent="تصاویر مطالعه";
+     // همان چهار کار تصویر، کنار خودِ لیست تصاویر — چون کاربر بعد از «نمایش»
+     // دقیقاً همین‌جاست و نباید برای آپلود/الصاق برگردد به جای دیگر.
+     const imageActions=document.createElement("div");
+     imageActions.className="study-card-image-actions";
+     [["آپلود تصویر جدید",()=>openUploadImageForm(study)],
+      ["الصاق تصویر از پرونده",()=>{selectVisit(study);window.DentalRayImagePickup.open();}],
+      ["دریافت تصویر برای این مراجعه",()=>{selectVisit(study);window.DentalRayReceive&&window.DentalRayReceive.open();}],
+      ["ارسال لینک تصویر",()=>{selectVisit(study);window.DentalRayShareImages&&window.DentalRayShareImages.open();}]]
+     .forEach(([label,run],i)=>{
+       const b=document.createElement("button");
+       b.type="button";b.className="secondary-button"+(i===3?" is-out":"");b.textContent=label;
+       b.onclick=ev=>{ev.stopPropagation();run();};
+       imageActions.appendChild(b);
+     });
      const status=document.createElement("div");status.className="status-message";status.textContent="در حال دریافت تصاویر...";
      const grid=document.createElement("div");grid.className="images-grid";
-     imagesSection.append(imagesTitle,status,grid);
+     imagesSection.append(imagesTitle,imageActions,status,grid);
      body.appendChild(imagesSection);
      hydrateStudyCard(study,chart,status,grid);
     }
@@ -512,7 +546,27 @@ function closeLargeImage(){E.imageModal.classList.add("hidden");E.largeImage.src
 
 function resetCameraCapture(){pendingCameraFile=null;if(cameraPreviewUrl){URL.revokeObjectURL(cameraPreviewUrl);cameraPreviewUrl=null;}E.cameraFileInput.value="";E.cameraPreviewImage.removeAttribute("src");E.cameraPreviewPanel.classList.add("hidden");E.imageFileInput.required=true;syncFilePickerNames();}
 async function loadImageTypes(){E.uploadImageType.innerHTML=`<option value="">انتخاب نوع تصویر...</option>`;const r=await fetch("/api/imagetypes"),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"انواع تصویر دریافت نشد."));const types=x.imageTypes||[];types.forEach(t=>{const o=document.createElement("option");o.value=t.imageTypeID;o.textContent=t.imageTypeName;E.uploadImageType.appendChild(o);});/* The placeholder must stop looking like a loader, otherwise nobody notices that a choice is required and the Save button silently refuses to run. */const placeholder=E.uploadImageType.querySelector('option[value=""]');if(placeholder)placeholder.textContent=types.length?"نوع تصویر را انتخاب کنید...":"هنوز نوع تصویری ثبت نشده است.";}
-async function openUploadImageForm(study){selectedStudyID=study.studyID;selectedStudy=study;E.imageFileInput.value="";E.uploadImageType.value="";resetCameraCapture();setFormStatus(E.uploadImageStatus,"",false);E.uploadImageStudyInfo.textContent=`رادیولوژی شماره ${study.studyID} — ${study.studyType||""}`;hideMainSections();E.uploadImageSection.classList.remove("hidden");try{await loadImageTypes();}catch(e){setFormStatus(E.uploadImageStatus,e.message,true);}window.scrollTo(0,0);}
+// زمینهٔ مراجعه را قبل از باز کردن پنجره‌های تصویر تنظیم می‌کنیم؛ پنجره‌های
+// «الصاق»، «دریافت» و «ارسال لینک» مراجعهٔ فعلی را از selectedStudy می‌خوانند.
+function selectVisit(study){
+ if(!study)return;
+ selectedStudyID=study.studyID;selectedStudy=study;window.selectedStudy=study;
+}
+function closeStudyImageMenus(){
+ document.querySelectorAll(".study-image-menu-box").forEach(m=>m.classList.add("hidden"));
+ document.querySelectorAll(".study-image-menu-button").forEach(b=>b.setAttribute("aria-expanded","false"));
+}
+document.addEventListener("click",closeStudyImageMenus);
+
+// مبدأ را قبل از عوض شدن صفحه ثبت می‌کنیم تا «بازگشت به مراجعه» دقیقاً به
+// همان‌جایی برگردد که آپلود از آنجا صدا زده شده (مراجعه، صفحهٔ تصاویر، یا پرونده).
+let uploadReturnTo = null;
+async function openUploadImageForm(study){
+ uploadReturnTo = !E.studyImagesSection.classList.contains("hidden") ? {kind:"images",study}
+   : !E.studyDetailsSection.classList.contains("hidden") ? {kind:"details",study}
+   : {kind:"record",patientID:selectedPatientID};
+ selectVisit(study);
+ E.imageFileInput.value="";E.uploadImageType.value="";resetCameraCapture();setFormStatus(E.uploadImageStatus,"",false);E.uploadImageStudyInfo.textContent=`رادیولوژی شماره ${study.studyID} — ${study.studyType||""}`;hideMainSections();E.uploadImageSection.classList.remove("hidden");try{await loadImageTypes();}catch(e){setFormStatus(E.uploadImageStatus,e.message,true);}window.scrollTo(0,0);}
 E.cameraFileInput?.addEventListener("change",()=>{const f=E.cameraFileInput.files?.[0];if(!f)return;pendingCameraFile=f;if(cameraPreviewUrl)URL.revokeObjectURL(cameraPreviewUrl);cameraPreviewUrl=URL.createObjectURL(f);E.cameraPreviewImage.src=cameraPreviewUrl;E.cameraPreviewPanel.classList.remove("hidden");setFormStatus(E.uploadImageStatus,"پیش‌نمایش را بررسی و سپس «تأیید تصویر» را انتخاب کنید.",false);});
 E.confirmCameraButton?.addEventListener("click",()=>{if(!pendingCameraFile)return;E.imageFileInput.value="";syncFilePickerNames();setFormStatus(E.uploadImageStatus,E.uploadImageType.value?"تصویر دوربین تأیید شد و آماده ذخیره است.":"تصویر تأیید شد؛ حالا «نوع تصویر» را انتخاب و «ذخیره و اتصال به Study» را بزنید.",false);});
 E.uploadImageType?.addEventListener("change",()=>E.uploadImageType.classList.remove("field-missing"));
@@ -698,7 +752,16 @@ E.newStudyForm?.addEventListener("submit",e=>{e.preventDefault();createStudy();}
 
 E.uploadImageForm?.addEventListener("submit",e=>{e.preventDefault();uploadImage();});
 E.mergePatientForm?.addEventListener("submit",e=>{e.preventDefault();mergePatient();});
-[[E.cancelNewPatientButton,E.cancelNewPatientButtonBottom]].flat().forEach(b=>b.onclick=showPatientsScreen);[E.cancelEditPatientButton,E.cancelEditPatientButtonBottom,E.cancelNewStudyButton,E.cancelNewStudyButtonBottom,E.cancelMergePatientButton,E.cancelMergePatientButtonBottom].forEach(b=>b.onclick=()=>openPatient(selectedPatientID));[E.cancelUploadImageButton,E.cancelUploadImageButtonBottom].forEach(b=>b.onclick=()=>selectedStudy?openStudyImages(selectedStudy):openPatient(selectedPatientID));
+[[E.cancelNewPatientButton,E.cancelNewPatientButtonBottom]].flat().forEach(b=>b.onclick=showPatientsScreen);[E.cancelEditPatientButton,E.cancelEditPatientButtonBottom,E.cancelNewStudyButton,E.cancelNewStudyButtonBottom,E.cancelMergePatientButton,E.cancelMergePatientButtonBottom].forEach(b=>b.onclick=()=>openPatient(selectedPatientID));// بازگشت از فرم آپلود به همان‌جایی که فراخوانده شده (برچسب: «بازگشت به مراجعه»).
+function goBackFromUpload(){
+ const r = uploadReturnTo;
+ if (r && r.kind === "images" && r.study) return openStudyImages(r.study);
+ if (r && r.kind === "details" && r.study) return openStudyDetails(r.study);
+ openPatient((r && r.patientID) || selectedPatientID);
+}
+[E.cancelUploadImageButton,E.cancelUploadImageButtonBottom].forEach(b=>b.onclick=goBackFromUpload);
+// دکمهٔ «آپلود تصویر جدید» در هدر مراجعه (کنار بقیهٔ کارهای تصویر)
+document.getElementById("visitHeaderUploadButton")?.addEventListener("click",()=>{if(selectedStudy)openUploadImageForm(selectedStudy);});
 E.patientPhotoButton?.addEventListener("click",()=>E.patientPhotoInput?.click());
 E.patientPhotoInput?.addEventListener("change",async()=>{const file=E.patientPhotoInput.files?.[0];if(!file||!selectedPatientID)return;try{const fd=new FormData();fd.append("file",file);const r=await fetch(`/api/patients/${selectedPatientID}/photo`,{method:"POST",body:fd}),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ذخیره تصویر بیمار انجام نشد."));E.patientProfilePhoto.src=`/api/patients/${selectedPatientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.classList.remove("empty");showToast("تصویر بیمار ذخیره شد.");}catch(e){showToast(e.message||"ذخیره تصویر بیمار انجام نشد.","error");}finally{E.patientPhotoInput.value="";}});
 E.zoomInImageButton.onclick=()=>{imageViewScale=Math.min(5,imageViewScale+0.25);applyImageView();};E.zoomOutImageButton.onclick=()=>{imageViewScale=Math.max(0.25,imageViewScale-0.25);applyImageView();};E.rotateLeftImageButton.onclick=()=>{imageViewRotation-=90;applyImageView();};E.rotateRightImageButton.onclick=()=>{imageViewRotation+=90;applyImageView();};E.flipHorizontalImageButton.onclick=()=>{imageViewFlipX*=-1;applyImageView();};E.resetImageViewButton.onclick=resetImageView;E.imageModal.addEventListener("pointerdown",e=>{if(e.target!==E.largeImage)return;e.preventDefault();imageDragging=true;imageDragStartX=e.clientX-imageViewX;imageDragStartY=e.clientY-imageViewY;try{E.imageModal.setPointerCapture(e.pointerId);}catch{}});E.imageModal.addEventListener("pointermove",e=>{if(!imageDragging)return;e.preventDefault();imageViewX=e.clientX-imageDragStartX;imageViewY=e.clientY-imageDragStartY;applyImageView();});const endImageDrag=e=>{if(!imageDragging)return;imageDragging=false;try{E.imageModal.releasePointerCapture(e.pointerId);}catch{}};E.imageModal.addEventListener("pointerup",endImageDrag);E.imageModal.addEventListener("pointercancel",endImageDrag);E.imageModal.addEventListener("lostpointercapture",()=>{imageDragging=false;});E.closeImageModalButton.onclick=closeLargeImage;E.imageModal.onclick=e=>{if(imageDragging){e.preventDefault();e.stopPropagation();return;}/* The viewer closes only with the explicit close button or Escape. This prevents a completed image drag from being interpreted as a backdrop click. */};document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLargeImage();});

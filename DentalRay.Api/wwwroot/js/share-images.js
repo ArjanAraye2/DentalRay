@@ -194,6 +194,9 @@
     const host = document.getElementById(id);
     if (host) observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   });
+  // برای کارتِ مراجعه در پروندهٔ بیمار: باید بتوان همین پنجره را از آنجا باز کرد؛
+  // فراخواننده اول selectedStudy را روی همان مراجعه تنظیم می‌کند.
+  window.DentalRayShareImages = { open };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addShareButtons);
   else addShareButtons();
 })();

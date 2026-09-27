@@ -216,7 +216,7 @@
     btn.type = "button";
     btn.id = "studyReceiveImagesButton";
     btn.className = "secondary-button";
-    btn.textContent = "دریافت تصویر از گوشی بیمار";
+    btn.textContent = "دریافت تصویر برای این مراجعه";
     btn.onclick = openDialog;
     toolbar.appendChild(btn);
   }
@@ -226,6 +226,12 @@
     const direct = $("studyReceiveImagesButton");
     if (direct) direct.onclick = openDialog;
     else addButton();
+    // نسخهٔ همین دکمه در نوار صفحهٔ تصاویر (همهٔ کارهای تصویر یکسان و هر سه جا)
+    const inImages = $("imagesToolbarReceiveButton");
+    if (inImages && !inImages.dataset.wired) {
+      inImages.dataset.wired = "1";
+      inImages.onclick = openDialog;
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
@@ -234,4 +240,8 @@
   const observer = new MutationObserver(wire);
   const host = document.getElementById("studyDetailsSection");
   if (host) observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+
+  // برای کارتِ مراجعه در پروندهٔ بیمار: فراخواننده اول selectedStudy را روی
+  // همان مراجعه تنظیم می‌کند، بعد این را صدا می‌زند.
+  window.DentalRayReceive = { open: openDialog };
 })();
