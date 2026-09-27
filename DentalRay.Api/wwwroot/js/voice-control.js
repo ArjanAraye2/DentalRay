@@ -41,7 +41,7 @@
   const WAKE_WORDS = ["دنتا", "دنت", "دنتیکس", "denta", "dentix"];
   // نسخهٔ منطق صدا؛ در پیام وضعیت و لاگ دیده می‌شود تا وقتی گفتید «قفل می‌شود»
   // بلافاصله بفهمیم کدام نسخه دارد اجرا می‌شود.
-  const VOICE_VERSION = "۲۸";
+  const VOICE_VERSION = "۲۹";
 
   // خروجی: رشتهٔ باقی‌مانده بعد از واژهٔ بیداری | "" اگر فقط واژهٔ بیداری گفته شده
   //         | null اگر واژهٔ بیداری اصلاً نبود.
@@ -425,6 +425,7 @@
     }
 
     try { recognition.start(); } catch (e) { /* قبلاً شروع شده */ }
+    probeMicrophone();
     finalSeen = 0;
     lastHeard = "";
     listening = true;
@@ -443,6 +444,30 @@
   }
 
   function toggle() { if (listening) stop(false); else start(); }
+
+  // سلامت میکروفن: چرخهٔ گفتار ممکن است بی‌خطا روشن بماند ولی هیچ صدایی نگیرد
+  // (دستگاه اشتباه، بی‌صدا، یا اشغال توسط برنامهٔ دیگر). وضعیت دستگاه را یک بار
+  // در کنسول می‌نویسیم تا با یک پیست کردن بفهمیم مشکل سخت‌افزار است یا نرم‌افزار.
+  let probed = false;
+  function probeMicrophone() {
+    if (probed) return;
+    probed = true;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.log("[Dentix صدا] میکروفن", { err: "getUserMedia پشتیبانی نمی‌شود" });
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((s) => {
+        const t = s.getAudioTracks()[0] || {};
+        console.log("[Dentix صدا] میکروفن", {
+          دستگاه: t.label || "نامشخص", روشن: t.enabled !== false, بی‌صدا: !!t.muted, وضعیت: t.readyState
+        });
+        s.getTracks().forEach((x) => x.stop());
+      }).catch((e) => {
+        console.log("[Dentix صدا] میکروفن", { خطا: (e && e.name || "") + " " + (e && e.message || "") });
+      });
+    } catch (e) { /* بی‌اثر */ }
+  }
 
   // آخرین راه وقتی نمونهٔ گفتار «شروع‌شده ولی بی‌صدا» گیر کرده: نه stop رویداد
   // می‌دهد نه start قبول می‌شود. تنها درمان، دور انداختن نمونه و ساختن تازه است.
@@ -552,18 +577,17 @@
   // نگهبان سلامتِ گوش دادن: بعضی وقت‌ها کروم چرخه را بی‌صدا قطع می‌کند یا
   // دیگر هیچ صدایی برنمی‌گرداند و همه‌چیز «قفل» می‌شود. اگر ۲۰ ثانیه است هیچ
   // چیزی (حتی صدای محیط) نشنیده‌ایم یا چرخه خاموش است، آن را تازه می‌کنیم.
+  // نگهبان فقط وقتی دست می‌زند که چرخه واقعاً خاموش باشد (رویداد قطع آمده ولی
+  // وصل نشده). سکوتِ عادیِ اتاق درمانی دلیل برای دست زدن نیست — قبلاً همین
+  // «سکوت = خرابی» باعث می‌شد نگهبان هر ۱۲ ثانیه میکروفن را دور بیندازد و
+  // کاربر بعد از دو فرمان برای همیشه قفل می‌کرد.
   setInterval(() => {
     if (!listening || !recognition) return;
-    if (!recActive) { try { recognition.start(); } catch (e) { /* در حال اجرا */ } return; }
-    if (Date.now() - lastResultAt < 12000) return;
-    // ۱۲ ثانیه سکوتِ مطلق: چرخه را تازه می‌کنیم. اگر سالم باشد stop آن را قطع و
-    // وصل می‌کند؛ اگر «قفل» شده باشد (onend نیامد)، استارت دستی بعدی بیدارش می‌کند.
+    if (recActive) return;                       // چرخه روشن است؛ سکوت عادی است
     try { recognition.stop(); } catch (e) { /* بی‌اثر */ }
     setTimeout(() => {
-      if (!listening) return;
-      noteRecovery("watchdog");
-      renewRecognition();
-    }, 600);
+      if (listening && !recActive) { noteRecovery("watchdog"); renewRecognition(); }
+    }, 500);
   }, 3000);
 
   window.DentalRayVoice = {
