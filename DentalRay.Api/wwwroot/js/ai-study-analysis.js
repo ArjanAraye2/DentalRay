@@ -23,6 +23,8 @@ function renderResult(host,result){
 }
 async function analyze(card,button){
  const studyID=Number(card.dataset.studyId);if(!studyID)return;
+ // بدونِ تأییدِ صریحِ کاربر، حتی یک تصویر هم ارسال نمی‌شود.
+ if(window.DentalRayAIConsent){const ok=await window.DentalRayAIConsent.ask();if(!ok)return;}
  let host=card.querySelector('.ai-study-analysis');
  // The Study body is now ".study-scroll-body" and exists as soon as the row is
  // built, so the result has a home whether or not the row has been opened yet.
