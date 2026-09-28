@@ -27,7 +27,7 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
     /// <summary>1 = radiology analysis (matches tblAIImageAnalyses.Kind).</summary>
     private const byte KindRadiology = 1;
     /// <summary>Bump when the prompt changes, so a stored result can be spotted as old.</summary>
-    private const int PromptVersion = 1;
+    private const int PromptVersion = 2;
 
     [HttpPost("{imageID:long}/analyze-radiology")]
     public async Task<IActionResult> Analyze(long imageID, CancellationToken cancellationToken)
@@ -52,7 +52,10 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
             try
             {
                 using var cached = JsonDocument.Parse(saved.AnalysisJson);
-                bool stale = !string.Equals(saved.Model, _ai.Model ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+                bool modelChanged = !string.Equals(saved.Model, _ai.Model ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+                bool promptChanged = saved.PromptVersion < PromptVersion;
+                bool stale = modelChanged || promptChanged;
+                string? staleReason = promptChanged ? "prompt" : modelChanged ? "model" : null;
                 return Ok(new
                 {
                     success = true,
@@ -61,7 +64,8 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
                     cached = true,
                     analyzedAt = saved.AnalyzedAt,
                     model = saved.Model,
-                    stale
+                    stale,
+                    staleReason
                 });
             }
             catch (JsonException) { saved = null; } // نتیجهٔ خراب ⇒ مثلِ اینکه ذخیره‌ای نبود
@@ -83,13 +87,17 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
         byte[] bytes=await System.IO.File.ReadAllBytesAsync(path,cancellationToken);
         string prompt="""
 You are assisting a licensed dentist by reviewing one dental radiology image.
+First judge what the image actually is. If it is NOT a dental radiograph - for example an
+abdominal or chest CT, an ordinary photograph or a document - say so plainly in
+generalFindings, briefly describe what is really visible instead, and return an empty
+problemTeeth array.
 Do not claim certainty, provide a definitive diagnosis, or prescribe treatment.
 Identify only meaningful visible findings and use FDI tooth numbers when reasonably identifiable.
 Separate visible findings, apparent previous dental work, and items suggested for dentist review.
 Explicitly state uncertainty and never invent findings.
 Return ONLY valid JSON with this shape:
 {"generalFindings":"string","problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
-Write all explanatory strings in Persian.
+EVERY string in the answer must be written in Persian (Farsi) - never answer in English.
 """;
         string raw;
         try{raw=await _ai.CompleteJsonAsync(prompt,new[]{(image.ContentType,bytes)},cancellationToken);}

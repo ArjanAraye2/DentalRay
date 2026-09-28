@@ -73,7 +73,9 @@
   const head=`<p style="margin:6px 0;font-size:12px;color:#4a6b78">`;
   if(meta.cached){
    const stale=meta.stale
-    ?` <strong style="color:#b45309">قدیمی است: با مدلِ «${esc(meta.model||"نامشخص")}» ذخیره شده و مدلِ فعلی فرق دارد — «تحلیل دوباره» بزنید.</strong>`
+    ?` <strong style="color:#b45309">${meta.staleReason==="prompt"
+        ?"قدیمی است: با نسخهٔ قدیمیِ پرامپت ذخیره شده — «تحلیل دوباره» بزنید."
+        :`قدیمی است: با مدلِ «${esc(meta.model||"نامشخص")}» ذخیره شده و مدلِ فعلی فرق دارد — «تحلیل دوباره» بزنید.`}</strong>`
     :"";
    return `${head}📄 تحلیلِ <strong>ذخیره‌شده</strong> — ${esc(when)} · مدل: ${esc(meta.model||"—")}${stale}</p>`;
   }
