@@ -97,24 +97,30 @@ public sealed class AiClient
             attempts.Add(FallbackModel);
 
         AiException? last = null;
-        string raw = string.Empty;
         foreach (var model in attempts)
         {
             try
             {
-                raw = await SendCoreAsync(prompt, prepared, model, cancellationToken);
-                break;
+                string raw = await SendCoreAsync(prompt, prepared, model, cancellationToken);
+                string text = ExtractText(raw) ?? string.Empty;
+                string normalized = NormalizeJson(text);
+                if (normalized.Length > 0 && (normalized[0] == '{' || normalized[0] == '['))
+                    return normalized;
+
+                // پاسخِ ۲۰۰ ولی بی‌محتوا (مدلِ استدلالی، خطا در خودِ بدنه، نتیجهٔ ناقص):
+                // به‌جای دادنِ خطا به کاربر، مدلِ بعدی را امتحان می‌کنیم و خامه را
+                // در لاگ می‌گذاریم تا بعداً قابلِ بررسی باشد.
+                Console.WriteLine($"[DentalRay AI] unusable reply from {model ?? "default"}: "
+                    + raw.Substring(0, Math.Min(400, raw.Length)));
+                last = new AiException("پاسخِ سرویسِ هوش مصنوعی قابلِ استفاده نبود. دوباره تلاش کنید.",
+                    502, retryable: true);
             }
             catch (AiException e) when (e.Retryable)
             {
                 last = e; // مدلِ بعدی را امتحان می‌کنیم
             }
         }
-        if (raw.Length == 0)
-            throw last ?? new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد.", 502);
-
-        string text = ExtractText(raw) ?? string.Empty;
-        return NormalizeJson(text);
+        throw last ?? new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد.", 502);
     }
 
     // یک مدل: با JSON-mode، و اگر مدل آن را نداشت، بدونِ آن.

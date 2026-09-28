@@ -27,7 +27,7 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
     /// <summary>1 = radiology analysis (matches tblAIImageAnalyses.Kind).</summary>
     private const byte KindRadiology = 1;
     /// <summary>Bump when the prompt changes, so a stored result can be spotted as old.</summary>
-    private const int PromptVersion = 2;
+    private const int PromptVersion = 3;
 
     [HttpPost("{imageID:long}/analyze-radiology")]
     public async Task<IActionResult> Analyze(long imageID, CancellationToken cancellationToken)
@@ -86,18 +86,20 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
 
         byte[] bytes=await System.IO.File.ReadAllBytesAsync(path,cancellationToken);
         string prompt="""
-You are assisting a licensed dentist by reviewing one dental radiology image.
-First judge what the image actually is. If it is NOT a dental radiograph - for example an
-abdominal or chest CT, an ordinary photograph or a document - say so plainly in
-generalFindings, briefly describe what is really visible instead, and return an empty
-problemTeeth array.
-Do not claim certainty, provide a definitive diagnosis, or prescribe treatment.
-Identify only meaningful visible findings and use FDI tooth numbers when reasonably identifiable.
-Separate visible findings, apparent previous dental work, and items suggested for dentist review.
-Explicitly state uncertainty and never invent findings.
+You are a clinical assistant reviewing one medical image for a licensed practitioner.
+The image may be a radiograph, a CT or MRI slice, an ultrasound, a clinical photograph,
+or even a non-medical picture; the clinic is not necessarily dental.
+Start by naming what it is: the modality (X-ray, CT, MRI, ultrasound, photo, ...) in
+modality, and the anatomy or body part in anatomy.
+Then describe the meaningful visible findings in generalFindings. When teeth are
+visible, also list them in problemTeeth with FDI numbers, separating visible findings,
+apparent previous work and items for the practitioner to review; otherwise return an
+empty problemTeeth array.
+Do not claim certainty, never give a definitive diagnosis, never prescribe treatment,
+and never invent findings. If the image is not medical, say plainly what it is.
 Return ONLY valid JSON with this shape:
-{"generalFindings":"string","problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
-EVERY string in the answer must be written in Persian (Farsi) - never answer in English.
+{"modality":"string","anatomy":"string","generalFindings":"string","problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
+EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
         string raw;
         try{raw=await _ai.CompleteJsonAsync(prompt,new[]{(image.ContentType,bytes)},cancellationToken);}
