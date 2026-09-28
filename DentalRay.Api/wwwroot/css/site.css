@@ -4915,3 +4915,76 @@ body { line-height: 1.75; }
     color: #55707e;
     font-size: 11.5px;
 }
+
+
+/* ==========================================================
+   App event log (فقط مدیرِ سیستم)
+   ========================================================== */
+
+.events-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin: 14px 0;
+    padding: 12px;
+    background: #f6fafb;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+
+.events-filters .form-field {
+    min-width: 150px;
+    flex: 1 1 150px;
+}
+
+
+.events-filters .events-search {
+    flex: 2 1 220px;
+}
+
+
+.events-filters label {
+    font-size: 12px;
+    color: #4a6b78;
+}
+
+
+.events-filters select,
+.events-filters input {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 13px;
+}
+
+
+.events-actions {
+    display: flex;
+    gap: 8px;
+}
+
+
+.events-outcome {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+.events-outcome.is-ok {
+    background: #e7f6ec;
+    color: #157347;
+}
+
+
+.events-outcome.is-fail {
+    background: #fdecea;
+    color: #b42318;
+}

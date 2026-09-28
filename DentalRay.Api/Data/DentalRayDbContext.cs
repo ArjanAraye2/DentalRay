@@ -32,6 +32,7 @@ namespace DentalRay.Api.Data
         public DbSet<InboxMessage> InboxMessages { get; set; }
         public DbSet<PatientReceiveToken> PatientReceiveTokens { get; set; }
         public DbSet<AIImageAnalysis> AIImageAnalyses { get; set; }
+        public DbSet<AppEvent> AppEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

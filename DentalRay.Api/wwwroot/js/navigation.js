@@ -605,6 +605,8 @@
         if (name === "patients") { dashboardVisible = false; stopDashboardAutoRefresh(); return openPatients(); }
         if (name === "settings") { dashboardVisible = false; stopDashboardAutoRefresh(); return openSettings(); }
         if (name === "help") { dashboardVisible = false; stopDashboardAutoRefresh(); return openHelp(); }
+        // لاگِ رویدادها فقط برای مدیرِ سیستم است؛ ماژولِ خودش دسترسی را بررسی می‌کند.
+        if (name === "events") { dashboardVisible = false; stopDashboardAutoRefresh(); return window.DentalRayEvents?.open(); }
         if (placeholderSections[name]) { dashboardVisible = false; stopDashboardAutoRefresh(); return openPlaceholder(name); }
     }
 

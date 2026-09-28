@@ -17,13 +17,24 @@ namespace DentalRay.Api.Services
         private readonly DentalRayDbContext _db;
         private readonly ICommunicationService _communication;
         private readonly ILogger<PatientMessagingService> _logger;
+        private readonly AppEventLogger _events;
 
         public PatientMessagingService(DentalRayDbContext db, ICommunicationService communication,
-            ILogger<PatientMessagingService> logger)
+            ILogger<PatientMessagingService> logger, AppEventLogger events)
         {
             _db = db;
             _communication = communication;
             _logger = logger;
+            _events = events;
+        }
+
+        /// <summary>شماره برای لاگِ عمومی نصفه نمایش داده می‌شود؛ کاملش در خودِ جدولِ پیامک هست.</summary>
+        private static string MaskMobile(string? mobile)
+        {
+            string m = mobile ?? string.Empty;
+            if (m.Length <= 4) return m;
+            if (m.Length <= 7) return m[..2] + "***" + m[^2..];
+            return m[..3] + "****" + m[^4..];
         }
 
         /// <summary>Fills the date and time placeholders using the Persian calendar.</summary>
@@ -108,6 +119,8 @@ namespace DentalRay.Api.Services
                 row.ErrorMessage = string.IsNullOrWhiteSpace(mobile) ? "شماره موبایل ثبت نشده است." : "متن پیام خالی است.";
                 _db.PatientMessages.Add(row);
                 await _db.SaveChangesAsync(cancellationToken);
+                await _events.LogAsync("sms", outcome: "fail",
+                    detail: $"پیامک ارسال نشد — {row.ErrorMessage}", userID: createdBy, userName: sentByName);
                 return new SendOutcome(false, row.ErrorMessage!, row.MessageID);
             }
 
@@ -128,6 +141,12 @@ namespace DentalRay.Api.Services
                 // a logging problem, but make it visible.
                 _logger.LogError(ex, "Could not store the message log for patient {PatientID}", patientID);
             }
+
+            // رویدادِ عمومی: شماره نصفه ثبت می‌شود (کاملش در جدولِ پیامک هست).
+            await _events.LogAsync("sms",
+                outcome: result.Success ? "ok" : "fail",
+                detail: $"پیامک به {MaskMobile(mobile)} — {(result.Success ? "ارسال شد" : "ناموفق: " + result.Message)}",
+                userID: createdBy, userName: sentByName);
 
             return new SendOutcome(result.Success, result.Message, row.MessageID);
         }

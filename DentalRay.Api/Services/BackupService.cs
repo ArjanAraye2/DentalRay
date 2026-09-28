@@ -23,17 +23,19 @@ public sealed class BackupService
     private readonly DentalRayDbContext _db;
     private readonly RadiologyStorageService _storage;
     private readonly ILogger<BackupService> _logger;
+    private readonly AppEventLogger _events;
 
     private static readonly object Gate = new();
     private static bool _running;
 
     public BackupService(IConfiguration configuration, DentalRayDbContext db,
-        RadiologyStorageService storage, ILogger<BackupService> logger)
+        RadiologyStorageService storage, ILogger<BackupService> logger, AppEventLogger events)
     {
         _configuration = configuration;
         _db = db;
         _storage = storage;
         _logger = logger;
+        _events = events;
     }
 
     public string RootPath
@@ -57,6 +59,9 @@ public sealed class BackupService
     private string DbFolder => Path.Combine(RootPath, "db");
     private string ImagesFolder => Path.Combine(RootPath, "images");
     private string StateFile => Path.Combine(RootPath, "backup-state.json");
+
+    /// <summary>رویدادها چقدر نگه داشته شوند (روز) — توافق شده: ۱۸۰ روز.</summary>
+    private const int EventRetentionDays = 180;
 
     private sealed class BackupState
     {
@@ -113,6 +118,7 @@ public sealed class BackupService
         }
         try
         {
+            var watch = Stopwatch.StartNew();
             string? error = null;
             try
             {
@@ -125,6 +131,17 @@ public sealed class BackupService
             }
             WriteState(error is null, error);
             if (error is null) _logger.LogInformation("[DentalRay پشتیبان] انجام شد ← {Path}", RootPath);
+
+            // اجرای پشتیبان یک رویداد است (برای دیدن در لاگ) و همان‌جا هم قدیمی‌ترین
+            // رویدادها پاک می‌شوند: لاگِ سامانه ۱۸۰ روز نگه داشته می‌شود.
+            await _events.LogAsync("backup",
+                outcome: error is null ? "ok" : "fail",
+                detail: error is null
+                    ? $"پشتیبان گرفته شد ← {RootPath} (نگه‌داری {KeepBackups} نسخه)"
+                    : $"پشتیبان ناموفق — {error}",
+                durationMs: (int)watch.ElapsedMilliseconds);
+            await PruneEventsAsync();
+
             return (error is null, error);
         }
         finally
@@ -169,6 +186,21 @@ public sealed class BackupService
                 if (proc.ExitCode >= 8)
                     throw new InvalidOperationException($"robocopy با کد {proc.ExitCode} خطا داد.");
             }
+        }
+    }
+
+    /// <summary>لاگِ رویدادها ۱۸۰ روز نگه داشته می‌شود؛ پاک‌سازی در همین اجرا انجام می‌شود.</summary>
+    private async Task PruneEventsAsync()
+    {
+        try
+        {
+            var cutoff = DateTime.Now.AddDays(-EventRetentionDays);
+            await _db.AppEvents.Where(x => x.EventAt < cutoff)
+                .ExecuteDeleteAsync(CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning("[DentalRay پشتیبان] پاک‌سازیِ لاگِ رویدادها نشد: {E}", e.Message);
         }
     }
 

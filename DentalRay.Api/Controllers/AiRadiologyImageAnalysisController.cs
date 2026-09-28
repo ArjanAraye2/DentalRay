@@ -17,12 +17,17 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
     private readonly RadiologyStorageService _storage;
     private readonly StudyAccessService _studyAccess;
     private readonly AiClient _ai;
+    private readonly AppEventLogger _events;
 
     public AiRadiologyImageAnalysisController(DentalRayDbContext db, RadiologyStorageService storage,
-        StudyAccessService studyAccess, AiClient ai)
+        StudyAccessService studyAccess, AiClient ai, AppEventLogger events)
     {
-        _db=db; _storage=storage; _studyAccess=studyAccess; _ai=ai;
+        _db=db; _storage=storage; _studyAccess=studyAccess; _ai=ai; _events=events;
     }
+
+    /// <summary>کاربرِ فعلی برای لاگ؛ نبودِ شناسه یعنی نامشخص.</summary>
+    private int? CurrentUserID()
+        => int.TryParse(User.FindFirst("UserID")?.Value, out int uid) && uid > 0 ? uid : (int?)null;
 
     /// <summary>1 = radiology analysis (matches tblAIImageAnalyses.Kind).</summary>
     private const byte KindRadiology = 1;
@@ -32,6 +37,7 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
     [HttpPost("{imageID:long}/analyze-radiology")]
     public async Task<IActionResult> Analyze(long imageID, CancellationToken cancellationToken)
     {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
         var image=await _db.RadiologyImages.AsNoTracking().FirstOrDefaultAsync(x=>x.ImageID==imageID,cancellationToken);
         if(image is null)return NotFound(new{success=false,message="تصویر پیدا نشد."});
         var accessibleStudyIDs=_studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(),User).Select(x=>x.StudyID);
@@ -108,7 +114,14 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
         string raw;
         try{raw=await _ai.CompleteJsonAsync(prompt,new[]{(image.ContentType,bytes)},cancellationToken);}
-        catch(AiException e){return StatusCode(e.HttpStatus,new{success=false,message=e.UserMessage,detail=e.Detail});}
+        catch(AiException e)
+        {
+            // فقط تلاشِ واقعی در لاگ می‌ماند؛ پاسخِ ذخیره‌شده رویدادی نیست.
+            await _events.LogAsync("ai.image", outcome:"fail",
+                detail:$"تحلیلِ تک‌تصویر ناموفق — {e.UserMessage}",
+                durationMs:(int)watch.ElapsedMilliseconds, userID:CurrentUserID());
+            return StatusCode(e.HttpStatus,new{success=false,message=e.UserMessage,detail=e.Detail});
+        }
 
         // ذخیره تا تصویر فقط یک بار از مطب خارج شود؛ اگر ذخیره هم نشد، تحلیل از بین نرود.
         AIImageAnalysis? row = saved;
@@ -136,6 +149,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
             row = null;
         }
 
+        await _events.LogAsync("ai.image", detail:$"تحلیلِ تک‌تصویر — مدل {_ai.Model}", durationMs:(int)watch.ElapsedMilliseconds, userID:CurrentUserID());
         try{using var analysis=JsonDocument.Parse(raw);return Ok(new{success=true,imageID,analysis=analysis.RootElement.Clone(),cached=false,analyzedAt,model=_ai.Model,stale=false});}
         catch(JsonException){return StatusCode(502,new{success=false,message="فرمت نتیجه تحلیل معتبر نبود."});}
     }
@@ -155,6 +169,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
     [HttpPost("analyze-many")]
     public async Task<IActionResult> AnalyzeMany([FromBody] AnalyzeManyRequest? request, CancellationToken cancellationToken)
     {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
         var requested = (request?.ImageIDs ?? Array.Empty<long>()).Distinct().ToList();
         if (requested.Count < 2)
             return BadRequest(new { success = false, message = "برای تحلیلِ مشترک، حداقل ۲ تصویر انتخاب کنید." });
@@ -297,6 +312,9 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
         }
         catch (AiException e)
         {
+            await _events.LogAsync("ai.images", outcome: "fail",
+                detail: $"تحلیلِ {selected.Count} تصویر ناموفق — {e.UserMessage}",
+                durationMs: (int)watch.ElapsedMilliseconds, userID: CurrentUserID());
             return StatusCode(e.HttpStatus, new { success = false, message = e.UserMessage, detail = e.Detail });
         }
 
@@ -335,6 +353,10 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
             {
                 Console.WriteLine($"[DentalRay AI] multi-image save failed: {e.GetType().Name}: {e.Message}");
             }
+
+            await _events.LogAsync("ai.images",
+                detail: $"تحلیلِ {selected.Count} تصویر با هم — مدل {_ai.Model}{(truncated ? " (بیش از ۶ تصویر: فقط ۶ تای اول)" : "")}",
+                durationMs: (int)watch.ElapsedMilliseconds, userID: CurrentUserID());
 
             return Ok(new
             {

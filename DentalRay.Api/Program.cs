@@ -20,6 +20,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
 builder.Services.AddScoped<StudyAccessService>();
 builder.Services.AddScoped<AiClient>();
+builder.Services.AddScoped<AppEventLogger>();
 builder.Services.AddScoped<BackupService>();
 builder.Services.AddHostedService<BackupScheduler>();
 // تبدیلِ PDF فقط روی ویندوز ممکن است (و برنامه هم ویندوزی است)؛ روی سیستمِ
@@ -132,6 +133,38 @@ using (var scope = app.Services.CreateScope())
             "INSERT INTO dbo.tblImageTypes (ImageTypeName, IsActive) VALUES (N'کارت سابقه', 1)");
     }
     catch { }
+
+    // لاگِ رویدادها: ورود، پیامک، تحلیل AI، پشتیبان و شروعِ برنامه — برایِ پیگیری
+    // در مطب. رکوردها ۱۸۰ روز نگه داشته و در هر اجرای پشتیبان پاک می‌شوند.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID(N'dbo.tblAppEvents', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.tblAppEvents (
+                    EventID bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblAppEvents PRIMARY KEY,
+                    EventAt datetime2 NOT NULL CONSTRAINT DF_tblAppEvents_EventAt DEFAULT (GETDATE()),
+                    Kind nvarchar(40) NOT NULL,
+                    Outcome nvarchar(20) NOT NULL CONSTRAINT DF_tblAppEvents_Outcome DEFAULT (N'ok'),
+                    Detail nvarchar(500) NOT NULL CONSTRAINT DF_tblAppEvents_Detail DEFAULT (N''),
+                    UserID int NULL,
+                    UserName nvarchar(64) NULL,
+                    DurationMs int NULL
+                );
+                CREATE INDEX IX_tblAppEvents_EventAt ON dbo.tblAppEvents (EventAt DESC);
+                CREATE INDEX IX_tblAppEvents_Kind_EventAt ON dbo.tblAppEvents (Kind, EventAt DESC);
+            END
+            """);
+    }
+    catch { }
+
+    // شروعِ برنامه هم یک رویداد است تا بتوان گفت سامانه کی بالا آمده.
+    try
+    {
+        var events = scope.ServiceProvider.GetRequiredService<AppEventLogger>();
+        await events.LogAsync("app.start", detail: $"اجرای برنامه روی {Environment.MachineName}");
+    }
+    catch { }
 }
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
@@ -153,6 +186,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/card-extraction.js?v=20260929.3\"></script>\n" +
                 "<script src=\"/js/study-card-scan.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/dictation.js?v=20260928.3\"></script>\n" +
+                "<script src=\"/js/events-ui.js?v=20260929.1\"></script>\n" +
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";

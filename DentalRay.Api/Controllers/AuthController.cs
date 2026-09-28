@@ -20,8 +20,9 @@ namespace DentalRay.Api.Controllers
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IConfiguration _configuration;
         private readonly ICommunicationService _communication;
+        private readonly AppEventLogger _events;
         private static readonly ConcurrentDictionary<string, ResetCode> ResetCodes = new(StringComparer.OrdinalIgnoreCase);
-        public AuthController(DentalRayDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration, ICommunicationService communication) { _context = context; _passwordHasher = passwordHasher; _configuration = configuration; _communication = communication; }
+        public AuthController(DentalRayDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration, ICommunicationService communication, AppEventLogger events) { _context = context; _passwordHasher = passwordHasher; _configuration = configuration; _communication = communication; _events = events; }
 
         public sealed class LoginRequest { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
 
@@ -43,9 +44,11 @@ namespace DentalRay.Api.Controllers
                     {
                         var identity = new LoginIdentity(0, userName, 0, "مدیر", "سیستم", 0, true);
                         await SignInAsync(identity);
+                        await _events.LogAsync("login", detail: "ورود موفق — مدیر سیستم", userName: userName);
                         return Ok(new { success = true, user = identity });
                     }
                 }
+                await _events.LogAsync("login", outcome: "fail", detail: "ورود ناموفق — مدیر سیستم", userName: userName);
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
             }
 
@@ -59,13 +62,26 @@ namespace DentalRay.Api.Controllers
                 .Where(x => x.Staff.NationalCode == userName)
                 .Select(x => x.Account)
                 .FirstOrDefaultAsync();
-            if (user == null || !user.IsActive || (user.StartDate.HasValue && user.StartDate.Value.Date > DateTime.Today) || (user.EndDate.HasValue && user.EndDate.Value.Date < DateTime.Today) || string.IsNullOrWhiteSpace(user.PasswordHash)) return Unauthorized(new { success = false, message = "Invalid username or password." });
+            if (user == null || !user.IsActive || (user.StartDate.HasValue && user.StartDate.Value.Date > DateTime.Today) || (user.EndDate.HasValue && user.EndDate.Value.Date < DateTime.Today) || string.IsNullOrWhiteSpace(user.PasswordHash))
+            {
+                await _events.LogAsync("login", outcome: "fail", detail: "ورود ناموفق — حساب یافت نشد یا غیرفعال است", userID: user?.UserID, userName: userName);
+                return Unauthorized(new { success = false, message = "Invalid username or password." });
+            }
             var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-            if (verification == PasswordVerificationResult.Failed) return Unauthorized(new { success = false, message = "Invalid username or password." });
+            if (verification == PasswordVerificationResult.Failed)
+            {
+                await _events.LogAsync("login", outcome: "fail", detail: "ورود ناموفق — رمز عبور اشتباه است", userID: user.UserID, userName: userName);
+                return Unauthorized(new { success = false, message = "Invalid username or password." });
+            }
             var staff = await _context.Staff.AsNoTracking().FirstOrDefaultAsync(x => x.StaffID == user.StaffID);
-            if (staff == null) return Unauthorized(new { success = false, message = "Invalid username or password." });
+            if (staff == null)
+            {
+                await _events.LogAsync("login", outcome: "fail", detail: "ورود ناموفق — پرسنل مرتبط با حساب نیست", userID: user.UserID, userName: userName);
+                return Unauthorized(new { success = false, message = "Invalid username or password." });
+            }
             var normalIdentity = new LoginIdentity(user.UserID, staff.NationalCode, staff.StaffID, staff.FirstName, staff.LastName, staff.StaffType, false);
             await SignInAsync(normalIdentity);
+            await _events.LogAsync("login", detail: "ورود موفق", userID: user.UserID, userName: staff.NationalCode);
             return Ok(new { success = true, user = normalIdentity });
         }
 
