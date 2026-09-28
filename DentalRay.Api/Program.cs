@@ -92,6 +92,31 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DentalRayDbContext>();
     try { await db.Database.ExecuteSqlRawAsync("IF COL_LENGTH('tblUsers', 'RecoveryMobile') IS NULL ALTER TABLE tblUsers ADD RecoveryMobile nvarchar(30) NULL"); } catch { }
+    // نتیجهٔ تحلیلِ AI تصویر، تا تصویرِ بیمار فقط یک بار از مطب خارج شود و
+    // بازدیدهای بعدی بدون هزینه و بدونِ ارسالِ دوباره انجام شود.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID(N'dbo.tblAIImageAnalyses', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.tblAIImageAnalyses (
+                    AIImageAnalysisID bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblAIImageAnalyses PRIMARY KEY,
+                    ImageID bigint NOT NULL,
+                    Kind tinyint NOT NULL CONSTRAINT DF_tblAIImageAnalyses_Kind DEFAULT (1),
+                    Model nvarchar(120) NOT NULL CONSTRAINT DF_tblAIImageAnalyses_Model DEFAULT (N''),
+                    PromptVersion int NOT NULL CONSTRAINT DF_tblAIImageAnalyses_PromptVersion DEFAULT (0),
+                    AnalysisJson nvarchar(max) NOT NULL,
+                    AnalyzedAt datetime2 NOT NULL CONSTRAINT DF_tblAIImageAnalyses_AnalyzedAt DEFAULT (SYSUTCDATETIME()),
+                    AnalyzedByUserID int NULL,
+                    CONSTRAINT FK_tblAIImageAnalyses_RadiologyImages
+                        FOREIGN KEY (ImageID) REFERENCES dbo.tblRadiologyImages (ImageID) ON DELETE CASCADE
+                );
+                CREATE UNIQUE INDEX IX_tblAIImageAnalyses_ImageID_Kind
+                    ON dbo.tblAIImageAnalyses (ImageID, Kind);
+            END
+            """);
+    }
+    catch { }
 }
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
@@ -110,7 +135,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/mobile-camera-loader.js?v=20260920.1\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js?v=20260928.1\"></script>\n" +
-                "<script src=\"/js/card-extraction.js?v=20260928.1\"></script>\n" +
+                "<script src=\"/js/card-extraction.js?v=20260928.2\"></script>\n" +
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";

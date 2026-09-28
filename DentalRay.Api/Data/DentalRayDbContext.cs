@@ -31,6 +31,7 @@ namespace DentalRay.Api.Data
         public DbSet<PairedDevice> PairedDevices { get; set; }
         public DbSet<InboxMessage> InboxMessages { get; set; }
         public DbSet<PatientReceiveToken> PatientReceiveTokens { get; set; }
+        public DbSet<AIImageAnalysis> AIImageAnalyses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,6 +51,11 @@ namespace DentalRay.Api.Data
             modelBuilder.Entity<RadiologyStudyTooth>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<StudyAction>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<StudyPayment>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
+
+            // One stored AI result per image per kind; deleting the picture deletes
+            // its results, because a result without its image cannot be verified.
+            modelBuilder.Entity<AIImageAnalysis>().HasIndex(x => new { x.ImageID, x.Kind }).IsUnique();
+            modelBuilder.Entity<AIImageAnalysis>().HasOne<RadiologyImage>().WithMany().HasForeignKey(x => x.ImageID).OnDelete(DeleteBehavior.Cascade);
 
             // Clinic membership is a many-to-many relationship represented by tblClinicStaff.
             modelBuilder.Entity<ClinicStaff>().HasKey(x => new { x.ClinicID, x.StaffID });
