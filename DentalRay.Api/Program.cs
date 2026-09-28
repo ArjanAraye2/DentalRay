@@ -187,6 +187,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/study-card-scan.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/dictation.js?v=20260928.3\"></script>\n" +
                 "<script src=\"/js/events-ui.js?v=20260929.1\"></script>\n" +
+                "<script src=\"/js/backup-settings.js?v=20260929.1\"></script>\n" +
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";

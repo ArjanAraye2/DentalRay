@@ -4988,3 +4988,103 @@ body { line-height: 1.75; }
     background: #fdecea;
     color: #b42318;
 }
+
+
+/* ==========================================================
+   Backup card in settings
+   ========================================================== */
+
+.backup-badge {
+    font-size: 12.5px;
+    color: #4a6b78;
+}
+
+
+.backup-badge.is-ok {
+    color: #157347;
+}
+
+
+.backup-badge.is-fail {
+    color: #b42318;
+}
+
+
+.backup-badge.is-run {
+    color: #0f5165;
+}
+
+
+.backup-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+}
+
+
+.backup-status-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 9px 11px;
+    background: #f6fafb;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+
+.backup-status-grid span {
+    font-size: 11.5px;
+    color: #55707e;
+}
+
+
+.backup-status-grid strong {
+    font-size: 13.5px;
+    color: #12333f;
+}
+
+
+.backup-note-error,
+.backup-note-warning {
+    margin: 6px 0;
+    line-height: 1.7;
+}
+
+
+.backup-actions {
+    display: flex;
+    gap: 9px;
+    margin: 10px 0 14px;
+}
+
+
+.backup-settings-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+}
+
+
+.backup-settings-row .form-field {
+    flex: 1 1 240px;
+}
+
+
+.backup-settings-row .backup-keep {
+    flex: 0 1 140px;
+}
+
+
+.backup-settings-row input {
+    width: 100%;
+}
+
+
+.backup-settings-row .secondary-button {
+    margin-bottom: 2px;
+}

@@ -204,6 +204,46 @@ public sealed class BackupService
         }
     }
 
+    /// <summary>
+    /// مسیر و تعدادِ نسخه را در فایلِ کانفیگ می‌نویسد. فایل با reloadOnChange
+    /// بارگذاری شده، پس تغییر بدونِ ریستارت اعمال می‌شود.
+    /// </summary>
+    public void UpdateSettings(string? rootPath, int keepBackups)
+    {
+        string path = (rootPath ?? string.Empty).Trim().TrimEnd('\\', '/');
+        if (path.Length == 0)
+            throw new ArgumentException("مسیرِ ذخیرهٔ پشتیبان خالی است.");
+        if (!Path.IsPathRooted(path))
+            throw new ArgumentException("مسیر باید کامل باشد، مثل D:\\DentalRayBackup");
+        if (string.Equals(path.TrimEnd('\\'), _storage.GetRootPath().TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("مسیرِ پشتیبان نمی‌تواند همان پوشهٔ تصاویر باشد.");
+        int keep = Math.Clamp(keepBackups, 1, 100);
+
+        string file = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "DentalRay", "DentalRay.config.json");
+
+        System.Text.Json.Nodes.JsonObject root;
+        try
+        {
+            string json = File.Exists(file) ? File.ReadAllText(file, System.Text.Encoding.UTF8) : "{}";
+            root = System.Text.Json.Nodes.JsonNode.Parse(json) as System.Text.Json.Nodes.JsonObject
+                ?? new System.Text.Json.Nodes.JsonObject();
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException($"فایلِ کانفیگ خوانده نشد: {e.Message}");
+        }
+
+        var backup = root["Backup"] as System.Text.Json.Nodes.JsonObject ?? new System.Text.Json.Nodes.JsonObject();
+        backup["RootPath"] = path;
+        backup["KeepBackups"] = keep;
+        root["Backup"] = backup;
+
+        File.WriteAllText(file, root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }),
+            new System.Text.UTF8Encoding(false));
+    }
+
     /// <summary>وضعیت برای نمایش در تنظیمات/داشبورد.</summary>
     public object GetStatus()
     {
