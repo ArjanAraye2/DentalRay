@@ -109,7 +109,7 @@ Write all explanatory strings in Persian.
             row.Model = _ai.Model ?? string.Empty;
             row.PromptVersion = PromptVersion;
             row.AnalyzedAt = DateTime.Now;
-            row.AnalyzedByUserID = int.TryParse(User.FindFirst("UserID")?.Value, out int uid) ? uid : (int?)null;
+            row.AnalyzedByUserID = int.TryParse(User.FindFirst("UserID")?.Value, out int uid) && uid > 0 ? uid : (int?)null;
             await _db.SaveChangesAsync(cancellationToken);
             analyzedAt = row.AnalyzedAt;
         }

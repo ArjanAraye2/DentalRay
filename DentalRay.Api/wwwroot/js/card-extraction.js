@@ -80,6 +80,14 @@
   return `${head}✨ تحلیلِ <strong>تازه</strong> — ${esc(when)} (ذخیره شد تا دوباره ارسال نشود)</p>`;
  }
 
+ // بعد از یک تحلیلِ تازه، متنِ دکمهٔ روی کارت باید «نمایش» شود تا دوباره
+ // فکر نکنیم قرار است تصویرِ تازه‌ای ارسال شود.
+ function syncAnalysisButton(image){
+  if(!image||!image.hasAnalysis)return;
+  const b=document.querySelector(`[data-ai-image="${image.imageID}"]`);
+  if(b){b.textContent="نمایش تحلیل رادیولوژی";b.classList.add("is-cached");}
+ }
+
  function renderRadiology(modal,data,meta){
   const teeth=data.problemTeeth||[],general=data.generalFindings||"";
   modal.querySelector(".card-extraction-body").innerHTML=`${sourceLine(meta)}<p class="card-extraction-warning">این تحلیل جایگزین نظر و تشخیص دندانپزشک نیست.</p>${general?`<section><h4>یافته‌های کلی</h4><pre>${esc(general)}</pre></section>`:""}<section><h4>دندان‌های نیازمند بررسی</h4>${teeth.length?teeth.map(t=>`<div class="radiology-finding"><strong>دندان ${esc(t.toothNumber??"؟")}</strong>${(t.findings||[]).map(x=>`<p>یافته: ${esc(x)}</p>`).join("")}${(t.previousWork||[]).map(x=>`<p>درمان قبلی: ${esc(x)}</p>`).join("")}${(t.dentistReview||[]).map(x=>`<p>بررسی دندانپزشک: ${esc(x)}</p>`).join("")}<small>اطمینان: ${esc(t.confidence||"نامشخص")}</small></div>`).join(""):"<p>مورد مشخصی گزارش نشد.</p>"}</section>`;
@@ -112,6 +120,8 @@
     ({r,x}=await call((opts.force?"force=1&":"")+"consent=1"));
    }
    if(!r.ok||x.success===false)throw new Error(x.message||"تحلیل رادیولوژی انجام نشد.");
+   if(!x.cached)image.hasAnalysis=true;
+   syncAnalysisButton(image);
    renderRadiology(modal,x.analysis||{},x);
    modal.querySelector(".card-extraction-copy").disabled=false;
   }catch(e){modal.querySelector(".card-extraction-body").innerHTML=`<p class="error">${esc(e.message||"تحلیل رادیولوژی انجام نشد.")}</p>`;}

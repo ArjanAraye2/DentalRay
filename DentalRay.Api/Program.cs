@@ -145,7 +145,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/mobile-camera-loader.js?v=20260920.1\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js?v=20260928.1\"></script>\n" +
-                "<script src=\"/js/card-extraction.js?v=20260928.2\"></script>\n" +
+                "<script src=\"/js/card-extraction.js?v=20260928.3\"></script>\n" +
                 "<script src=\"/js/study-card-scan.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);

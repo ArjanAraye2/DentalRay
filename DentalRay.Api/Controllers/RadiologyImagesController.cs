@@ -125,7 +125,7 @@ namespace DentalRay.Api.Controllers
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound(new { success=false,message="Study not found." });
             // linkCount = به چند مراجعه متصل است؛ رابط کاربری بر اساس آن بین
             // «حذف تصویر» (فقط یک مراجعه) و «جدا کردن از این مراجعه» (چند مراجعه) انتخاب می‌کند.
-            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=t!=null?t.ImageTypeName:null,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate,linkCount=_context.RadiologyStudyImages.Count(l2=>l2.ImageID==i.ImageID) }).ToListAsync();
+            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=t!=null?t.ImageTypeName:null,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate,linkCount=_context.RadiologyStudyImages.Count(l2=>l2.ImageID==i.ImageID),hasAnalysis=_context.AIImageAnalyses.Any(a=>a.ImageID==i.ImageID&&a.Kind==1) }).ToListAsync();
             return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
