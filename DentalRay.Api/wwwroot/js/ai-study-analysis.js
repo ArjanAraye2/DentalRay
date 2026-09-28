@@ -16,10 +16,11 @@ function renderTooth(tooth){
  const confidence=tooth.confidence==null?'':`<p><strong>میزان اطمینان AI:</strong> ${esc(tooth.confidence)}</p>`;
  return `<details class="ai-tooth-panel"><summary>دندان ${esc(number)}</summary><div class="ai-tooth-body">${findings?`<h5>یافته‌ها</h5><ul>${findings}</ul>`:''}${previous?`<h5>کارهای قبلی قابل مشاهده</h5><ul>${previous}</ul>`:''}${review?`<h5>موارد پیشنهادی برای بررسی دندانپزشک</h5><ul>${review}</ul>`:''}${confidence}</div></details>`;
 }
-function renderResult(host,result){
+function renderResult(host,result,meta){
+  const truncated=meta&&meta.truncated?`<p class="field-hint" style="color:#b45309">تنها ۶ تصویرِ اول تحلیل شد تا درخواست سنگین نشود؛ برای دقتِ بیشتر، این مراجعه را به چند بخش تقسیم کنید.</p>`:"";
  const teeth=result.problemTeeth||result.teeth||[];
  const general=result.generalFindings||result.summary||'';
- host.innerHTML=`<div class="ai-analysis-result"><h4>توضیحات هوش مصنوعی</h4><p class="field-hint">این تحلیل Runtime است، در Database ذخیره نمی‌شود و جایگزین تشخیص دندانپزشک نیست.</p>${general?`<div class="ai-general-findings">${esc(general)}</div>`:''}${teeth.length?teeth.map(renderTooth).join(''):'<p>AI مورد قابل تفکیکی برای دندان‌ها گزارش نکرد.</p>'}</div>`;
+ host.innerHTML=`<div class="ai-analysis-result"><h4>توضیحات هوش مصنوعی</h4><p class="field-hint">این تحلیل Runtime است، در Database ذخیره نمی‌شود و جایگزین تشخیص دندانپزشک نیست.</p>${truncated}${general?`<div class="ai-general-findings">${esc(general)}</div>`:''}${teeth.length?teeth.map(renderTooth).join(''):'<p>AI مورد قابل تفکیکی برای دندان‌ها گزارش نکرد.</p>'}</div>`;
 }
 async function analyze(card,button){
  const studyID=Number(card.dataset.studyId);if(!studyID)return;
@@ -34,7 +35,7 @@ async function analyze(card,button){
    const response=await fetch(`/api/ai/studies/${studyID}/analyze`,{method:'POST'});
    const result=await response.json();
    if(!response.ok||result.success===false)throw new Error(result.message||'تحلیل هوش مصنوعی انجام نشد.');
-   renderResult(host,result.analysis||result);
+   renderResult(host,result.analysis||result,result);
  }catch(error){host.innerHTML=`<p class="error">${esc(error.message||'تحلیل هوش مصنوعی انجام نشد.')}</p>`;}
  finally{button.disabled=false;}
 }

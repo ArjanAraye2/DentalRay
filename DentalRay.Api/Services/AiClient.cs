@@ -92,7 +92,7 @@ public sealed class AiClient
 
     // پرامپت + تصویرها را می‌فرستد و **متنِ JSON آمادهٔ پارس** برمی‌گرداند.
     public async Task<string> CompleteJsonAsync(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool compactImages = false)
     {
         string? configError = ConfigurationError();
         if (configError is not null) throw new AiException(configError, 503);
@@ -103,7 +103,7 @@ public sealed class AiClient
         foreach (var item in images)
         {
             if (OperatingSystem.IsWindows())
-                prepared.Add(PrepareForAi(item.Mime, item.Bytes));
+                prepared.Add(PrepareForAi(item.Mime, item.Bytes, compactImages));
             else
                 prepared.Add(item);
         }
@@ -167,12 +167,18 @@ public sealed class AiClient
     // کامل باقی می‌ماند، چون کیفیتِ بالینی قابلِ معامله نیست.
     private const int MaxSide = 1536;
     private const long MaxBytes = 700L * 1024;
+    // در تحلیلِ چندتصویری هر تصویر کوچک‌تر فرستاده می‌شود تا مجموعِ پیام زیرِ حدِی
+    // بماند که خطوطِ ناپایدار یا سرویس آن را وسطِ ارسال قطع نکنند.
+    private const int CompactMaxSide = 1024;
+    private const long CompactMaxBytes = 320L * 1024;
 
     // فقط ویندوز؛ گاردِ زمانِ اجرا هم داخلش هست ولی تحلیل‌گرِ CA1416 آن را
     // کافی نمی‌داند، پس سطحِ متد را هم صریح می‌گوییم.
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-    private static (string Mime, byte[] Bytes) PrepareForAi(string mime, byte[] bytes)
+    private static (string Mime, byte[] Bytes) PrepareForAi(string mime, byte[] bytes, bool compact)
     {
+        int maxSide = compact ? CompactMaxSide : MaxSide;
+        long maxBytes = compact ? CompactMaxBytes : MaxBytes;
         if (!OperatingSystem.IsWindows()) return (mime, bytes);
         if (bytes is not { Length: > 0 }) return (mime, bytes);
         try
@@ -180,9 +186,9 @@ public sealed class AiClient
             using var input = new MemoryStream(bytes);
             using var source = System.Drawing.Image.FromStream(input, false, false);
             int longest = Math.Max(source.Width, source.Height);
-            if (longest <= MaxSide && bytes.Length <= MaxBytes) return (mime, bytes);
+            if (longest <= maxSide && bytes.Length <= maxBytes) return (mime, bytes);
 
-            double scale = Math.Min(1d, (double)MaxSide / longest);
+            double scale = Math.Min(1d, (double)maxSide / longest);
             int width = Math.Max(1, (int)Math.Round(source.Width * scale));
             int height = Math.Max(1, (int)Math.Round(source.Height * scale));
 

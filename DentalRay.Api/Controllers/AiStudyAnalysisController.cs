@@ -47,8 +47,15 @@ public class AiStudyAnalysisController : ControllerBase
         if (configError is not null)
             return StatusCode(503, new { success = false, message = configError });
 
+        // حداکثرِ ۶ تصویر در یک درخواست: هم سقفِ سرویس را نمی‌زند و هم ارسالِ
+        // همزمانِ ده‌ها تصویر خط را می‌بُرد. اگر بیشتر باشد، این موضوع به
+        // رابطِ کاربری گفته می‌شود تا پزشک بداند نتیجه ناقص است.
+        const int maxImages = 6;
+        var selected = supported.Take(maxImages).ToList();
+        bool truncated = supported.Count > selected.Count;
+
         var payload = new List<(string Mime, byte[] Bytes)>();
-        foreach (var image in supported)
+        foreach (var image in selected)
         {
             string path = _storage.GetPhysicalPath(image.RelativePath);
             if (!System.IO.File.Exists(path)) continue;
@@ -72,7 +79,7 @@ Write all explanatory strings in Persian.
         string raw;
         try
         {
-            raw = await _ai.CompleteJsonAsync(prompt, payload, cancellationToken);
+            raw = await _ai.CompleteJsonAsync(prompt, payload, cancellationToken, compactImages: true);
         }
         catch (AiException e)
         {
@@ -82,7 +89,7 @@ Write all explanatory strings in Persian.
         try
         {
             using var analysis = JsonDocument.Parse(raw);
-            return Ok(new { success = true, analysis = analysis.RootElement.Clone() });
+            return Ok(new { success = true, analysis = analysis.RootElement.Clone(), truncated });
         }
         catch (JsonException)
         {

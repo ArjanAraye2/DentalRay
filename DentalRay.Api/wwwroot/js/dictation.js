@@ -16,6 +16,7 @@
  let listening = false;
  let currentInput = null;
  let currentBtn = null;
+ let lastActivity = 0;
 
  // فهرستِ فیلدهای در دسترس (هر بار ساخته می‌شود چون فرم‌ها بعداً ظاهر می‌شوند)
  function targets() {
@@ -106,6 +107,12 @@
 
   currentInput = input;
   currentBtn = wrapOf(input)?.querySelector(".dictate-btn") || null;
+  lastActivity = Date.now();
+
+  // دو شنوندهٔ همزمان در کروم با هم رقابت می‌کنند و میکروفن گیر می‌کند؛ پس
+  // فرمانِ صوتی (در بیننده) اول بی‌سروصدا قطع می‌شود.
+  try { if (window.DentalRayVoice?.isListening?.()) window.DentalRayVoice.stop(false); } catch { /* بی‌اثر */ }
+  document.dispatchEvent(new CustomEvent("dentalray-dictation-start"));
 
   const rec = new SR();
   recognition = rec;
@@ -115,6 +122,7 @@
 
   rec.onstart = () => {
    listening = true;
+   lastActivity = Date.now();
    paint(currentBtn, true);
    hint(input, "در حال گوش دادن…");
   };
@@ -126,6 +134,7 @@
     if (res.isFinal) appendText(res[0].transcript);
     else interim += res[0].transcript;
    }
+   lastActivity = Date.now();
    hint(input, interim ? "می‌شنوم: " + interim.trim() : "در حال گوش دادن…");
   };
 
@@ -144,7 +153,11 @@
   // دوباره وصل می‌شویم تا وسطِ جمله قطع نشود.
   rec.onend = () => {
    if (!listening) { paint(currentBtn, false); return; }
-   try { rec.start(); } catch { listening = false; paint(currentBtn, false); }
+   // شروعِ همزمان با onend در بعضی نسخه‌های کروم خطا می‌دهد ⇒ کمی تأخیر.
+   setTimeout(() => {
+    if (!listening || recognition !== rec) return;
+    try { rec.start(); } catch { listening = false; paint(currentBtn, false); hint(input, "گوش دادن قطع شد — دوباره بزنید"); }
+   }, 150);
   };
 
   try { rec.start(); }
@@ -163,6 +176,16 @@
   currentBtn = null;
  }
 
+ // نگهبان: اگر گوش دادن روی کاغذ فعال باشد ولی ۱۴ ثانیه هیچ فعالیتی نرسد، یعنی
+ // جلسهٔ مرورگر بی‌صدا مرده است — قطع می‌کنیم تا کاربر بفهمد و دوباره بزند.
+ setInterval(() => {
+  if (!listening || !currentInput) return;
+  if (Date.now() - lastActivity < 14000) return;
+  const el = currentInput;
+  stop();
+  hint(el, "گوش دادن قطع شد — دوباره بزنید");
+ }, 2000);
+
  // توقف با Esc
  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && listening) stop(); });
 
@@ -172,5 +195,7 @@
   if (listening && currentInput && !document.contains(currentInput)) stop();
  });
  observer.observe(document.body, { childList: true, subtree: true });
+ // برای اینکه فرمانِ صوتی بداند دیکته فعال است و ساکت بماند.
+ window.DentalRayDictation = { isListening: () => listening };
  mount();
 })();

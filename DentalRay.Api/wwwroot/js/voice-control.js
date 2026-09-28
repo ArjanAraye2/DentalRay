@@ -325,6 +325,11 @@
   }
 
   function start() {
+    // دیکتهٔ متنِ فیلد اولویت دارد؛ دو شنوندهٔ همزمان باعثِ گیر کردنِ میکروفن می‌شوند.
+    if (window.DentalRayDictation?.isListening?.()) {
+      setStatus("دیکتهٔ متن فعال است — فرمانِ صوتی در دسترس نیست.", null);
+      return;
+    }
     if (!supportedBrowser()) {
       setStatus("این مرورگر تشخیص گفتار ندارد؛ از کروم یا اِج استفاده کنید.", "is-error");
       return;
@@ -639,6 +644,9 @@
     });
   }, 10000);
 
+  // وقتی دیکتهٔ متن شروع می‌شود، فرمانِ صوتی بی‌سروصدا قطع می‌شود تا دو شنونده
+  // با هم رقابت نکنند (رایج‌ترین دلیلِ گیر کردنِ میکروفن در کروم).
+  document.addEventListener("dentalray-dictation-start", () => { if (listening) stop(false); });
   window.DentalRayVoice = {
     start, stop, isListening: () => listening, goNext, goPrev,
     runCommand, visitGallery, handle
