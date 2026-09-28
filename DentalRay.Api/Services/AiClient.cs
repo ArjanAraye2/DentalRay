@@ -8,26 +8,32 @@ namespace DentalRay.Api.Services;
 // یک خطای قابلِ نمایش برای کاربر — پیام فارسی است چون خواننده دندان‌پزشک است، نه توسعه‌دهنده.
 public sealed class AiException : Exception
 {
-    public AiException(string userMessage, int httpStatus = 502, string? detail = null) : base(userMessage)
+    public AiException(string userMessage, int httpStatus = 502, string? detail = null, bool retryable = false)
+        : base(userMessage)
     {
         UserMessage = userMessage;
         HttpStatus = httpStatus;
         Detail = detail;
+        Retryable = retryable;
     }
 
     public string UserMessage { get; }
     public int HttpStatus { get; }
     public string? Detail { get; }
+    /// <summary>سرویسِ رایگان گاهی می‌آویزد؛ در این حالت ارزش دارد مدلِ دیگر را امتحان کنیم.</summary>
+    public bool Retryable { get; }
 }
 
 // تنها جایی که با مدلِ بینایی حرف می‌زند.
 //
 // اینکه کدام سرویس کارِ تحلیل را بکند، **کانفیگ است نه کد**: AI:BaseUrl ،AI:ApiKey و
-// AI:Model می‌توانند به OpenRouter یا Hugging Face یا SiliconFlow یا خودِ OpenAI اشاره کنند —
-// همهٔ این‌ها فرمتِ «chat/completions» را حرف می‌زنند، پس یک کلاینت برای همه کافی است و
-// عوض‌کردنِ سرویس فقط یک ویرایشِ کانفیگ + ریستارت.
+// AI:Model می‌توانند به OpenRouter یا Hugging Face یا SiliconFlow یا خودِ OpenAI اشاره کنند.
+// اگر نخستین مدل جواب ندهد (آویزان شدن، خطای سرور) یک بار با AI:FallbackModel امتحان
+// می‌شود، چون سرویسِ رایگان گاهی یک مدل را برای دقایقی از دست می‌دهد.
 public sealed class AiClient
 {
+    private const int AttemptTimeoutSeconds = 90;
+
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClients;
 
@@ -53,6 +59,9 @@ public sealed class AiClient
 
     public string? Model => First(_configuration["AI:Model"], _configuration["OpenAI:Model"]);
 
+    /// <summary>مدلِ جایگزین وقتی مدلِ اصلی جواب نمی‌دهد.</summary>
+    public string? FallbackModel => First(_configuration["AI:FallbackModel"]);
+
     // نبودِ کلید، ایرادِ راه‌اندازی است نه خطای سرویس ⇒ فراخواننده 503 برمی‌گرداند.
     public string? ConfigurationError()
     {
@@ -70,23 +79,51 @@ public sealed class AiClient
         string? configError = ConfigurationError();
         if (configError is not null) throw new AiException(configError, 503);
 
-        string raw;
+        var attempts = new List<string?>();
+        if (!string.IsNullOrWhiteSpace(Model)) attempts.Add(Model);
+        if (!string.IsNullOrWhiteSpace(FallbackModel) &&
+            !attempts.Any(m => string.Equals(m, FallbackModel, StringComparison.OrdinalIgnoreCase)))
+            attempts.Add(FallbackModel);
+
+        AiException? last = null;
+        string raw = string.Empty;
+        foreach (var model in attempts)
+        {
+            try
+            {
+                raw = await SendCoreAsync(prompt, images, model, cancellationToken);
+                break;
+            }
+            catch (AiException e) when (e.Retryable)
+            {
+                last = e; // مدلِ بعدی را امتحان می‌کنیم
+            }
+        }
+        if (raw.Length == 0)
+            throw last ?? new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد.", 502);
+
+        string text = ExtractText(raw) ?? string.Empty;
+        return NormalizeJson(text);
+    }
+
+    // یک مدل: با JSON-mode، و اگر مدل آن را نداشت، بدونِ آن.
+    private async Task<string> SendCoreAsync(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images,
+        string? model, CancellationToken cancellationToken)
+    {
         try
         {
-            raw = await SendAsync(BuildBody(prompt, images, jsonMode: true), cancellationToken);
+            return await SendAsync(BuildBody(prompt, images, model, jsonMode: true), cancellationToken);
         }
         catch (AiException e) when (e.HttpStatus == 400 && e.Detail is not null &&
                                     e.Detail.Contains("response_format", StringComparison.OrdinalIgnoreCase))
         {
-            // بعضی مدل‌های رایگان خروجیِ ساختاریافته ندارند؛ همان درخواست را بدون آن می‌فرستیم.
-            raw = await SendAsync(BuildBody(prompt, images, jsonMode: false), cancellationToken);
+            // بعضی مدل‌های رایگان خروجیِ ساختاریافته ندارند؛ همان درخواست را بدونِ آن می‌فرستیم.
+            return await SendAsync(BuildBody(prompt, images, model, jsonMode: false), cancellationToken);
         }
-
-        string text = ExtractText(raw) ?? "";
-        return NormalizeJson(text);
     }
 
-    private object BuildBody(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images, bool jsonMode)
+    private object BuildBody(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images, string? model,
+        bool jsonMode)
     {
         var content = new List<object> { new { type = "text", text = prompt } };
         foreach (var (mime, bytes) in images)
@@ -99,14 +136,16 @@ public sealed class AiClient
 
         var messages = new object[] { new { role = "user", content } };
         return jsonMode
-            ? new { model = Model, temperature = 0.1, response_format = new { type = "json_object" }, messages }
-            : new { model = Model, temperature = 0.1, messages };
+            ? new { model, temperature = 0.1, response_format = new { type = "json_object" }, messages }
+            : new { model, temperature = 0.1, messages };
     }
 
     private async Task<string> SendAsync(object body, CancellationToken cancellationToken)
     {
         var client = _httpClients.CreateClient();
-        if (client.Timeout < TimeSpan.FromSeconds(120)) client.Timeout = TimeSpan.FromSeconds(120);
+        // سرویسِ رایگان گاهی دقایقی می‌آویزد؛ بیش از این ارزشِ منتظر ماندن ندارد چون
+        // مدلِ جایگزین در همین زمان امتحان می‌شود.
+        client.Timeout = TimeSpan.FromSeconds(AttemptTimeoutSeconds);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
@@ -122,11 +161,13 @@ public sealed class AiClient
         catch (AiException) { throw; }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new AiException("پاسخِ سرویسِ هوش مصنوعی دیر رسید. چند لحظه بعد دوباره تلاش کنید.");
+            throw new AiException(
+                "پاسخِ سرویسِ هوش مصنوعی دیر رسید. چند لحظه بعد دوباره تلاش کنید.", 504, retryable: true);
         }
         catch (HttpRequestException e)
         {
-            throw new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد. اتصال اینترنت را بررسی کنید.", 502, e.Message);
+            throw new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد. اتصال اینترنت را بررسی کنید.",
+                502, e.Message, retryable: true);
         }
     }
 
@@ -143,7 +184,8 @@ public sealed class AiClient
                 "سقفِ استفادهٔ رایگان تمام شد. کمی بعد دوباره تلاش کنید یا مدلِ دیگری انتخاب کنید.", 429, detail),
             HttpStatusCode.BadRequest => new AiException(
                 "درخواست توسط سرویسِ هوش مصنوعی پذیرفته نشد.", 502, detail),
-            _ => new AiException("سرویسِ هوش مصنوعی پاسخ موفق نداد.", 502, detail)
+            _ => new AiException("سرویسِ هوش مصنوعی پاسخ موفق نداد.", 502, detail,
+                retryable: (int)status >= 500)
         };
     }
 
