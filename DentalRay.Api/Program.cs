@@ -20,6 +20,9 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
 builder.Services.AddScoped<StudyAccessService>();
 builder.Services.AddScoped<AiClient>();
+// تبدیلِ PDF فقط روی ویندوز ممکن است (و برنامه هم ویندوزی است)؛ روی سیستمِ
+// دیگر، سرویس ثبت نمی‌شود و آپلودِ PDF همان‌طور PDF می‌ماند.
+if (OperatingSystem.IsWindows()) builder.Services.AddScoped<PdfToImageService>();
 // POS terminals: the registry resolves the protocol named in the settings, so a
 // new vendor only needs a new IPosProtocol implementation registered here.
 builder.Services.AddSingleton<IPosProtocol, GenericTcpPosProtocol>();

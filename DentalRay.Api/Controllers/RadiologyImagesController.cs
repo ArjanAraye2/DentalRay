@@ -13,12 +13,14 @@ namespace DentalRay.Api.Controllers
         private readonly DentalRayDbContext _context;
         private readonly RadiologyStorageService _storage;
         private readonly StudyAccessService _studyAccess;
+        private readonly PdfToImageService _pdf;
 
-        public RadiologyImagesController(DentalRayDbContext context, RadiologyStorageService storage, StudyAccessService studyAccess)
+        public RadiologyImagesController(DentalRayDbContext context, RadiologyStorageService storage, StudyAccessService studyAccess, PdfToImageService pdf)
         {
             _context = context;
             _storage = storage;
             _studyAccess = studyAccess;
+            _pdf = pdf;
         }
 
         // New files can only enter DentalRay through a Study that the current user may access.
@@ -90,6 +92,79 @@ namespace DentalRay.Api.Controllers
             int serial = (await _context.RadiologyImages.Where(x=>x.PatientID==patient.PatientID)
                 .Select(x=>(int?)x.SerialNumber).MaxAsync() ?? 0) + 1;
             DateTime now = DateTime.Now;
+
+            // PDF → JPG: همهٔ صفحات، کاملاً محلی. اگر تبدیل موفق نباشد، خودِ PDF
+            // ذخیره می‌شود تا سندِ بیمار به‌خاطرِ یک تبدیلِ ناموفق گم نشود.
+            if (isPdf && OperatingSystem.IsWindows())
+            {
+                var pages = _pdf.Convert(buffer.ToArray(), Path.GetFileNameWithoutExtension(file.FileName));
+                if (pages.Count > 0)
+                {
+                    var firstHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(pages[0].Bytes)).ToLowerInvariant();
+                    if (!allowDuplicate)
+                    {
+                        var dup = await _context.RadiologyImages.AsNoTracking()
+                            .Where(x => x.PatientID == patient.PatientID && x.ContentHash == firstHash)
+                            .Select(x => new { x.ImageID, x.FileName, x.CreatedDate })
+                            .FirstOrDefaultAsync();
+                        if (dup != null)
+                            return Conflict(new
+                            {
+                                success = false,
+                                duplicate = true,
+                                message = "این تصویر قبلاً برای همین بیمار بارگذاری شده است.",
+                                existing = dup
+                            });
+                    }
+
+                    long firstImageId = 0;
+                    await using (var txPages = await _context.Database.BeginTransactionAsync())
+                    {
+                        int pageSerial = serial;
+                        foreach (var page in pages)
+                        {
+                            string pageRelative;
+                            await using (var pageStream = new MemoryStream(page.Bytes))
+                            {
+                                pageRelative = await _storage.SaveImageAsync(pageStream, page.FileName, patient.NationalCode, now, pageSerial);
+                            }
+                            var pageImage = new RadiologyImage
+                            {
+                                PatientID = patient.PatientID,
+                                ImageTypeID = imageTypeID,
+                                FileName = Path.GetFileName(pageRelative),
+                                RelativePath = pageRelative,
+                                ContentType = "image/jpeg",
+                                SerialNumber = pageSerial,
+                                CreatedDate = now,
+                                ContentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(page.Bytes)).ToLowerInvariant()
+                            };
+                            _context.RadiologyImages.Add(pageImage);
+                            await _context.SaveChangesAsync();
+                            _context.RadiologyStudyImages.Add(new RadiologyStudyImage { StudyID = studyID, ImageID = pageImage.ImageID, CreatedDate = now });
+                            await _context.SaveChangesAsync();
+                            if (firstImageId == 0) firstImageId = pageImage.ImageID;
+                            pageSerial++;
+                        }
+                        await txPages.CommitAsync();
+                    }
+
+                    return Ok(new
+                    {
+                        success = true,
+                        imageID = firstImageId,
+                        patientID = patient.PatientID,
+                        studyID,
+                        imageTypeID,
+                        fileName = pages[0].FileName,
+                        contentType = "image/jpeg",
+                        converted = true,
+                        imageCount = pages.Count,
+                        createdDate = now
+                    });
+                }
+            }
+
             string? relativePath = null;
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
