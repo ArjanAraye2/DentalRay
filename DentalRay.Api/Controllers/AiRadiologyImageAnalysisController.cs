@@ -27,7 +27,7 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
     /// <summary>1 = radiology analysis (matches tblAIImageAnalyses.Kind).</summary>
     private const byte KindRadiology = 1;
     /// <summary>Bump when the prompt changes, so a stored result can be spotted as old.</summary>
-    private const int PromptVersion = 3;
+    private const int PromptVersion = 4;
 
     [HttpPost("{imageID:long}/analyze-radiology")]
     public async Task<IActionResult> Analyze(long imageID, CancellationToken cancellationToken)
@@ -88,17 +88,22 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
         string prompt="""
 You are a clinical assistant reviewing one medical image for a licensed practitioner.
 The image may be a radiograph, a CT or MRI slice, an ultrasound, a clinical photograph,
-or even a non-medical picture; the clinic is not necessarily dental.
-Start by naming what it is: the modality (X-ray, CT, MRI, ultrasound, photo, ...) in
-modality, and the anatomy or body part in anatomy.
-Then describe the meaningful visible findings in generalFindings. When teeth are
-visible, also list them in problemTeeth with FDI numbers, separating visible findings,
-apparent previous work and items for the practitioner to review; otherwise return an
-empty problemTeeth array.
-Do not claim certainty, never give a definitive diagnosis, never prescribe treatment,
-and never invent findings. If the image is not medical, say plainly what it is.
+or a non-medical picture; the clinic is not necessarily dental.
+
+Work through the image systematically and report in detail:
+1. modality: what kind of image it is. anatomy: the body part or region in view.
+2. generalFindings: a compact overview of the whole study in two or three sentences.
+3. findings: an itemised region-by-region review. For EVERY region visible in the image
+   give: region (organ or area), observation (what is actually seen there - write
+   "نرمال" when it looks normal), suggestion (what deserves a closer look and why),
+   and confidence (low|medium|high). Do not skip visible organs; be specific about
+   size, shape, density or position whenever the image allows it.
+4. When teeth are visible, also fill problemTeeth with FDI numbers; otherwise leave it empty.
+Never claim certainty, never give a definitive diagnosis, never prescribe treatment,
+and never invent findings. If the image is not medical, say plainly what it is and
+return an empty findings array.
 Return ONLY valid JSON with this shape:
-{"modality":"string","anatomy":"string","generalFindings":"string","problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
+{"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
 EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
         string raw;
@@ -123,7 +128,13 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
             await _db.SaveChangesAsync(cancellationToken);
             analyzedAt = row.AnalyzedAt;
         }
-        catch { row = null; }
+        catch (Exception e)
+        {
+            // ذخیره نباید نتیجهٔ تحلیل را از بین ببرد، ولی علتِ شکست باید در لاگ
+            // بماند تا قابلِ پیگیری باشد.
+            Console.WriteLine($"[DentalRay AI] save failed: {e.GetType().Name}: {e.Message}");
+            row = null;
+        }
 
         try{using var analysis=JsonDocument.Parse(raw);return Ok(new{success=true,imageID,analysis=analysis.RootElement.Clone(),cached=false,analyzedAt,model=_ai.Model,stale=false});}
         catch(JsonException){return StatusCode(502,new{success=false,message="فرمت نتیجه تحلیل معتبر نبود."});}
