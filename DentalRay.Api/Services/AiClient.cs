@@ -59,8 +59,26 @@ public sealed class AiClient
 
     public string? Model => First(_configuration["AI:Model"], _configuration["OpenAI:Model"]);
 
-    /// <summary>مدلِ جایگزین وقتی مدلِ اصلی جواب نمی‌دهد.</summary>
-    public string? FallbackModel => First(_configuration["AI:FallbackModel"]);
+    /// <summary>
+    /// مدل‌های جایگزین به‌ترتیب. مدلِ رایگانِ گاهی بالادستی محدود می‌شود؛ در آن
+    /// حالت مدلِ بعدیِ فهرست امتحان می‌شود تا کاربر به‌جای خطا جواب بگیرد.
+    /// </summary>
+    public IReadOnlyList<string> FallbackModels
+    {
+        get
+        {
+            var list = new List<string>();
+            string raw = First(_configuration["AI:FallbackModels"], _configuration["AI:FallbackModel"])
+                ?? string.Empty;
+            foreach (var part in raw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string m = part.Trim();
+                if (m.Length > 0 && !list.Contains(m, StringComparer.OrdinalIgnoreCase))
+                    list.Add(m);
+            }
+            return list;
+        }
+    }
 
     // نبودِ کلید، ایرادِ راه‌اندازی است نه خطای سرویس ⇒ فراخواننده 503 برمی‌گرداند.
     public string? ConfigurationError()
@@ -92,23 +110,28 @@ public sealed class AiClient
 
         var attempts = new List<string?>();
         if (!string.IsNullOrWhiteSpace(Model)) attempts.Add(Model);
-        if (!string.IsNullOrWhiteSpace(FallbackModel) &&
-            !attempts.Any(m => string.Equals(m, FallbackModel, StringComparison.OrdinalIgnoreCase)))
-            attempts.Add(FallbackModel);
+        foreach (var fallback in FallbackModels)
+            if (!attempts.Any(m => string.Equals(m, fallback, StringComparison.OrdinalIgnoreCase)))
+                attempts.Add(fallback);
 
         AiException? last = null;
         foreach (var model in attempts)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 string raw = await SendCoreAsync(prompt, prepared, model, cancellationToken);
                 string text = ExtractText(raw) ?? string.Empty;
                 string normalized = NormalizeJson(text);
                 if (normalized.Length > 0 && (normalized[0] == '{' || normalized[0] == '['))
+                {
+                    // کدام مدل جواب داد و چقدر طول کشید؟ برای انتخابِ پایدارترین سرویس لازم است.
+                    Console.WriteLine($"[DentalRay AI] ok via {model ?? "default"} in {watch.ElapsedMilliseconds}ms");
                     return normalized;
+                }
 
                 // پاسخِ ۲۰۰ ولی بی‌محتوا (مدلِ استدلالی، خطا در خودِ بدنه، نتیجهٔ ناقص):
-                // به‌جای دادنِ خطا به کاربر، مدلِ بعدی را امتحان می‌کنیم و خامه را
+                // به‌جای دادنِ خطا به کاربر، مدلِ بعدیِ فهرست را امتحان می‌کنیم و خامه را
                 // در لاگ می‌گذاریم تا بعداً قابلِ بررسی باشد.
                 Console.WriteLine($"[DentalRay AI] unusable reply from {model ?? "default"}: "
                     + raw.Substring(0, Math.Min(400, raw.Length)));
@@ -117,7 +140,7 @@ public sealed class AiClient
             }
             catch (AiException e) when (e.Retryable)
             {
-                last = e; // مدلِ بعدی را امتحان می‌کنیم
+                last = e; // مدلِ بعدیِ فهرست را امتحان می‌کنیم
             }
         }
         throw last ?? new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد.", 502);
