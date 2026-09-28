@@ -90,13 +90,16 @@
   if(b){b.textContent="نمایش تحلیل تصویر";b.classList.add("is-cached");}
  }
 
- function renderRadiology(modal,data,meta){
+ function renderRadiology(target,data,meta){
+   // هم پنجره و هم داخلِ کارتِ مراجعه: بدنه یا خودِ المان است یا درونِ پنجره.
+   const body=target.classList.contains("card-extraction-body")?target:(target.querySelector(".card-extraction-body")||target);
   const teeth=data.problemTeeth||[],general=data.generalFindings||"";
   const regions=Array.isArray(data.findings)?data.findings:[];
   const regionsSection=regions.length?`<section><h4>بررسیِ منطقه‌به‌منطقه</h4>${regions.map(f=>`<div class="radiology-finding"><strong>${esc(f.region||"—")}</strong><p>یافته: ${esc(f.observation||"—")}</p>${f.suggestion?`<p>برای بررسی: ${esc(f.suggestion)}</p>`:""}<small>اطمینان: ${esc(f.confidence||"نامشخص")}</small></div>`).join("")}</section>`:"";
   const what=[data.modality?`نوع تصویر: ${data.modality}`:"",data.anatomy?`ناحیه: ${data.anatomy}`:""].filter(Boolean).join(" · ");
-  modal.querySelector(".card-extraction-body").innerHTML=`${sourceLine(meta)}<p class="card-extraction-warning">این تحلیل جایگزینِ تشخیصِ بالینی نیست.</p>${what?`<p style="margin:6px 0;font-size:13px;color:#0f5165"><strong>${esc(what)}</strong></p>`:""}${general?`<section><h4>یافته‌های کلی</h4><pre>${esc(general)}</pre></section>`:""}${regionsSection}<section><h4>دندان‌های نیازمند بررسی</h4>${teeth.length?teeth.map(t=>`<div class="radiology-finding"><strong>دندان ${esc(t.toothNumber??"؟")}</strong>${(t.findings||[]).map(x=>`<p>یافته: ${esc(x)}</p>`).join("")}${(t.previousWork||[]).map(x=>`<p>درمان قبلی: ${esc(x)}</p>`).join("")}${(t.dentistReview||[]).map(x=>`<p>بررسی دندانپزشک: ${esc(x)}</p>`).join("")}<small>اطمینان: ${esc(t.confidence||"نامشخص")}</small></div>`).join(""):"<p>مورد مشخصی گزارش نشد.</p>"}</section>`;
-  modal.querySelector(".card-extraction-copy").onclick=async()=>navigator.clipboard.writeText(modal.querySelector(".card-extraction-body").innerText);
+  body.innerHTML=`${sourceLine(meta)}<p class="card-extraction-warning">این تحلیل جایگزینِ تشخیصِ بالینی نیست.</p>${what?`<p style="margin:6px 0;font-size:13px;color:#0f5165"><strong>${esc(what)}</strong></p>`:""}${general?`<section><h4>یافته‌های کلی</h4><pre>${esc(general)}</pre></section>`:""}${regionsSection}<section><h4>دندان‌های نیازمند بررسی</h4>${teeth.length?teeth.map(t=>`<div class="radiology-finding"><strong>دندان ${esc(t.toothNumber??"؟")}</strong>${(t.findings||[]).map(x=>`<p>یافته: ${esc(x)}</p>`).join("")}${(t.previousWork||[]).map(x=>`<p>درمان قبلی: ${esc(x)}</p>`).join("")}${(t.dentistReview||[]).map(x=>`<p>بررسی دندانپزشک: ${esc(x)}</p>`).join("")}<small>اطمینان: ${esc(t.confidence||"نامشخص")}</small></div>`).join(""):"<p>مورد مشخصی گزارش نشد.</p>"}</section>`;
+  const copy=body.closest(".card-extraction-dialog")?.querySelector(".card-extraction-copy");
+   if(copy)copy.onclick=async()=>navigator.clipboard.writeText(body.innerText);
  }
 
  // ارسالِ تصویر فقط با تأییدِ سروری انجام می‌شود: سرور اگر ذخیره‌ای نداشته باشد
@@ -136,9 +139,13 @@
    opts=opts||{};
    const ids=Array.isArray(imageIDs)?imageIDs.map(Number).filter(n=>Number.isFinite(n)&&n>0):[];
    if(ids.length<2)return false;
-   close();
+   // host یعنی داخلِ کارتِ مراجعه رندر شود (دکمهٔ «تحلیل همه»)؛ بدونِ host پنجره باز می‌شود.
+   const host=opts.host||null;
+   if(!host)close();
    const body=JSON.stringify({imageIDs:ids});
    const call=async qs=>{const r=await fetch(`/api/ai/images/analyze-many${qs?"?"+qs:""}`,{method:"POST",headers:{"Content-Type":"application/json"},body});let x={};try{x=await r.json();}catch{}return{r,x};};
+   const loading=()=>{if(host)host.innerHTML='<p>در حال تحلیل تصاویر...</p>';else{const b=document.querySelector("#cardExtractionModal .card-extraction-body");if(b)b.innerHTML='<p>در حال تحلیل تصاویر...</p>';}};
+   const fail=message=>{const html=`<p class="error">${esc(message)}</p>`;if(host)host.innerHTML=html;else{const b=document.querySelector("#cardExtractionModal .card-extraction-body");if(b)b.innerHTML=html;}};
    const makeModal=()=>{
     const modal=document.createElement("div");modal.id="cardExtractionModal";modal.className="card-extraction-overlay";
     modal.innerHTML='<div class="card-extraction-dialog" role="dialog" aria-modal="true"><header><div><h3>تحلیل تصاویر انتخاب‌شده</h3><span>تصاویرِ مرتبط با هم بررسی می‌شوند</span></div><button type="button" class="card-extraction-close">×</button></header><div class="card-extraction-body"><p>در حال تحلیل تصاویر...</p></div><footer><button type="button" class="secondary-button card-extraction-reanalyze">تحلیل دوباره</button><button type="button" class="secondary-button card-extraction-copy" disabled>کپی تحلیل</button><button type="button" class="card-extraction-done">بستن</button></footer></div>';
@@ -149,28 +156,38 @@
     modal.addEventListener("click",e=>{if(e.target===modal)close();});
     return modal;
    };
-   let modal=makeModal();
+   let modal=host?null:makeModal();
+   loading();
    try{
     let {r,x}=await call(opts.force?"force=1":"");
     if(r.status===400&&x&&x.needsConsent){
-     modal.remove();
-     if(!await askConsent())return false;
-     modal=makeModal();
+     if(modal){modal.remove();modal=null;}
+     if(!await askConsent()){if(host)host.innerHTML="";return false;}
+     if(host)loading();else modal=makeModal();
      ({r,x}=await call((opts.force?"force=1&":"")+"consent=1"));
     }
     if(!r.ok||x.success===false)throw new Error(x.message||"تحلیل تصاویر انجام نشد.");
-    renderRadiology(modal,x.analysis||{},x);
+    const target=host||modal;
+    renderRadiology(target,x.analysis||{},x);
+    const bodyEl=host||modal.querySelector(".card-extraction-body");
     const count=Number(x.imageCount||ids.length);
     const note=document.createElement("p");
     note.style.cssText="margin:6px 0;font-size:13px;color:#0f5165";
     note.innerHTML=`<strong>${count.toLocaleString("fa-IR")} تصویر با هم بررسی شد.</strong>${x.truncated?' <span style="color:#b45309">تنها ۶ تصویرِ اول تحلیل شد.</span>':""}`;
-    modal.querySelector(".card-extraction-body").prepend(note);
-    modal.querySelector(".card-extraction-copy").disabled=false;
+    bodyEl.prepend(note);
+    if(modal)modal.querySelector(".card-extraction-copy").disabled=false;
+    // در داخلِ کارت دکمهٔ «تحلیل دوباره» نیست؛ اگر نتیجه قدیمی شد همان‌جا ساخته می‌شود.
+    if(host&&x.cached&&x.stale){
+      const again=document.createElement("button");
+      again.type="button";again.className="secondary-button";again.textContent="تحلیل دوباره";again.style.marginTop="6px";
+      again.onclick=()=>analyzeMany(ids,{host,force:true});
+      host.appendChild(again);
+    }
     return true;
-   }catch(e){modal.querySelector(".card-extraction-body").innerHTML=`<p class="error">${esc(e.message||"تحلیل تصاویر انجام نشد.")}</p>`;return false;}
+   }catch(e){fail(e.message||"تحلیل تصاویر انجام نشد.");return false;}
   }
 
-  // تحلیلِ چند تصویرِ انتخاب‌شده با هم؛ true یعنی نتیجه نمایش داده شد.
+  // تحلیلِ چند تصویرِ انتخاب‌شده یا همهٔ تصاویرِ مراجعه با هم؛ true یعنی نتیجه نمایش داده شد.
   window.DentalRayImageAI={open,analyze,analyzeMany,isDentalType:dentalType,askConsent};
  window.DentalRayCardExtraction={open};
  // تأییدِ حریم خصوصی، مشترک بینِ همهٔ دکمه‌های AI همین صفحه
