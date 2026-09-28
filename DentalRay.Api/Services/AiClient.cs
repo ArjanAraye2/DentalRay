@@ -226,7 +226,13 @@ public sealed class AiClient
         {
             using var response = await client.SendAsync(request, cancellationToken);
             string raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!response.IsSuccessStatusCode) throw Translate(response.StatusCode, raw);
+            if (!response.IsSuccessStatusCode)
+            {
+                // متنِ خام خطا در لاگ می‌ماند تا بعداً دقیقاً بفهمیم کدام سقف یا کدام ارائه‌دهنده بوده است.
+                Console.WriteLine($"[DentalRay AI] HTTP {(int)response.StatusCode}: "
+                    + raw.Substring(0, Math.Min(400, raw.Length)));
+                throw Translate(response.StatusCode, raw);
+            }
             return raw;
         }
         catch (AiException) { throw; }
@@ -252,7 +258,10 @@ public sealed class AiClient
             HttpStatusCode.PaymentRequired => new AiException(
                 "اعتبارِ حسابِ هوش مصنوعی تمام شده است.", 502, detail),
             HttpStatusCode.TooManyRequests => new AiException(
-                "سقفِ استفادهٔ رایگان تمام شد. کمی بعد دوباره تلاش کنید یا مدلِ دیگری انتخاب کنید.", 429, detail),
+                "سقفِ استفادهٔ رایگان تمام شد. کمی بعد دوباره تلاش کنید یا مدلِ دیگری انتخاب کنید.", 429, detail,
+                // محدودیتِ گاهی از سویِ خودِ ارائه‌دهندهٔ مدل است نه حسابِ ما؛ پس یک
+                // بار با مدلِ جایگزین هم امتحان می‌کنیم تا اگر بود حل شود.
+                retryable: true),
             HttpStatusCode.BadRequest => new AiException(
                 "درخواست توسط سرویسِ هوش مصنوعی پذیرفته نشد.", 502, detail),
             _ => new AiException("سرویسِ هوش مصنوعی پاسخ موفق نداد.", 502, detail,
