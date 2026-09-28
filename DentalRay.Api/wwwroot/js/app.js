@@ -177,7 +177,7 @@ async function renderRecentStudiesSummary(studies){
  E.recentStudiesSummary.replaceChildren();const recent=(studies||[]).slice(0,3);
  if(!recent.length){E.recentStudiesSummary.textContent="هنوز مطالعه‌ای ثبت نشده است.";return;}
  for(const study of recent){const row=document.createElement("button");row.type="button";row.className="recent-study-row";const thumb=document.createElement("span");thumb.className="recent-study-thumb";thumb.textContent="🦷";const text=document.createElement("span");text.className="recent-study-text";const name=document.createElement("strong");name.textContent=study.studyTypeName||study.studyType||`مطالعه ${study.studyID}`;const date=document.createElement("small");date.textContent=formatPersianDate(study.studyDate);text.append(name,date);row.append(thumb,text);row.onclick=()=>document.querySelector(`.study-scroll-card[data-study-id="${study.studyID}"]`)?.scrollIntoView({behavior:"smooth",block:"start"});E.recentStudiesSummary.appendChild(row);
-  try{const r=await fetch(`/api/radiologyimages/study/${study.studyID}`),image=undefined;let x=await readApiJson(r);(x.images||[]).find(i=>i.contentType!=="application/pdf");if(r.ok&&x.success&&image){const img=document.createElement("img");img.src=`/api/radiologyimages/${image.imageID}`;img.alt="";img.loading="lazy";thumb.replaceChildren(img);}}catch{}
+  try{const r=await fetch(`/api/radiologyimages/study/${study.studyID}`),image=undefined;let x=await readApiJson(r);(x.images||[]).find(i=>i.contentType!=="application/pdf"&&!isCardDocumentImage(i));if(r.ok&&x.success&&image){const img=document.createElement("img");img.src=`/api/radiologyimages/${image.imageID}`;img.alt="";img.loading="lazy";thumb.replaceChildren(img);}}catch{}
  }
 }
 async function loadStudyDetailsImages(study){

@@ -163,7 +163,8 @@
       const r = await fetch(`/api/radiologyimages/study/${visit.studyID}`, { cache: "no-store" });
       if (!r.ok) return undefined;
       const x = await r.json();
-      return (x.images || []).map((i) => ({
+      // کارتِ سابقه سند است؛ در چرخهٔ «تصویر قبلی/بعدی» جا نمی‌گیرد.
+      return (x.images || []).filter((i) => String(i.imageTypeName || "").trim() !== "کارت سابقه").map((i) => ({
         imageID: i.imageID,
         contentType: i.contentType || "image/jpeg",
         fileName: i.fileName,

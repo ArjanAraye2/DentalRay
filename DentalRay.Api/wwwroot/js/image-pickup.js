@@ -266,6 +266,8 @@
       if (!r.ok || !x.success) throw new Error(x.message || "فهرست تصاویر دریافت نشد.");
       const images = (x.images || [])
         .filter((i) => !i.imageTypeID || !i.attached)
+        // کارتِ سابقه سند است و نباید به‌عنوان تصویرِ رادیولوژی الصاق شود.
+        .filter((i) => String(i.imageTypeName ?? "").trim() !== "کارت سابقه")
         .sort((a, b) => (a.imageTypeID ? 1 : 0) - (b.imageTypeID ? 1 : 0));
       images.forEach((image) => listEl.appendChild(card(image)));
       updateStatus();

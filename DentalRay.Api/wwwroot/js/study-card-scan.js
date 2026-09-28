@@ -7,6 +7,8 @@
 (() => {
  "use strict";
  const esc = v => { const d = document.createElement("div"); d.textContent = v ?? ""; return d.innerHTML; };
+ // مقدارِ داخلِ ویژگیِ HTML: نقل‌قول هم باید گِریخته شود تا value نشکند.
+ const attr = v => esc(v).replace(/"/g, "&quot;");
  const CARD_TYPE = "کارت سابقه";
  let pendingFile = null, cardTypeID = 0;
 
@@ -95,11 +97,11 @@
    const on = String(value ?? "").trim() ? " checked" : "";
    const control = kind === "area"
     ? `<textarea rows="2">${esc(value)}</textarea>`
-    : `<input type="text" value="${esc(value)}" />`;
+    : `<input type="text" value="${attr(value)}" />`;
    return `<div class="scan-row" data-key="${key}"><label class="scan-pick"><input type="checkbox"${on} /></label><div class="scan-cell"><span class="scan-label">${esc(label)}</span>${control}</div></div>`;
   }).join("");
   const teethRow = teeth.length
-   ? `<div class="scan-row" data-key="teeth"><label class="scan-pick"><input type="checkbox" checked /></label><div class="scan-cell"><span class="scan-label">شمارهٔ دندان‌ها</span><input type="text" value="${esc(teeth.join("، "))}" /></div></div>`
+   ? `<div class="scan-row" data-key="teeth"><label class="scan-pick"><input type="checkbox" checked /></label><div class="scan-cell"><span class="scan-label">شمارهٔ دندان‌ها</span><input type="text" value="${attr(teeth.join("، "))}" /></div></div>`
    : "";
 
   const box = document.createElement("div");
