@@ -161,12 +161,26 @@
 
 /* دیکتهٔ شرحِ اقدام: دکمهٔ میکروفن داخلِ خودِ فیلد تا چیدمانِ فرم به‌هم نریزد. */
 .dictate-wrap { position: relative; display: block; min-width: 0; }
-.dictate-wrap input { width: 100%; padding-inline-end: 38px; }
+.dictate-wrap input,
+.dictate-wrap textarea { width: 100%; padding-inline-end: 38px; }
+/* نشانگرِ کوچکِ کنارِ دکمه: در حالِ گوش دادن / متنِ موقت */
+.dictate-hint {
+    position: absolute;
+    inset-inline-end: 34px;
+    top: 6px;
+    max-width: calc(100% - 44px);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var( --danger );
+    font-size: var( --fs-xs );
+    font-weight: 600;
+    pointer-events: none;
+}
 .dictate-btn {
     position: absolute;
     inset-inline-end: 4px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 4px;
     min-height: 24px;
     padding: 2px 7px;
     border: 1px solid var( --border );

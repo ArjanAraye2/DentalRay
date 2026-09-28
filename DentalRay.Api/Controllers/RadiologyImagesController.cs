@@ -354,10 +354,13 @@ namespace DentalRay.Api.Controllers
                 }
                 if (!allowed) return Forbid();
 
-                var linksToRemove = await _context.RadiologyStudyImages.Where(x=>x.ImageID==imageID).ToListAsync();
-                _context.RadiologyStudyImages.RemoveRange(linksToRemove);
+                // لینک‌ها در ادامه و برای هر دو مسیر پاک می‌شوند.
             }
-            else if (linkedStudies.Count>0) return Conflict(new { success=false,message="Detach the image from all Studies before deleting it." });
+            // حذفِ تصویر یعنی از همهٔ مراجعه‌هایِ متصل هم حذف شود؛ لینک‌ها همراهِ خودِ
+            // تصویر پاک می‌شوند. (اینجا قبلاً شرطِ وارونه‌ای بود: SuperAdmin با پیامِ
+            // «جدا کردن» رد می‌شد و تصویرش هرگز حذف نمی‌شد.)
+            var linksToRemove = await _context.RadiologyStudyImages.Where(x=>x.ImageID==imageID).ToListAsync();
+            if (linksToRemove.Count > 0) _context.RadiologyStudyImages.RemoveRange(linksToRemove);
             string originalPath=_storage.GetPhysicalPath(image.RelativePath);
             if (!System.IO.File.Exists(originalPath)) return Conflict(new { success=false,message="Physical file not found. Database metadata was not deleted." });
             string directory=Path.GetDirectoryName(originalPath)!;

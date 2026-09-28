@@ -516,7 +516,9 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
        b.onclick=ev=>{ev.stopPropagation();run();};
        imageActions.appendChild(b);
      });
-     const status=document.createElement("div");status.className="status-message";status.textContent="در حال دریافت تصاویر...";
+     const aiAll=document.createElement("button");aiAll.type="button";aiAll.className="secondary-button";aiAll.title="همهٔ تصاویرِ این مراجعه یک‌جا به هوش مصنوعی می‌رود تا با دیدنِ همهٔ جوانب تحلیل کند";aiAll.textContent="تحلیلِ همهٔ تصاویر با AI";aiAll.onclick=ev=>{ev.stopPropagation();const b=card.querySelector(".ai-analyze-button");if(!b){showToast("کمی صبر کنید تا دکمهٔ تحلیل آماده شود.","error");return;}b.click();setTimeout(()=>{const r=card.querySelector(".ai-study-analysis");if(r)r.scrollIntoView({behavior:"smooth",block:"center"});},400);};
+imageActions.appendChild(aiAll);
+const status=document.createElement("div");status.className="status-message";status.textContent="در حال دریافت تصاویر...";
      const grid=document.createElement("div");grid.className="images-grid";
      imagesSection.append(imagesTitle,imageActions,status,grid);
      body.appendChild(imagesSection);

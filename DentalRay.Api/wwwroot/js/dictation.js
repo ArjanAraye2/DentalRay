@@ -1,59 +1,82 @@
-// دیکتهٔ «شرح اقدام» — بدونِ واژهٔ بیداری، فقط نوشتن.
-//
-// با یک کلیک روی 🎤 شروع می‌شود و هر جملهٔ قطعی همان لحظه به انتهای فیلد
-// اضافه می‌شود؛ توقف با کلیک دوباره یا Esc. چیزی خودکار ثبت نمی‌شود — متن
-// می‌ماند و کاربر بعد از بازبینی، خودش «+ ثبت» را می‌زند.
+// دیکتهٔ فیلدهای متنیِ مراجعه: ناحیه، توضیحات، گزارش (در فرمِ جدید و ویرایش)
+// و شرحِ اقدام. بدونِ واژهٔ بیداری؛ هر جملهٔ قطعی به فیلد اضافه می‌شود و چیزی
+// خودکار ثبت نمی‌شود — کاربر متن را بازبینی و خودش ذخیره می‌کند.
 (() => {
  "use strict";
+
+ const TARGET_IDS = [
+  // فرمِ مراجعهٔ جدید
+  "newBodyPart", "newStudyDescription", "newStudyReport",
+  // صفحهٔ جزئیات/ویرایشِ مراجعه
+  "studyDetailsBodyPart", "studyDetailsDescription", "studyDetailsReport"
+ ];
+ const ACTION_DESC = '.study-actions-form input[placeholder="شرح اقدام"]';
 
  let recognition = null;
  let listening = false;
  let currentInput = null;
+ let currentBtn = null;
 
- function status(msg, isError) {
-  const el = document.querySelector(".study-actions-status");
-  if (!el) return;
-  el.textContent = msg || "";
-  el.classList.toggle("error", !!isError);
+ // فهرستِ فیلدهای در دسترس (هر بار ساخته می‌شود چون فرم‌ها بعداً ظاهر می‌شوند)
+ function targets() {
+  const list = [];
+  for (const id of TARGET_IDS) {
+   const el = document.getElementById(id);
+   if (el) list.push(el);
+  }
+  const action = document.querySelector(ACTION_DESC);
+  if (action) {
+   if (!action.id) action.id = "actionDescInput"; // برای پیدا کردنِ نشانگر
+   list.push(action);
+  }
+  return list;
  }
 
- function button() { return document.getElementById("actionDictateBtn"); }
+ function wrapOf(el) { return el ? el.closest(".dictate-wrap") : null; }
+ function hintOf(el) { return wrapOf(el)?.querySelector(".dictate-hint") || null; }
 
- function setUi(on) {
-  const b = button();
-  if (!b) return;
-  b.classList.toggle("is-listening", on);
-  b.setAttribute("aria-pressed", on ? "true" : "false");
-  b.textContent = on ? "●" : "🎤";
-  b.title = on ? "در حال گوش دادن — کلیک یا Esc برای توقف" : "دیکتهٔ شرح اقدام (کلیک برای شروع)";
+ function paint(btn, on) {
+  if (!btn) return;
+  btn.classList.toggle("is-listening", on);
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  btn.textContent = on ? "●" : "🎤";
+  btn.title = on ? "در حال گوش دادن — کلیک یا Esc برای توقف" : "دیکته (کلیک برای شروع · Esc برای توقف)";
  }
 
- // دکمه داخلِ خودِ فیلدِ «شرح اقدام» قرار می‌گیرد تا چیدمانِ فرم به‌هم نریزد.
+ function hint(el, text) {
+  const h = hintOf(el);
+  if (h) h.textContent = text || "";
+ }
+
+ // دکمه داخلِ خودِ فیلد پیچیده می‌شود تا چیدمانِ فرم به‌هم نریزد.
  function mount() {
-  const form = document.querySelector(".study-actions-form");
-  if (!form || document.getElementById("actionDictateBtn")) return;
-  const input = form.querySelector('input[placeholder="شرح اقدام"]');
-  if (!input) return;
+  for (const el of targets()) {
+   if (wrapOf(el)) continue; // قبلاً پیچیده شده
+   const wrap = document.createElement("span");
+   wrap.className = "dictate-wrap";
+   el.parentNode.insertBefore(wrap, el);
+   wrap.appendChild(el);
 
-  const wrap = document.createElement("span");
-  wrap.className = "dictate-wrap";
-  input.parentNode.insertBefore(wrap, input);
-  wrap.appendChild(input);
+   const btn = document.createElement("button");
+   btn.type = "button";
+   btn.className = "dictate-btn";
+   btn.textContent = "🎤";
+   btn.setAttribute("aria-pressed", "false");
+   btn.title = "دیکته (کلیک برای شروع · Esc برای توقف)";
 
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.id = "actionDictateBtn";
-  btn.className = "dictate-btn";
-  btn.textContent = "🎤";
-  btn.setAttribute("aria-pressed", "false");
-  btn.title = "دیکتهٔ شرح اقدام (کلیک برای شروع)";
-  wrap.appendChild(btn);
+   const hintEl = document.createElement("span");
+   hintEl.className = "dictate-hint";
 
-  currentInput = input;
-  btn.addEventListener("click", () => (listening ? stop() : start(input)));
+   wrap.appendChild(btn);
+   wrap.appendChild(hintEl);
+   btn.addEventListener("click", () => {
+    if (listening && currentInput === el) stop();
+    else start(el);
+   });
+  }
  }
 
- function append(text) {
+ function appendText(text) {
   if (!currentInput || !text) return;
   const t = String(text).trim();
   if (!t) return;
@@ -63,69 +86,90 @@
   currentInput.dispatchEvent(new Event("input", { bubbles: true }));
  }
 
+ function hardStop() {
+  listening = false;
+  const rec = recognition;
+  recognition = null;
+  if (rec) { try { rec.stop(); } catch { /* بی‌اثر */ } }
+  if (currentInput) hint(currentInput, "دیکته متوقف شد");
+  paint(currentBtn, false);
+  currentInput = null;
+  currentBtn = null;
+ }
+
  function start(input) {
+  if (input.readOnly || input.disabled) { hint(input, "اول «ویرایش» را بزنید"); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-   status("دیکتهٔ صوتی در این مرورگر نیست — از Chrome یا Edge استفاده کنید.", true);
-   return;
-  }
+  if (!SR) { hint(input, "در این مرورگر نیست — از Chrome یا Edge استفاده کنید"); return; }
+
+  if (listening) hardStop(); // یک فیلد در هر لحظه
+
   currentInput = input;
+  currentBtn = wrapOf(input)?.querySelector(".dictate-btn") || null;
+
   const rec = new SR();
   recognition = rec;
   rec.lang = "fa-IR";
   rec.continuous = true;
   rec.interimResults = true;
 
-  rec.onstart = () => { listening = true; setUi(true); status("در حال گوش دادن… شرح را روان بگویید."); };
+  rec.onstart = () => {
+   listening = true;
+   paint(currentBtn, true);
+   hint(input, "در حال گوش دادن…");
+  };
 
   rec.onresult = (event) => {
    let interim = "";
    for (let i = event.resultIndex; i < event.results.length; i++) {
     const res = event.results[i];
-    if (res.isFinal) append(res[0].transcript);
+    if (res.isFinal) appendText(res[0].transcript);
     else interim += res[0].transcript;
    }
-   if (interim) status("می‌شنوم: " + interim.trim());
+   hint(input, interim ? "می‌شنوم: " + interim.trim() : "در حال گوش دادن…");
   };
 
   rec.onerror = (e) => {
    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-    stop();
-    status("دسترسی به میکروفن داده نشد؛ از نوارِ آدرسِ مرورگر مجوز بدهید.", true);
+    hardStop();
+    hint(input, "دسترسی به میکروفن داده نشد؛ از نوارِ آدرس مرورگر مجوز بدهید.");
    } else if (e.error === "no-speech") {
-    status("صدایی شنیده نشد… ادامه دهید.");
+    hint(input, "صدایی شنیده نشد… ادامه دهید.");
    } else if (e.error !== "aborted") {
-    status("خطای دیکته: " + e.error, true);
+    hint(input, "خطای دیکته: " + e.error);
    }
   };
 
-  // مرورگر بعد از چند ثانیهِ سکوت، جلسه را خودش می‌بندد؛ اگر کاربر هنوز دارد
-  // حرف می‌زند دوباره وصل می‌شویم تا وسطِ جمله قطع نشود.
+  // مرورگر بعد از چند ثانیهِ سکوت جلسه را می‌بندد؛ اگر کاربر هنوز حرف می‌زند
+  // دوباره وصل می‌شویم تا وسطِ جمله قطع نشود.
   rec.onend = () => {
-   if (!listening) { setUi(false); return; }
-   try { rec.start(); } catch { listening = false; setUi(false); }
+   if (!listening) { paint(currentBtn, false); return; }
+   try { rec.start(); } catch { listening = false; paint(currentBtn, false); }
   };
 
   try { rec.start(); }
-  catch { listening = false; setUi(false); status("گوش دادن شروع نشد؛ دوباره تلاش کنید.", true); }
+  catch { listening = false; paint(currentBtn, false); hint(input, "گوش دادن شروع نشد؛ دوباره تلاش کنید."); }
  }
 
  function stop() {
+  if (!listening) return;
   listening = false;
   const rec = recognition;
   recognition = null;
   if (rec) { try { rec.stop(); } catch { /* بی‌اثر */ } }
-  setUi(false);
-  status("دیکته متوقف شد. متن را بازبینی و «+ ثبت» را بزنید.");
+  paint(currentBtn, false);
+  hint(currentInput, "متوقف شد — متن را بازبینی کنید");
+  currentInput = null;
+  currentBtn = null;
  }
 
  // توقف با Esc
  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && listening) stop(); });
 
- // اگر پنلِ اقدامات بسته شد، گوش دادن هم قطع شود + دکمه ساخته شود.
+ // فرم‌ها هنگامِ باز شدنِ مراجعه ساخته می‌شوند ⇒ دکمه‌ها هم همان‌جا ساخته می‌شوند.
  const observer = new MutationObserver(() => {
   mount();
-  if (listening && !document.querySelector(".study-actions-form")) stop();
+  if (listening && currentInput && !document.contains(currentInput)) stop();
  });
  observer.observe(document.body, { childList: true, subtree: true });
  mount();
