@@ -3585,6 +3585,46 @@ table button {
 .study-finance,
 .study-scroll-images { grid-column: 1 / -1; }
 
+/* کارتِ سابقه: سندِ اسکن‌شدهٔ همان مراجعه — جدا از تصاویر رادیولوژی نشان داده
+   می‌شود و دکمهٔ تحلیل ندارد چون هنگامِ ثبتِ مراجعه خوانده شده است. */
+.study-scroll-docs {
+    margin: 0 0 12px;
+    padding: 10px;
+    border: 1px dashed #cfe0e6;
+    border-radius: 10px;
+    background: #fbfdfe;
+}
+.study-scroll-docs .images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+/* بازبینیِ اطلاعاتِ استخراج‌شده از کارتِ سابقه — فرمِ مراجعهٔ جدید */
+.scan-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    padding: 7px 8px;
+    border: 1px solid var( --border );
+    border-radius: var( --radius-sm );
+    background: var( --surface );
+}
+.scan-row:nth-child(even) { background: var( --brand-25 ); }
+.scan-pick { display: flex; align-items: center; padding-top: 6px; }
+.scan-pick input { width: auto; margin: 0; cursor: pointer; }
+.scan-cell { display: grid; gap: 4px; min-width: 0; }
+.scan-label { color: var( --muted ); font-size: var( --fs-xs ); font-weight: 700; }
+.scan-cell input,
+.scan-cell textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid var( --border-strong, #c3dae1 );
+    border-radius: var( --radius-sm );
+    background: var( --surface );
+    font-family: inherit;
+    font-size: var( --fs-sm );
+    resize: vertical;
+}
 .study-scroll-images-title {
     padding-top: 10px;
     color: #0f5165;

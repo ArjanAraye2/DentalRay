@@ -183,7 +183,9 @@ async function renderRecentStudiesSummary(studies){
 async function loadStudyDetailsImages(study){
  E.studyDetailsImagesGrid.replaceChildren();setFormStatus(E.studyDetailsImagesStatus,"در حال دریافت فایل‌ها...",false);
  try{const r=await fetch(`/api/radiologyimages/study/${study.studyID}`),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"فایل‌های Study دریافت نشد."));
-  renderImagesInGrid(x.images||[],E.studyDetailsImagesGrid);setFormStatus(E.studyDetailsImagesStatus,x.count?"":"هنوز فایلی به این Study متصل نشده است.",false);
+  const all=x.images||[],docs=all.filter(isCardDocumentImage),xrays=all.filter(im=>!isCardDocumentImage(im));
+  renderImagesInGrid(xrays,E.studyDetailsImagesGrid);
+  setFormStatus(E.studyDetailsImagesStatus,xrays.length?"":(docs.length?"برای این مراجعه فقط کارت سابقه ثبت شده است.":"هنوز فایلی به این Study متصل نشده است."),false);
  }catch(e){setFormStatus(E.studyDetailsImagesStatus,e.message||"فایل‌های Study دریافت نشد.",true);}
 }
 function openStudyImages(study){selectedStudyID=study.studyID;selectedStudy=study;window.selectedStudy=study;hideMainSections();E.studyImagesSection.classList.remove("hidden");E.studyImagesTitle.textContent="تصاویر — "+(study.studyTypeName||("Study "+study.studyID));loadStudyDetailsImages(study);window.scrollTo(0,0);}
@@ -364,12 +366,15 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
   if(!Array.isArray(teeth)||!teeth.length)return "دندانی انتخاب نشده";
   return "دندان‌ها: "+teeth.map(n=>{const v=Number(n);return Number.isFinite(v)?v.toLocaleString("fa-IR"):String(n);}).join("، ");
  }
+ // «کارت سابقه» سند است نه تصویرِ رادیولوژی: در گرید دیده نمی‌شود و شمرده هم نمی‌شود.
+ function isCardDocumentImage(image){return String(image?.imageTypeName||"").trim()==="کارت سابقه";}
  function studySummary(study){
   const parts=[];
   if(study.bodyPart)parts.push(study.bodyPart);
   const toothCount=Array.isArray(study.toothNumbers)?study.toothNumbers.length:0;
   if(toothCount)parts.push(`${toothCount} دندان`);
   if(study.imageCount)parts.push(`${study.imageCount} تصویر`);
+  if(study.documentCount)parts.push(`${study.documentCount} سند`);
   if(study.report&&String(study.report).trim())parts.push("دارای گزارش");
   if(Number(study.status)===3&&study.followUpDate)parts.push(`پیگیری ${formatPersianDate(study.followUpDate)}`);
   return parts.join(" · ")||"بدون جزئیات";
@@ -387,6 +392,7 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
    card.dataset.studyId=String(study.studyID);
     // For the delete button: a visit with images, actions or payments is never deletable.
     card.dataset.imageCount=String(study.imageCount||0);
+    card.dataset.documentCount=String(study.documentCount||0);
     card.dataset.actionCount=String(study.actionCount||0);
     card.dataset.paymentCount=String(study.paymentCount||0);
 
@@ -470,6 +476,9 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      const details=document.createElement("div");details.className="study-scroll-details";
      details.append(createInfoLine("ناحیه",study.bodyPart||"-"),createInfoLine("توضیحات",study.description||"-"),createInfoLine("گزارش",study.report||"-"));
      details.querySelectorAll(":scope > div").forEach(x=>x.classList.add("info-line"));
+     // کارتِ سابقه: سندِ اسکن‌شدهٔ همین مراجعه — جدا از تصاویر رادیولوژی نشان داده می‌شود.
+     const docsSection=document.createElement("section");docsSection.className="study-scroll-docs";
+     docsSection.innerHTML='<div class="study-scroll-images-title">کارت سابقه</div><div class="images-grid docs-grid"></div>';
      const chartSection=document.createElement("section");chartSection.className="study-scroll-chart is-collapsed";
      // نمودار حدود ۲۸۵px جا می‌گیرد؛ پیش‌فرض بسته است و خلاصهٔ دندان‌ها در همان
      // یک سطر دیده می‌شود تا هنگام بستن چیزی از دست نرود؛ با کلیک باز می‌شود.
@@ -485,7 +494,7 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      chartSection.append(chartToggle,chart);
      const setChartOpen=open=>{chartSection.classList.toggle("is-collapsed",!open);chartToggle.setAttribute("aria-expanded",open?"true":"false");chartArrow.textContent=open?"⌃":"⌄";};
      chartToggle.addEventListener("click",()=>setChartOpen(chartSection.classList.contains("is-collapsed")));
-     body.append(details,chartSection);
+     body.append(details,docsSection,chartSection);
      const imagesSection=document.createElement("section");imagesSection.className="study-scroll-images";
      const imagesTitle=document.createElement("div");imagesTitle.className="study-scroll-images-title";imagesTitle.textContent="تصاویر مطالعه";
      // همان چهار کار تصویر، کنار خودِ لیست تصاویر — چون کاربر بعد از «نمایش»
@@ -511,7 +520,7 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
      const grid=document.createElement("div");grid.className="images-grid";
      imagesSection.append(imagesTitle,imageActions,status,grid);
      body.appendChild(imagesSection);
-     hydrateStudyCard(study,chart,status,grid);
+     hydrateStudyCard(study,chart,status,grid,docsSection);
     }
    };
    toggle.onclick=e=>{e.stopPropagation();setOpen(body.classList.contains("hidden"));};
@@ -534,11 +543,11 @@ async function hydrateStudyCard(study,chart,status,grid){
  // همان render بالا با لیست خالی انجام شده است).
  const teethLine=chart.closest(".study-scroll-chart")?.querySelector(".study-chart-teeth");
  if(teethLine){teethLine.textContent=toothLineText(teeth);teethLine.title=teethLine.textContent;}
- if(imagesResult.status==="fulfilled"){const {r,x}=imagesResult.value;if(r.ok&&x.success){renderImagesInGrid(x.images||[],grid);status.textContent=x.count?`${x.count} تصویر / فایل`:`برای این مطالعه هنوز تصویری ثبت نشده است.`;return;}status.textContent=getApiError(x,"تصاویر مطالعه دریافت نشد.");}
+ if(imagesResult.status==="fulfilled"){const {r,x}=imagesResult.value;if(r.ok&&x.success){const all=x.images||[],docs=all.filter(isCardDocumentImage),xrays=all.filter(im=>!isCardDocumentImage(im));renderImagesInGrid(xrays,grid);if(docsSection){docsSection.classList.toggle("hidden",!docs.length);renderImagesInGrid(docs,docsSection.querySelector(".images-grid"),{docs:true});}const parts=[];if(xrays.length)parts.push(`${xrays.length} تصویر / فایل`);if(docs.length)parts.push(`${docs.length} سند`);status.textContent=parts.length?parts.join(" · "):"برای این مراجعه هنوز تصویری ثبت نشده است.";return;}status.textContent=getApiError(x,"تصاویر مطالعه دریافت نشد.");}
  else status.textContent="تصاویر مطالعه دریافت نشد.";status.classList.toggle("error",!imagesResult.value?.r?.ok);
 }
 
-function renderImagesInGrid(images,grid){grid.innerHTML="";(images||[]).forEach(image=>{const card=document.createElement("div");card.className="image-card";let media;if(image.contentType==="application/pdf"){media=document.createElement("div");media.className="pdf-thumbnail";media.textContent="PDF";}else{media=document.createElement("img");media.src=`/api/radiologyimages/${image.imageID}`;media.alt=image.fileName;media.loading="lazy";}media.onclick=()=>openLargeImage(image);const title=document.createElement("div");title.className="image-card-title";title.textContent=image.fileName;const type=document.createElement("div");type.className="field-hint";type.textContent=image.imageTypeName?`نوع تصویر: ${image.imageTypeName}`:"نوع تصویر: تعیین نشده";card.append(media,title,type);if(image.contentType?.startsWith("image/")){const ai=document.createElement("button"),isDental=window.DentalRayImageAI?.isDentalType(image.imageTypeName)??/(cbct|opg|پانور|پری[‌ -]?اپیکال|بایت|اکلوز|سفال|داخل دهان|دندان)/i.test(image.imageTypeName||"");ai.type="button";ai.className="card-extraction-button";ai.textContent=isDental?"تحلیل رادیولوژی":"استخراج اطلاعات از کارت";ai.onclick=ev=>{ev.stopPropagation();isDental?window.DentalRayImageAI?.analyze(image):window.DentalRayImageAI?.open(image);};card.appendChild(ai);}if(!image.imageTypeID){const classify=document.createElement("button");classify.type="button";classify.className="secondary-button";classify.textContent="تعیین نوع تصویر";classify.onclick=async ev=>{ev.stopPropagation();try{const r=await fetch("/api/imagetypes"),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"انواع تصویر دریافت نشد."));const types=x.imageTypes||[];if(!types.length){showToast("هنوز نوع تصویری ثبت نشده است.","error");return;}const box=document.createElement("span");box.style.cssText="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px";const sel=document.createElement("select");sel.style.cssText="min-height:34px;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font:inherit;font-size:13px;background:#fff";types.forEach(t=>{const o=document.createElement("option");o.value=t.imageTypeID;o.textContent=t.imageTypeName;sel.appendChild(o);});const ok=document.createElement("button");ok.type="button";ok.className="secondary-button";ok.textContent="ثبت";const cancel=document.createElement("button");cancel.type="button";cancel.className="secondary-button";cancel.textContent="انصراف";box.append(sel,ok,cancel);classify.replaceWith(box);cancel.onclick=ce=>{ce.stopPropagation();box.replaceWith(classify);};ok.onclick=async ce=>{ce.stopPropagation();const imageTypeID=Number(sel.value);try{const u=await fetch(`/api/radiologyimages/${image.imageID}/type`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({imageTypeID})}),y=await u.json();if(!u.ok||!y.success)throw new Error(getApiError(y,"تعیین نوع تصویر انجام نشد."));image.imageTypeID=y.imageTypeID;image.imageTypeName=y.imageTypeName;type.textContent=`نوع تصویر: ${y.imageTypeName}`;box.remove();if(typeof selectedStudy==="object"&&selectedStudy)openStudyImages(selectedStudy);showToast("نوع تصویر تعیین شد.");}catch(e2){showToast(e2.message||"تعیین نوع تصویر انجام نشد.","error");}};}catch(e){showToast(e.message||"انواع تصویر دریافت نشد.","error");}};card.appendChild(classify);}
+function renderImagesInGrid(images,grid,opts){grid.innerHTML="";(images||[]).forEach(image=>{const card=document.createElement("div");card.className="image-card";let media;if(image.contentType==="application/pdf"){media=document.createElement("div");media.className="pdf-thumbnail";media.textContent="PDF";}else{media=document.createElement("img");media.src=`/api/radiologyimages/${image.imageID}`;media.alt=image.fileName;media.loading="lazy";}media.onclick=()=>openLargeImage(image);const title=document.createElement("div");title.className="image-card-title";title.textContent=image.fileName;const type=document.createElement("div");type.className="field-hint";type.textContent=image.imageTypeName?`نوع تصویر: ${image.imageTypeName}`:"نوع تصویر: تعیین نشده";card.append(media,title,type);if(!opts?.docs&&image.contentType?.startsWith("image/")){const ai=document.createElement("button"),isDental=window.DentalRayImageAI?.isDentalType(image.imageTypeName)??/(cbct|opg|پانور|پری[‌ -]?اپیکال|بایت|اکلوز|سفال|داخل دهان|دندان)/i.test(image.imageTypeName||"");ai.type="button";ai.className="card-extraction-button";ai.textContent=isDental?"تحلیل رادیولوژی":"استخراج اطلاعات از کارت";ai.onclick=ev=>{ev.stopPropagation();isDental?window.DentalRayImageAI?.analyze(image):window.DentalRayImageAI?.open(image);};card.appendChild(ai);}if(!image.imageTypeID){const classify=document.createElement("button");classify.type="button";classify.className="secondary-button";classify.textContent="تعیین نوع تصویر";classify.onclick=async ev=>{ev.stopPropagation();try{const r=await fetch("/api/imagetypes"),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"انواع تصویر دریافت نشد."));const types=x.imageTypes||[];if(!types.length){showToast("هنوز نوع تصویری ثبت نشده است.","error");return;}const box=document.createElement("span");box.style.cssText="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px";const sel=document.createElement("select");sel.style.cssText="min-height:34px;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font:inherit;font-size:13px;background:#fff";types.forEach(t=>{const o=document.createElement("option");o.value=t.imageTypeID;o.textContent=t.imageTypeName;sel.appendChild(o);});const ok=document.createElement("button");ok.type="button";ok.className="secondary-button";ok.textContent="ثبت";const cancel=document.createElement("button");cancel.type="button";cancel.className="secondary-button";cancel.textContent="انصراف";box.append(sel,ok,cancel);classify.replaceWith(box);cancel.onclick=ce=>{ce.stopPropagation();box.replaceWith(classify);};ok.onclick=async ce=>{ce.stopPropagation();const imageTypeID=Number(sel.value);try{const u=await fetch(`/api/radiologyimages/${image.imageID}/type`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({imageTypeID})}),y=await u.json();if(!u.ok||!y.success)throw new Error(getApiError(y,"تعیین نوع تصویر انجام نشد."));image.imageTypeID=y.imageTypeID;image.imageTypeName=y.imageTypeName;type.textContent=`نوع تصویر: ${y.imageTypeName}`;box.remove();if(typeof selectedStudy==="object"&&selectedStudy)openStudyImages(selectedStudy);showToast("نوع تصویر تعیین شد.");}catch(e2){showToast(e2.message||"تعیین نوع تصویر انجام نشد.","error");}};}catch(e){showToast(e.message||"انواع تصویر دریافت نشد.","error");}};card.appendChild(classify);}
 const del=document.createElement("button");
 del.type="button";
 del.className="secondary-button image-delete-button";
@@ -661,6 +670,8 @@ async function openNewStudyForm(){
  E.newStudyForm.reset();
  setFormStatus(E.newStudyStatus,"",false);
  E.newStudyDate.value=toEnglishJalaliInput(new Date(),true);
+ // فیلدِ اسکنِ کارتِ سابقه (ماژولِ study-card-scan) به همین فرم اضافه می‌شود.
+ window.DentalRayStudyCardScan?.mount();
  // A brand-new Study starts open: the work is by definition not finished yet.
  setStudyStatusFields("new",1,null,null);
  hideMainSections();
@@ -761,7 +772,7 @@ function offerPatientMessage(patientID,reason,preferredTemplate){
   window.dispatchEvent(new CustomEvent("dentalray-offer-message",{detail:{patientID,templateKey:preferredTemplate}}));
  };
 }
-async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await readApiJson(r);if(!r.ok||x.success===false)throw new Error(apiErrorMessage(r,x,"ثبت رادیولوژی انجام نشد."));const savedPatientID=selectedPatientID;await openPatient(savedPatientID);showToast("رادیولوژی ثبت شد.");
+async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await readApiJson(r);if(!r.ok||x.success===false)throw new Error(apiErrorMessage(r,x,"ثبت رادیولوژی انجام نشد."));const savedStudyID=(x.study&&x.study.studyID)||0;await window.DentalRayStudyCardScan?.uploadPending(savedStudyID);const savedPatientID=selectedPatientID;await openPatient(savedPatientID);showToast("مراجعه ثبت شد.");
  // A study recorded for a future date is a booked visit, so a reminder makes sense.
  const saved=x.study||x;
  if(Number(saved.status)===3&&saved.followUpDate){

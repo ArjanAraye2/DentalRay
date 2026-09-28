@@ -117,6 +117,16 @@ using (var scope = app.Services.CreateScope())
             """);
     }
     catch { }
+
+    // «کارت سابقه» نوعِ ثابتِ سند است: عکسِ کارتِ دستنویس که هنگامِ ثبتِ مراجعه
+    // گرفته می‌شود، در گریدِ تصاویر دیده نمی‌شود و جزءِ شمارشِ تصاویر نیست.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "IF NOT EXISTS (SELECT 1 FROM dbo.tblImageTypes WHERE ImageTypeName = N'کارت سابقه') " +
+            "INSERT INTO dbo.tblImageTypes (ImageTypeName, IsActive) VALUES (N'کارت سابقه', 1)");
+    }
+    catch { }
 }
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
@@ -136,6 +146,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/card-extraction.js?v=20260928.2\"></script>\n" +
+                "<script src=\"/js/study-card-scan.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";

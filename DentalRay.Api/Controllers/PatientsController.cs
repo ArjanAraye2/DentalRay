@@ -282,12 +282,25 @@ namespace DentalRay.Api.Controllers
 
             Console.WriteLine($"[DentalRay PatientDetails] STUDIES loaded Count={studies.Count}");
             var studyIDs = studies.Select(s => s.StudyID).ToList();
+            // «کارت سابقه» سند است: هنگامِ ثبتِ مراجعه اسکن می‌شود، در گریدِ تصاویر
+            // دیده نمی‌شود و جزءِ شمارشِ تصاویر هم نیست.
+            const string cardImageTypeName = "کارت سابقه";
             var imageCounts = studyIDs.Count == 0
                 ? new Dictionary<int, int>()
                 : await _context.RadiologyStudyImages.AsNoTracking()
                     .Where(x => studyIDs.Contains(x.StudyID))
                     .GroupBy(x => x.StudyID)
                     .Select(g => new { StudyID = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.StudyID, x => x.Count);
+
+            var documentCounts = studyIDs.Count == 0
+                ? new Dictionary<int, int>()
+                : await (from link in _context.RadiologyStudyImages.AsNoTracking()
+                         join img in _context.RadiologyImages.AsNoTracking() on link.ImageID equals img.ImageID
+                         join t in _context.ImageTypes.AsNoTracking() on img.ImageTypeID equals t.ImageTypeID
+                         where studyIDs.Contains(link.StudyID) && t.ImageTypeName == cardImageTypeName
+                         group link by link.StudyID into g
+                         select new { StudyID = g.Key, Count = g.Count() })
                     .ToDictionaryAsync(x => x.StudyID, x => x.Count);
 
             Console.WriteLine($"[DentalRay PatientDetails] IMAGE COUNTS loaded Count={imageCounts.Count}");
@@ -315,7 +328,9 @@ namespace DentalRay.Api.Controllers
                 s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID, s.StudyTypeName,
                 s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
                 s.Status, s.FollowUpDate, s.FollowUpNote, s.WaitStageID, s.WaitStageName,
-                imageCount = imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0,
+                imageCount = (imageCounts.TryGetValue(s.StudyID, out int count) ? count : 0)
+                             - (documentCounts.TryGetValue(s.StudyID, out int docCount) ? docCount : 0),
+                documentCount = documentCounts.TryGetValue(s.StudyID, out int onlyDoc) ? onlyDoc : 0,
                 actionCount = actionCounts.TryGetValue(s.StudyID, out int ac) ? ac : 0,
                 paymentCount = paymentCounts.TryGetValue(s.StudyID, out int pc) ? pc : 0
             }).ToList();

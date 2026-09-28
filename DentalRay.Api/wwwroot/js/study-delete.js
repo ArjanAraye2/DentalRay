@@ -16,7 +16,8 @@
             if (!Number.isInteger(studyID) || studyID <= 0) return;
             // مراجعه‌ای که تصویر، اقدام یا پرداخت دارد قابل حذف نیست؛
             // پس اصلاً دکمهٔ حذف برایش ساخته نمی‌شود.
-            const busy = Number(card.dataset.imageCount || 0) > 0
+            // کارتِ سابقه هم سند است: مراجعه‌ای که فقط سند دارد قابلِ حذف نیست.
+            const busy = (Number(card.dataset.imageCount || 0) + Number(card.dataset.documentCount || 0)) > 0
                 || Number(card.dataset.actionCount || 0) > 0
                 || Number(card.dataset.paymentCount || 0) > 0;
             if (busy) return;
