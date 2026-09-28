@@ -159,6 +159,36 @@
 .study-actions-status:empty { display: none; }
 .study-actions-status.error { color: var(--danger ); }
 
+/* دیکتهٔ شرحِ اقدام: دکمهٔ میکروفن داخلِ خودِ فیلد تا چیدمانِ فرم به‌هم نریزد. */
+.dictate-wrap { position: relative; display: block; min-width: 0; }
+.dictate-wrap input { width: 100%; padding-inline-end: 38px; }
+.dictate-btn {
+    position: absolute;
+    inset-inline-end: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-height: 24px;
+    padding: 2px 7px;
+    border: 1px solid var( --border );
+    border-radius: 999px;
+    background: var( --surface );
+    color: var( --muted );
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.dictate-btn:hover { border-color: var( --primary ); color: var( --primary ); }
+.dictate-btn.is-listening {
+    border-color: var( --danger );
+    color: var( --danger );
+    background: var( --danger-soft, #fdecec );
+    animation: dictatePulse 1s ease-in-out infinite;
+}
+@keyframes dictatePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(190, 60, 60, 0.35); }
+    50%      { box-shadow: 0 0 0 6px rgba(190, 60, 60, 0); }
+}
+
 /* --- the chip in the Study header --- */
 .study-finance-chip {
     padding: 2px 9px;
