@@ -32,7 +32,21 @@ public sealed class AiException : Exception
 // می‌شود، چون سرویسِ رایگان گاهی یک مدل را برای دقایقی از دست می‌دهد.
 public sealed class AiClient
 {
-    private const int AttemptTimeoutSeconds = 90;
+    // سقفِ زمانِ **هر** تلاش: سرویسِ رایگان برای چند تصویر گاهی بیش از سه دقیقه
+    // جواب می‌دهد (اندازه‌گیری شده: 216 ثانیه)، پس پیش‌فرض بلند است و با
+    // AI:TimeoutSeconds در DentalRay.config.json قابلِ تنظیم.
+    private const int DefaultAttemptTimeoutSeconds = 240;
+
+    private int AttemptTimeoutSeconds
+    {
+        get
+        {
+            string? raw = _configuration["AI:TimeoutSeconds"];
+            return int.TryParse(raw, out int seconds) && seconds > 0
+                ? seconds
+                : DefaultAttemptTimeoutSeconds;
+        }
+    }
 
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClients;

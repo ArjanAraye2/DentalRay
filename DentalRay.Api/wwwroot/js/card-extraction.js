@@ -144,7 +144,8 @@
    if(!host)close();
    const body=JSON.stringify({imageIDs:ids});
    const call=async qs=>{const r=await fetch(`/api/ai/images/analyze-many${qs?"?"+qs:""}`,{method:"POST",headers:{"Content-Type":"application/json"},body});let x={};try{x=await r.json();}catch{}return{r,x};};
-   const loading=()=>{if(host)host.innerHTML='<p>در حال تحلیل تصاویر...</p>';else{const b=document.querySelector("#cardExtractionModal .card-extraction-body");if(b)b.innerHTML='<p>در حال تحلیل تصاویر...</p>';}};
+   const loadingHtml='<p>در حال تحلیل تصاویر...</p><p class="field-hint" style="margin-top:6px;color:#b45309">تحلیلِ چند تصویر ممکن است ۲ تا ۴ دقیقه طول بکشد؛ صفحه را نبندید.</p>';
+   const loading=()=>{if(host)host.innerHTML=loadingHtml;else{const b=document.querySelector("#cardExtractionModal .card-extraction-body");if(b)b.innerHTML=loadingHtml;}};
    const fail=message=>{const html=`<p class="error">${esc(message)}</p>`;if(host)host.innerHTML=html;else{const b=document.querySelector("#cardExtractionModal .card-extraction-body");if(b)b.innerHTML=html;}};
    const makeModal=()=>{
     const modal=document.createElement("div");modal.id="cardExtractionModal";modal.className="card-extraction-overlay";
