@@ -814,6 +814,92 @@ button {
 }
 
 
+/* ==========================================================
+   Image selection for a joint (multi-image) AI analysis
+   ========================================================== */
+
+.image-pick {
+    display: none;
+}
+
+
+.images-grid.is-selecting .image-pick {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 9px;
+    padding: 7px 9px;
+    border: 1px dashed #0f5165;
+    border-radius: 8px;
+    background: #f0f7fa;
+    font-size: 12px;
+    color: #0f5165;
+    cursor: pointer;
+    user-select: none;
+}
+
+
+.images-grid.is-selecting .image-pick input {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #0f5165;
+}
+
+
+.images-grid.is-selecting .image-pick:has( input:checked ) {
+    background: #0f5165;
+    border-color: #0f5165;
+    border-style: solid;
+    color: #ffffff;
+}
+
+
+.image-select-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f0f7fa;
+    border: 1px solid rgba(15, 81, 101, 0.25 );
+    border-radius: 10px;
+}
+
+
+.image-select-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f5165;
+}
+
+
+.image-select-run {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #0f5165;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+
+.image-select-run:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+
+.study-card-image-actions .secondary-button.is-on {
+    background: #0f5165;
+    border-color: #0f5165;
+    color: #ffffff;
+}
+
+
     .image-delete-button:hover {
         background: #f7d2ce;
         color: #8f1d16;

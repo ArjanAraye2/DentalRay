@@ -520,7 +520,52 @@ window.DentalRaySaveStudyDetails=event=>{event?.preventDefault?.();return saveSt
 imageActions.appendChild(aiAll);
 const status=document.createElement("div");status.className="status-message";status.textContent="در حال دریافت تصاویر...";
      const grid=document.createElement("div");grid.className="images-grid";
-     imagesSection.append(imagesTitle,imageActions,status,grid);
+     // --- انتخابِ چند تصویرِ مرتبط و تحلیلِ مشترکِ آنها ---------------------
+     // کاربر تصویرها را خودش انتخاب می‌کند (حالتِ انتخاب در همین گرید) تا فقط
+     // همان‌ها با هم به سرور برود؛ نتیجه هم مثلِ تک‌تصویر ذخیره می‌شود.
+     const pickBtn=document.createElement("button");
+     pickBtn.type="button";pickBtn.className="secondary-button";pickBtn.textContent="انتخاب تصاویر برای تحلیل";
+     pickBtn.title="چند تصویرِ مرتبط را انتخاب کنید تا یک‌جا و با هم تحلیل شوند";
+     const pickBar=document.createElement("div");
+     pickBar.className="image-select-bar hidden";
+     pickBar.innerHTML='<span class="image-select-count">۰ تصویر انتخاب شد</span><button type="button" class="image-select-run">تحلیل انتخاب‌شده‌ها با هم</button><button type="button" class="secondary-button image-select-cancel">انصراف</button>';
+     imageActions.appendChild(pickBtn);
+     const selectedIds=()=>Array.from(grid.querySelectorAll(".image-pick input:checked")).map(b=>Number(b.value)).filter(Boolean);
+     function updateSelectBar(){
+       const n=selectedIds().length;
+       pickBar.querySelector(".image-select-count").textContent=`${n.toLocaleString("fa-IR")} تصویر انتخاب شد`;
+       pickBar.querySelector(".image-select-run").disabled=n<2;
+     }
+     const exitSelect=()=>{grid.classList.remove("is-selecting");pickBar.classList.add("hidden");pickBtn.textContent="انتخاب تصاویر برای تحلیل";pickBtn.classList.remove("is-on");grid.querySelectorAll(".image-pick input:checked").forEach(b=>{b.checked=false;});updateSelectBar();};
+     const enterSelect=()=>{
+       if(grid.querySelectorAll("[data-ai-image]").length<2){showToast("برای تحلیلِ با هم، حداقل ۲ تصویر لازم است.","error");return;}
+       grid.classList.add("is-selecting");pickBar.classList.remove("hidden");pickBtn.textContent="پایان انتخاب";pickBtn.classList.add("is-on");updateSelectBar();
+     };
+     pickBtn.onclick=ev=>{ev.stopPropagation();grid.classList.contains("is-selecting")?exitSelect():enterSelect();};
+     pickBar.querySelector(".image-select-cancel").onclick=ev=>{ev.stopPropagation();exitSelect();};
+     pickBar.querySelector(".image-select-run").onclick=async ev=>{
+       ev.stopPropagation();
+       const ids=selectedIds();
+       if(ids.length<2){showToast("حداقل ۲ تصویر را انتخاب کنید.","error");return;}
+       const run=window.DentalRayImageAI&&window.DentalRayImageAI.analyzeMany;
+       if(!run){showToast("کمی صبر کنید تا ماژول تحلیل آماده شود.","error");return;}
+       if(await run(ids))exitSelect();
+     };
+     // در حالتِ انتخاب، کلیک روی خودِ تصویر به‌جای بزرگ‌نمایی، انتخاب را عوض می‌کند.
+     // (شنود روی گرید با capture اجرا می‌شود تا قبلِ onclickِ تصویر برسد.)
+     grid.addEventListener("click",e=>{
+       if(!grid.classList.contains("is-selecting"))return;
+       if(e.target.closest("button")||e.target.closest("input")||e.target.closest("a"))return;
+       const box=(e.target.closest(".image-card")||{querySelector:()=>null}).querySelector(".image-pick input");
+       if(!box)return;
+       e.preventDefault();e.stopPropagation();
+       box.checked=!box.checked;updateSelectBar();
+     },true);
+     // چک‌باکسِ انتخاب روی هر تصویرِ قابلِ تحلیل؛ بعد از رندرِ دوباره (آپلود/حذف) هم ساخته می‌شود.
+     const addPicks=()=>{grid.querySelectorAll(".image-card").forEach(c=>{const ai=c.querySelector("[data-ai-image]");if(!ai||c.querySelector(".image-pick"))return;const pick=document.createElement("label");pick.className="image-pick";pick.title="انتخاب این تصویر برای تحلیل با هم";const box=document.createElement("input");box.type="checkbox";box.value=ai.dataset.aiImage;box.addEventListener("change",updateSelectBar);pick.append(box,"انتخاب");c.appendChild(pick);});};
+     new MutationObserver(addPicks).observe(grid,{childList:true});
+     addPicks();
+     imagesSection.append(imagesTitle,imageActions,status,grid,pickBar);
      body.appendChild(imagesSection);
      hydrateStudyCard(study,chart,status,grid,docsSection);
     }

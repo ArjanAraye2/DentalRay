@@ -132,7 +132,46 @@
   }catch(e){modal.querySelector(".card-extraction-body").innerHTML=`<p class="error">${esc(e.message||"تحلیل تصویر انجام نشد.")}</p>`;}
  }
 
- window.DentalRayImageAI={open,analyze,isDentalType:dentalType,askConsent};
+ async function analyzeMany(imageIDs,opts){
+   opts=opts||{};
+   const ids=Array.isArray(imageIDs)?imageIDs.map(Number).filter(n=>Number.isFinite(n)&&n>0):[];
+   if(ids.length<2)return false;
+   close();
+   const body=JSON.stringify({imageIDs:ids});
+   const call=async qs=>{const r=await fetch(`/api/ai/images/analyze-many${qs?"?"+qs:""}`,{method:"POST",headers:{"Content-Type":"application/json"},body});let x={};try{x=await r.json();}catch{}return{r,x};};
+   const makeModal=()=>{
+    const modal=document.createElement("div");modal.id="cardExtractionModal";modal.className="card-extraction-overlay";
+    modal.innerHTML='<div class="card-extraction-dialog" role="dialog" aria-modal="true"><header><div><h3>تحلیل تصاویر انتخاب‌شده</h3><span>تصاویرِ مرتبط با هم بررسی می‌شوند</span></div><button type="button" class="card-extraction-close">×</button></header><div class="card-extraction-body"><p>در حال تحلیل تصاویر...</p></div><footer><button type="button" class="secondary-button card-extraction-reanalyze">تحلیل دوباره</button><button type="button" class="secondary-button card-extraction-copy" disabled>کپی تحلیل</button><button type="button" class="card-extraction-done">بستن</button></footer></div>';
+    document.body.appendChild(modal);
+    modal.querySelector(".card-extraction-close").onclick=close;
+    modal.querySelector(".card-extraction-done").onclick=close;
+    modal.querySelector(".card-extraction-reanalyze").onclick=()=>analyzeMany(ids,{force:true});
+    modal.addEventListener("click",e=>{if(e.target===modal)close();});
+    return modal;
+   };
+   let modal=makeModal();
+   try{
+    let {r,x}=await call(opts.force?"force=1":"");
+    if(r.status===400&&x&&x.needsConsent){
+     modal.remove();
+     if(!await askConsent())return false;
+     modal=makeModal();
+     ({r,x}=await call((opts.force?"force=1&":"")+"consent=1"));
+    }
+    if(!r.ok||x.success===false)throw new Error(x.message||"تحلیل تصاویر انجام نشد.");
+    renderRadiology(modal,x.analysis||{},x);
+    const count=Number(x.imageCount||ids.length);
+    const note=document.createElement("p");
+    note.style.cssText="margin:6px 0;font-size:13px;color:#0f5165";
+    note.innerHTML=`<strong>${count.toLocaleString("fa-IR")} تصویر با هم بررسی شد.</strong>${x.truncated?' <span style="color:#b45309">تنها ۶ تصویرِ اول تحلیل شد.</span>':""}`;
+    modal.querySelector(".card-extraction-body").prepend(note);
+    modal.querySelector(".card-extraction-copy").disabled=false;
+    return true;
+   }catch(e){modal.querySelector(".card-extraction-body").innerHTML=`<p class="error">${esc(e.message||"تحلیل تصاویر انجام نشد.")}</p>`;return false;}
+  }
+
+  // تحلیلِ چند تصویرِ انتخاب‌شده با هم؛ true یعنی نتیجه نمایش داده شد.
+  window.DentalRayImageAI={open,analyze,analyzeMany,isDentalType:dentalType,askConsent};
  window.DentalRayCardExtraction={open};
  // تأییدِ حریم خصوصی، مشترک بینِ همهٔ دکمه‌های AI همین صفحه
  window.DentalRayAIConsent={ask:askConsent};
