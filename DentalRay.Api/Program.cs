@@ -19,6 +19,7 @@ builder.Configuration.AddJsonFile(dentalRayConfigFile, optional: true, reloadOnC
 builder.Services.AddControllers();
 builder.Services.AddScoped<RadiologyStorageService>();
 builder.Services.AddScoped<StudyAccessService>();
+builder.Services.AddScoped<AiClient>();
 // POS terminals: the registry resolves the protocol named in the settings, so a
 // new vendor only needs a new IPosProtocol implementation registered here.
 builder.Services.AddSingleton<IPosProtocol, GenericTcpPosProtocol>();
