@@ -109,9 +109,41 @@
 
  // ارسالِ تصویر فقط با تأییدِ سروری انجام می‌شود: سرور اگر ذخیره‌ای نداشته باشد
  // و consent نیامده باشد، درخواست را با needsConsent برمی‌گرداند و ما تأیید می‌گیریم.
- async function analyze(image,opts){
+   // مرحلهٔ آماده‌سازی: نکتهٔ ویژه در خودِ پنجرهٔ تحلیل نوشته می‌شود، نه روی کارت.
+  let lastNote = "";
+  function prepareBlock(placeholder){
+    return '<div class="ai-prepare">'
+      + '<p class="ai-prepare-label">نکتهٔ ویژه برای AI <span>(اختیاری)</span></p>'
+      + '<textarea class="ai-prepare-input" rows="2" placeholder="'+esc(placeholder)+'">'+esc(lastNote)+'</textarea>'
+      + '<p class="field-hint">بدونِ نکته هم می‌توانید شروع کنید. اگر نکته بنویسید، تحلیلِ ذخیره‌شده کنار گذاشته می‌شود و تازه انجام می‌شود.</p>'
+      + '<div class="ai-prepare-actions"><button type="button" class="card-extraction-done ai-prepare-start">شروعِ تحلیل</button></div>'
+      + '</div>';
+  }
+  function wirePrepare(root, start, onCancel){
+    const box=root.querySelector(".ai-prepare-input");
+    const go=()=>{const note=box?box.value.trim():"";lastNote=note;start(note);};
+    const btn=root.querySelector(".ai-prepare-start");
+    if(btn)btn.onclick=go;
+    const cancel=root.querySelector(".card-extraction-cancel");
+    if(cancel)cancel.onclick=onCancel||close;
+    if(box){
+      box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();go();}});
+      box.focus();
+    }
+  }
+
+  async function analyze(image,opts){
   opts=opts||{};
   close();
+   if(opts.go!==true){
+     const modal=document.createElement("div");modal.id="cardExtractionModal";modal.className="card-extraction-overlay";
+     modal.innerHTML='<div class="card-extraction-dialog" role="dialog" aria-modal="true"><header><div><h3>تحلیل تصویر</h3><span>قبل از ارسال می‌توانید نکته بنویسید</span></div><button type="button" class="card-extraction-close">×</button></header><div class="card-extraction-body">'+prepareBlock('مثلاً: روی ریشهٔ دندان ۳۶ بیشتر دقت کن')+'</div><footer><button type="button" class="secondary-button card-extraction-cancel">انصراف</button></footer></div>';
+     document.body.appendChild(modal);
+     modal.querySelector(".card-extraction-close").onclick=close;
+     modal.addEventListener("click",e=>{if(e.target===modal)close();});
+     wirePrepare(modal,note=>analyze(image,Object.assign({},opts,{go:true,note:note})));
+     return;
+   }
   const baseParams=[]; if(opts.force)baseParams.push("force=1"); if(opts.note)baseParams.push("note="+encodeURIComponent(opts.note));
    const call=async consent=>{const p=baseParams.slice(); if(consent)p.push("consent=1"); const qs=p.length?"?"+p.join("&"):""; const r=await fetch(`/api/ai/images/${image.imageID}/analyze-radiology${qs}`,{method:"POST"});let x={};try{x=await r.json();}catch{}return{r,x};};
   const makeModal=()=>{
@@ -150,6 +182,22 @@
    // host یعنی داخلِ کارتِ مراجعه رندر شود (دکمهٔ «تحلیل همه»)؛ بدونِ host پنجره باز می‌شود.
    const host=opts.host||null;
    if(!host)close();
+   if(opts.go!==true){
+     const html=prepareBlock('مثلاً: روی ناحیهٔ قدامی بیشتر دقت کن');
+     const start=note=>analyzeMany(ids,Object.assign({},opts,{go:true,note:note}));
+     if(host){
+       host.innerHTML=html;
+       wirePrepare(host,start);
+     }else{
+       const m=document.createElement("div");m.id="cardExtractionModal";m.className="card-extraction-overlay";
+       m.innerHTML='<div class="card-extraction-dialog" role="dialog" aria-modal="true"><header><div><h3>تحلیل تصاویر انتخاب‌شده</h3><span>قبل از ارسال می‌توانید نکته بنویسید</span></div><button type="button" class="card-extraction-close">×</button></header><div class="card-extraction-body">'+html+'</div><footer><button type="button" class="secondary-button card-extraction-cancel">انصراف</button></footer></div>';
+       document.body.appendChild(m);
+       m.querySelector(".card-extraction-close").onclick=close;
+       m.addEventListener("click",e=>{if(e.target===m)close();});
+       wirePrepare(m,start);
+     }
+     return false;
+   }
    const body=JSON.stringify({imageIDs:ids,note:opts.note||null});
    const call=async consent=>{const r=await fetch(`/api/ai/images/analyze-many${consent?"?consent=1":""}`,{method:"POST",headers:{"Content-Type":"application/json"},body});let x={};try{x=await r.json();}catch{}return{r,x};};
    const loadingHtml='<p>در حال تحلیل تصاویر...</p><p class="field-hint" style="margin-top:6px;color:#b45309">تحلیلِ چند تصویر ممکن است ۲ تا ۴ دقیقه طول بکشد؛ صفحه را نبندید.</p>';

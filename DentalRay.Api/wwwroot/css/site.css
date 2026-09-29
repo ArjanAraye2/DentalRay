@@ -5105,6 +5105,49 @@ body { line-height: 1.75; }
 }
 
 
+/* آماده‌سازیِ تحلیل: نکتهٔ ویژه قبل از ارسال، در خودِ پنجرهٔ تحلیل */
+
+.ai-prepare-label {
+    margin: 0 0 7px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #12333f;
+}
+
+
+.ai-prepare-label span {
+    font-weight: 400;
+    color: #55707e;
+}
+
+
+.ai-prepare-input {
+    width: 100%;
+    min-height: 68px;
+    padding: 9px 11px;
+    border: 1px solid #0f516566;
+    border-radius: 8px;
+    background: #f8fcfd;
+    font-size: 13.5px;
+    line-height: 1.9;
+    resize: vertical;
+}
+
+
+.ai-prepare-input:focus {
+    border-color: #0f5165;
+    background: #ffffff;
+}
+
+
+.ai-prepare-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 9px;
+    margin-top: 10px;
+}
+
+
 /* ==========================================================
    Backup card in settings
    ========================================================== */
