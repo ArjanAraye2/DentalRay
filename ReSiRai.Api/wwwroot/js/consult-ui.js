@@ -21,7 +21,7 @@
 
     function close() { if (overlay) { overlay.remove(); overlay = null; } }
 
-    function open(studyID) {
+    function open(studyID, specialtyID) {
         close();
         studyID = Number(studyID);
         if (!Number.isInteger(studyID) || studyID <= 0 || busy) return;
@@ -49,16 +49,16 @@
         overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
         document.body.appendChild(overlay);
 
-        load(body, studyID);
+        load(body, studyID, specialtyID);
     }
 
-    async function load(body, studyID) {
+    async function load(body, studyID, specialtyID) {
         let x;
         try {
             const r = await fetch("/api/ai/consult", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studyID })
+                body: JSON.stringify({ studyID, specialtyID: specialtyID || null })
             });
             x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "مشاوره ناموفق بود.");

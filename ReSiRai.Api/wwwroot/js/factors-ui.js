@@ -5,8 +5,15 @@
 // values are saved per visit and keep their source (manual here; lab-report
 // extraction writes through the same API with source = 2). A value outside its
 // reference range is flagged while it is typed, so the doctor sees it before AI.
+//
+// SuperAdmins get a "test mode" bar on top of the panel: it asks which specialty
+// to test and loads that specialty's factor set, so the whole flow can be tried
+// before any doctor is registered. Values recorded in test mode are still real
+// values on the visit - the bar says so.
 (function () {
     "use strict";
+
+    const TEST_KEY = "reSiRaiTestSpecialty";
 
     const CATEGORY_LABELS = {
         Vitals: "علائم حیاتی",
@@ -19,10 +26,27 @@
     };
 
     let studyID = null;
+    let currentStudy = null;
     let factors = [];
     let saving = false;
+    let testState = loadTestState();
 
-    async function readJson(r) { try { return await r.json(); } catch { return { success: false }; } }
+    function loadTestState() {
+        try {
+            const raw = localStorage.getItem(TEST_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                return { enabled: !!parsed.enabled, specialtyID: Number(parsed.specialtyID) || 0 };
+            }
+        } catch { }
+        return { enabled: false, specialtyID: 0 };
+    }
+
+    function saveTestState() {
+        try { localStorage.setItem(TEST_KEY, JSON.stringify(testState)); } catch { }
+    }
+
+    async function readJson(r) { try { return await r.json(); } catch { return { success = false }; } }
 
     function latestByFactor(values) {
         const map = new Map();
@@ -58,7 +82,6 @@
         if (f.dataType === 3) return v.valueBit === true ? "1" : (v.valueBit === false ? "0" : "");
         if (f.dataType === 4) return v.valueText ?? "";
         if (f.dataType === 5) {
-            // Stored as ISO; shown as Jalali for the Persian UI.
             if (!v.valueDate) return "";
             return window.formatPersianDateForInput ? window.formatPersianDateForInput(v.valueDate) : v.valueDate;
         }
@@ -117,45 +140,108 @@
         el.classList.toggle("error", !!isError);
     }
 
+    // The admin test bar: "I am testing" + "which specialty?" - it reloads the
+    // panel with the chosen specialty's factor set.
+    function buildTestBar() {
+        const bar = document.createElement("div");
+        bar.className = "factors-testbar";
+
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !!(testState.enabled && testState.specialtyID);
+        label.append(checkbox, document.createTextNode(" در حال تست هستم"));
+
+        const question = document.createElement("span");
+        question.className = "factors-testbar-question";
+        question.textContent = "برای کدام تخصص تست می‌کنید؟";
+
+        const select = document.createElement("select");
+        select.disabled = !checkbox.checked;
+        select.appendChild(new Option("— انتخاب تخصص —", ""));
+
+        fetch("/api/admin/specialties", { cache: "no-store" }).then(readJson).then(x => {
+            const rows = x.specialties || x.items || x.data || [];
+            for (const s of rows) {
+                const name = s.specialtyName || s.name || "";
+                const id = s.specialtyID ?? s.id;
+                if (id !== undefined) select.appendChild(new Option(name, String(id)));
+            }
+            if (testState.specialtyID) select.value = String(testState.specialtyID);
+        }).catch(() => { });
+
+        const hint = document.createElement("small");
+        hint.className = "factors-testbar-hint";
+        hint.textContent = "فقط برای نمایش فاکتورهای آن تخصص؛ مقادیری که ثبت کنید روی همین مراجعه می‌ماند.";
+
+        const reload = () => { if (currentStudy) render(currentStudy); };
+        checkbox.addEventListener("change", () => {
+            testState.enabled = checkbox.checked;
+            if (!checkbox.checked) testState.specialtyID = 0;
+            saveTestState();
+            select.disabled = !checkbox.checked;
+            reload();
+        });
+        select.addEventListener("change", () => {
+            testState.specialtyID = Number(select.value) || 0;
+            saveTestState();
+            reload();
+        });
+
+        bar.append(label, question, select, hint);
+        return bar;
+    }
+
     async function render(study) {
         const host = document.getElementById("studyFactorsPanel");
         if (!host || !study) return;
         studyID = Number(study.studyID);
+        currentStudy = study;
         host.replaceChildren();
+
+        const content = document.createElement("div");
+        content.className = "factors-content";
+        host.appendChild(content);
+        if (window.reSiRaiCurrentUser?.isSuperAdmin === true) {
+            host.insertBefore(buildTestBar(), content);
+        }
+
         const note = document.createElement("div");
         note.className = "factors-empty";
         note.textContent = "در حال دریافت فاکتورها...";
-        host.appendChild(note);
+        content.appendChild(note);
 
         try {
+            const defUrl = `/api/factors/definitions?studyID=${studyID}` +
+                (testState.enabled && testState.specialtyID ? `&specialtyID=${testState.specialtyID}` : "");
             const [defRes, valRes] = await Promise.all([
-                fetch(`/api/factors/definitions?studyID=${studyID}`, { cache: "no-store" }).then(readJson),
+                fetch(defUrl, { cache: "no-store" }).then(readJson),
                 fetch(`/api/factors/values?studyID=${studyID}`, { cache: "no-store" }).then(readJson)
             ]);
             if (!defRes.success) throw new Error(defRes.message || "دریافت فاکتورها ناموفق بود.");
 
             factors = defRes.factors || [];
             const latest = latestByFactor(valRes.values);
-            host.replaceChildren();
+            content.replaceChildren();
             if (factors.length === 0) {
                 const empty = document.createElement("div");
                 empty.className = "factors-empty";
                 empty.textContent = "برای این تخصص هنوز فاکتوری تعریف نشده است.";
-                host.appendChild(empty);
+                content.appendChild(empty);
                 return;
             }
 
-            let group = null, groupTitle = null;
+            let group = null;
             for (const f of factors) {
                 if (!group || group.dataset.category !== f.category) {
                     group = document.createElement("div");
                     group.className = "factors-group";
                     group.dataset.category = f.category;
-                    groupTitle = document.createElement("h4");
+                    const groupTitle = document.createElement("h4");
                     groupTitle.className = "factors-group-title";
                     groupTitle.textContent = CATEGORY_LABELS[f.category] || f.category;
                     group.appendChild(groupTitle);
-                    host.appendChild(group);
+                    content.appendChild(group);
                 }
 
                 const row = document.createElement("div");
@@ -210,19 +296,20 @@
             consultBtn.type = "button";
             consultBtn.className = "primary-button";
             consultBtn.textContent = "مشاوره با هوش مصنوعی";
-            consultBtn.addEventListener("click", () => window.ReSiRaiConsult?.open(studyID));
+            consultBtn.addEventListener("click", () => window.ReSiRaiConsult?.open(studyID,
+                testState.enabled && testState.specialtyID ? testState.specialtyID : null));
             const status = document.createElement("span");
             status.className = "factors-status";
             footer.append(saveBtn, extractBtn, consultBtn, status);
-            host.appendChild(footer);
+            content.appendChild(footer);
 
-            window.ReSiRaiJalali?.enhanceAll(host);
+            window.ReSiRaiJalali?.enhanceAll(content);
         } catch (e) {
-            host.replaceChildren();
+            content.replaceChildren();
             const err = document.createElement("div");
             err.className = "factors-empty";
             err.textContent = e.message || "دریافت فاکتورها ناموفق بود.";
-            host.appendChild(err);
+            content.appendChild(err);
         }
     }
 

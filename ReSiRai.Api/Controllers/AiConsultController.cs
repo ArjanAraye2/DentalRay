@@ -40,6 +40,9 @@ public sealed class AiConsultController : ControllerBase
     public sealed class ConsultRequest
     {
         public int StudyID { get; set; }
+
+        /// <summary>SuperAdmin-only override, used by the admin test mode.</summary>
+        public int? SpecialtyID { get; set; }
     }
 
     /// <summary>One dictionary row of the visit's specialty, flattened for the prompt.</summary>
@@ -78,6 +81,11 @@ public sealed class AiConsultController : ControllerBase
             .Where(x => x.SpecialtyName == "بیماری‌های داخلی")
             .Select(x => x.SpecialtyID)
             .FirstOrDefaultAsync(cancellationToken);
+
+        // The admin test mode may pick a specialty explicitly, so the whole flow
+        // can be tried before any doctor is registered. Only SuperAdmins may.
+        if (StudyAccessService.IsSuperAdmin(User) && request.SpecialtyID.HasValue)
+            specialtyID = request.SpecialtyID;
 
         var defs = await (
             from f in _db.ClinicalFactors.AsNoTracking()
