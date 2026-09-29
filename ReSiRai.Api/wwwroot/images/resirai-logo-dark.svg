@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600" role="img" aria-label="ReSiRai - Medical Intelligence Platform (dark)">
+  <defs>
+    <linearGradient id="waveGradDark" x1="63" y1="0" x2="263" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#cfe2ea"/>
+      <stop offset="0.26" stop-color="#cfe2ea"/>
+      <stop offset="0.46" stop-color="#3fc0ea"/>
+      <stop offset="0.62" stop-color="#3fc0ea"/>
+      <stop offset="0.80" stop-color="#ff8a56"/>
+      <stop offset="1" stop-color="#ff8a56"/>
+    </linearGradient>
+  </defs>
+
+  <!-- square tile on the deep teal ground -->
+  <rect width="600" height="600" rx="64" fill="#123844"/>
+
+  <!-- line 1: the mark (63 .. 537) - light stroke so nothing disappears on dark -->
+  <path d="M63 215
+           c14.4 -69.3 25.6 -69.3 40 0
+           c14.4 47.9 25.6 47.9 40 0
+           c14.4 -33.3 25.6 -33.3 40 0
+           c14.4 22.6 25.6 22.6 40 0
+           c14.4 -16 25.6 -16 40 0"
+        fill="none" stroke="url(#waveGradDark)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M263 215 H428" fill="none" stroke="#9fc0cf" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="441" cy="215" r="13" fill="#e8f2f6"/>
+  <path d="M454 215 H470" stroke="#9fc0cf" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="483" cy="215" r="13" fill="#3fc0ea"/>
+  <path d="M496 215 H512" stroke="#9fc0cf" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="525" cy="215" r="13" fill="#ff8a56"/>
+
+  <!-- line 2: the name (63 .. 537) -->
+  <text x="300" y="395" text-anchor="middle" textLength="474" lengthAdjust="spacing"
+        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="84" font-weight="250"><tspan fill="#e8f2f6">Re</tspan><tspan fill="#3fc0ea">Si</tspan><tspan fill="#ff8a56">Rai</tspan></text>
+
+  <!-- line 3: the tagline (63 .. 537) -->
+  <text x="300" y="452" text-anchor="middle" textLength="474" lengthAdjust="spacing"
+        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="24" font-weight="400" fill="#9fc0cf">Medical Intelligence Platform</text>
+</svg>

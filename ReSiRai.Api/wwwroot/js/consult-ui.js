@@ -10,7 +10,7 @@
     let overlay = null;
     let busy = false;
 
-    async function readJson(r) { try { return await r.json(); } catch { return { success = false }; } }
+    async function readJson(r) { try { return await r.json(); } catch { return { success: false }; } }
 
     function el(tag, cls, text) {
         const node = document.createElement(tag);

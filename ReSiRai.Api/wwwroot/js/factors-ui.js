@@ -46,7 +46,7 @@
         try { localStorage.setItem(TEST_KEY, JSON.stringify(testState)); } catch { }
     }
 
-    async function readJson(r) { try { return await r.json(); } catch { return { success = false }; } }
+    async function readJson(r) { try { return await r.json(); } catch { return { success: false }; } }
 
     function latestByFactor(values) {
         const map = new Map();
