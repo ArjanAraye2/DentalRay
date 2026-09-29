@@ -202,9 +202,9 @@
         const content = document.createElement("div");
         content.className = "factors-content";
         host.appendChild(content);
-        if (window.reSiRaiCurrentUser?.isSuperAdmin === true) {
-            host.insertBefore(buildTestBar(), content);
-        }
+        // The test bar is available to every user of this installation; it only
+        // switches the displayed specialty and says so on its face.
+        host.insertBefore(buildTestBar(), content);
 
         const note = document.createElement("div");
         note.className = "factors-empty";
