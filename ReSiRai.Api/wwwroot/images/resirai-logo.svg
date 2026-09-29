@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" width="560" height="440" role="img" aria-label="ReSiRai - Medical Intelligence Platform">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" width="560" height="300" role="img" aria-label="ReSiRai - Medical Intelligence Platform">
   <defs>
-    <linearGradient id="waveGradLogo" x1="43" y1="0" x2="202" y2="0" gradientUnits="userSpaceOnUse">
+    <linearGradient id="waveGradLogo" x1="43" y1="0" x2="243" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#2f3e4e"/>
       <stop offset="0.26" stop-color="#2f3e4e"/>
       <stop offset="0.46" stop-color="#2b9fd6"/>
@@ -10,20 +10,29 @@
     </linearGradient>
   </defs>
 
-  <!-- line 1: the mark (43 .. 517) - three-crest wave straightening into the three dots -->
-  <path d="M43 105 q26.5 -84 53 0 q26.5 58 53 0 q26.5 -36 53 0" fill="none" stroke="url(#waveGradLogo)" stroke-width="8" stroke-linecap="round"/>
-  <path d="M202 105 H397" fill="none" stroke="#3b4a5a" stroke-width="6.5" stroke-linecap="round"/>
-  <circle cx="409" cy="105" r="12" fill="#2f3e4e"/>
-  <path d="M421 105 H445" stroke="#3b4a5a" stroke-width="6.5" stroke-linecap="round"/>
-  <circle cx="457" cy="105" r="12" fill="#2b9fd6"/>
-  <path d="M469 105 H493" stroke="#3b4a5a" stroke-width="6.5" stroke-linecap="round"/>
+  <!-- line 1: the mark (43 .. 517)
+       A calm damped wave: three crests of decreasing height (52/25/12) with two
+       shallow troughs (36/17), then the stroke straightens into the run and the
+       three dots - dark, cyan, orange. -->
+  <path d="M43 105
+           c14.4 -69.3 25.6 -69.3 40 0
+           c14.4 47.9 25.6 47.9 40 0
+           c14.4 -33.3 25.6 -33.3 40 0
+           c14.4 22.6 25.6 22.6 40 0
+           c14.4 -16 25.6 -16 40 0"
+        fill="none" stroke="url(#waveGradLogo)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M243 105 H409" fill="none" stroke="#3b4a5a" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="421" cy="105" r="12" fill="#2f3e4e"/>
+  <path d="M433 105 H451" stroke="#3b4a5a" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="463" cy="105" r="12" fill="#2b9fd6"/>
+  <path d="M475 105 H493" stroke="#3b4a5a" stroke-width="5.5" stroke-linecap="round"/>
   <circle cx="505" cy="105" r="12" fill="#f4511e"/>
 
   <!-- line 2: the name (43 .. 517) -->
-  <text x="280" y="290" text-anchor="middle" textLength="474" lengthAdjust="spacing"
-        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="100" font-weight="250"><tspan fill="#2f3e4e">Re</tspan><tspan fill="#2b9fd6">Si</tspan><tspan fill="#f4511e">Rai</tspan></text>
+  <text x="280" y="213" text-anchor="middle" textLength="474" lengthAdjust="spacing"
+        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="78" font-weight="250"><tspan fill="#2f3e4e">Re</tspan><tspan fill="#2b9fd6">Si</tspan><tspan fill="#f4511e">Rai</tspan></text>
 
   <!-- line 3: the tagline (43 .. 517) -->
-  <text x="280" y="380" text-anchor="middle" textLength="474" lengthAdjust="spacing"
-        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="30" font-weight="400" fill="#7a8a99">Medical Intelligence Platform</text>
+  <text x="280" y="248" text-anchor="middle" textLength="474" lengthAdjust="spacing"
+        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="23" font-weight="400" fill="#7a8a99">Medical Intelligence Platform</text>
 </svg>
