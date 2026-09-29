@@ -27,15 +27,16 @@ namespace ReSiRai.Api.Controllers
         // allowDuplicate is set by the client after the duplicate warning was shown,
         // so the operator - not the software - decides whether a second copy is intended.
         [HttpPost]
-        public async Task<IActionResult> UploadImage(int studyID, int imageTypeID, IFormFile file, bool allowDuplicate = false)
+        public async Task<IActionResult> UploadImage(int studyID, int? imageTypeID, IFormFile file, bool allowDuplicate = false)
         {
             if (studyID <= 0 || file == null || file.Length == 0)
                 return BadRequest(new { success=false, message="Study and file are required." });
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User))
                 return NotFound(new { success=false,message="Study not found." });
-            if (imageTypeID <= 0)
-                return BadRequest(new { success=false, message="نوع تصویر را انتخاب کنید.", messageEn="Image Type is required." });
-            if (!await _context.ImageTypes.AsNoTracking().AnyAsync(x=>x.ImageTypeID==imageTypeID && x.IsActive))
+            // The image type is optional: when it is not given, the AI identifies
+            // the image after the upload (the operator can still set it by hand).
+            if (imageTypeID.HasValue && imageTypeID.Value <= 0) imageTypeID = null;
+            if (imageTypeID.HasValue && !await _context.ImageTypes.AsNoTracking().AnyAsync(x=>x.ImageTypeID==imageTypeID.Value && x.IsActive))
                 return BadRequest(new { success=false, message="نوع تصویر انتخاب‌شده معتبر یا فعال نیست.", messageEn="The selected Image Type is invalid or inactive." });
 
 
