@@ -164,11 +164,22 @@
                 select.appendChild(new Option("— انتخاب فاکتور —", ""));
                 for (const d of defs) select.appendChild(new Option(d.nameFa + (d.shortCode ? ` (${d.shortCode})` : ""), String(d.factorID)));
                 mapCell.appendChild(select);
+                // A printed test the dictionary does not know is added to it,
+                // with the sheet itself as the source of its identity.
+                const addBtn = el("button", "secondary-button lab-extract-add", "افزودن به دیکشنری");
+                addBtn.type = "button";
+                addBtn.addEventListener("click", () => addUnknownFactor(tr, studyID, mapCell, addBtn));
+                mapCell.appendChild(addBtn);
             }
             tr.appendChild(mapCell);
             tr.dataset.factorId = item.factorID ? String(item.factorID) : "";
             tr.dataset.value = item.value ?? "";
             tr.dataset.unit = item.unit || "";
+            tr.dataset.name = item.name || "";
+            tr.dataset.nameFa = item.nameFa || "";
+            tr.dataset.refLow = item.refLow ?? "";
+            tr.dataset.refHigh = item.refHigh ?? "";
+            tr.dataset.refText = item.refText || "";
             tr.dataset.confidence = String(item.matchConfidence || 0);
             tbody.appendChild(tr);
         }
@@ -205,6 +216,56 @@
         return Number.isFinite(n) ? n : null;
     }
 
+    // A printed test the dictionary does not know becomes a dictionary row
+    // (pending specialist review, no guessed LOINC code) instead of being lost.
+    // The lab sheet itself is the source of the new factor's identity.
+    async function createFactorFor(tr, studyID) {
+        const raw = (tr.dataset.value || "").trim();
+        const body = {
+            nameEn: tr.dataset.name || "",
+            nameFa: tr.dataset.nameFa || tr.dataset.name || "",
+            unitUCUM: tr.dataset.unit || null,
+            refText: tr.dataset.refText || null,
+            dataType: parsePrintedNumber(raw) === null ? 4 : 1,
+            studyID
+        };
+        for (const key of ["refLow", "refHigh"]) {
+            const v = tr.dataset[key];
+            if (!v) continue;
+            const n = Number(normalizeDigits(v));
+            if (Number.isFinite(n)) body[key] = n;
+        }
+        const r = await fetch("/api/factors/definitions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const x = await readJson(r);
+        if (!r.ok || !x.success) throw new Error(x.message || "افزودن تست به دیکشنری ناموفق بود.");
+        return x.factor || {};
+    }
+
+    async function addUnknownFactor(tr, studyID, mapCell, button) {
+        if (busy) return;
+        busy = true;
+        button.disabled = true;
+        button.textContent = "در حال افزودن...";
+        try {
+            const f = await createFactorFor(tr, studyID);
+            tr.dataset.factorId = String(f.factorID);
+            mapCell.replaceChildren(el("span", null,
+                `${f.nameFa}${f.shortCode ? " (" + f.shortCode + ")" : ""} — به دیکشنری افزوده شد`));
+            const include = tr.querySelector('input[type="checkbox"]');
+            if (include) include.checked = true;
+        } catch (e) {
+            setStatus(overlay, e.message || "افزودن تست به دیکشنری ناموفق بود.", true);
+            button.disabled = false;
+            button.textContent = "افزودن به دیکشنری";
+        } finally {
+            busy = false;
+        }
+    }
+
     // Step 3: store the confirmed rows through the factors API (source = 2).
     async function confirmRows(body, studyID, extractionID, button) {
         if (busy) return;
@@ -214,6 +275,7 @@
 
         const items = [];
         const skipped = [];
+        const added = [];
         for (const tr of body.querySelectorAll(".lab-extract-table tbody tr")) {
             const include = tr.querySelector('input[type="checkbox"]');
             if (!include || !include.checked) continue;
@@ -221,8 +283,22 @@
             let factorID = Number(tr.dataset.factorId || 0);
             const select = tr.querySelector("select");
             if (select && select.value) factorID = Number(select.value);
-            // A ticked row is never dropped in silence: it is either saved or
-            // reported back with the reason it could not be.
+            // A ticked row is never dropped in silence: an unknown test is added
+            // to the dictionary, and anything unsaved is reported with its reason.
+            if (!factorID) {
+                try {
+                    const created = await createFactorFor(tr, studyID);
+                    factorID = Number(created.factorID);
+                    if (factorID) {
+                        tr.dataset.factorId = String(factorID);
+                        byId.set(factorID, created);
+                        added.push(created.nameFa + (created.shortCode ? ` (${created.shortCode})` : ""));
+                    }
+                } catch (e) {
+                    skipped.push(`${printedName}: ${e.message || "افزودن به دیکشنری ناموفق بود"}`);
+                    continue;
+                }
+            }
             if (!factorID) { skipped.push(`${printedName}: فاکتور انتخاب نشده`); continue; }
 
             const f = byId.get(factorID);
@@ -270,6 +346,7 @@
             const x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
             let msg = `${x.saved} مقدار از برگه آزمایش ثبت شد.`;
+            if (added.length) msg += ` ${added.length} تست جدید به دیکشنری افزوده شد.`;
             if (skipped.length) {
                 msg += ` ${skipped.length} مورد ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`;
             }

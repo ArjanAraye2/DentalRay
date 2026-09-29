@@ -63,8 +63,9 @@ This image is a printed laboratory report, possibly in Persian and/or English.
 Transcribe only what is printed. Never guess values or invent rows.
 Extract every test result row you can read.
 Return ONLY valid JSON with this exact shape:
-{"notALabReport":false,"labName":"string|null","sampleDate":"string|null","tests":[{"name":"string","value":"string","unit":"string|null","refText":"string|null","refLow":null,"refHigh":null,"flag":"string|null"}]}
+{"notALabReport":false,"labName":"string|null","sampleDate":"string|null","tests":[{"name":"string","nameFa":"string|null","value":"string","unit":"string|null","refText":"string|null","refLow":null,"refHigh":null,"flag":"string|null"}]}
 - name: test name exactly as printed (Latin or Persian)
+- nameFa: the standard Persian name of this test if you know it, otherwise null
 - value: the result exactly as printed, number or text, without the unit
 - unit: unit exactly as printed, e.g. mg/dL
 - refText: reference interval exactly as printed
@@ -135,6 +136,7 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
                     items.Add(new
                     {
                         name,
+                        nameFa = GetString(t, "nameFa"),
                         value = GetString(t, "value"),
                         unit = GetString(t, "unit"),
                         refText = GetString(t, "refText"),

@@ -194,6 +194,17 @@
 
 .lab-extract-table th { background: #f2f7f9; color: #12333f; font-weight: 700; }
 .lab-extract-table select { width: 100%; padding: 4px 6px; border: 1px solid #cfdce2; border-radius: 6px; }
+.lab-extract-add {
+    margin-top: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px dashed #1ba7c0;
+    color: #14879b;
+    background: #f0fbfd;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.lab-extract-add:hover { background: #dff4f8; }
 
 /* AI consultation result */
 .consult-meta {

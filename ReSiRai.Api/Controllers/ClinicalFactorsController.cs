@@ -99,6 +99,145 @@ namespace ReSiRai.Api.Controllers
             return Ok(new { success = true, count = rows.Count, factors = rows });
         }
 
+        public sealed class AddFactorRequest
+        {
+            public string? NameFa { get; set; }
+            public string NameEn { get; set; } = string.Empty;
+            public string? ShortCode { get; set; }
+            public string? UnitUCUM { get; set; }
+            public decimal? RefLow { get; set; }
+            public decimal? RefHigh { get; set; }
+            public string? RefText { get; set; }
+            /// <summary>1 = number, 4 = text; unknown printed tests default to number.</summary>
+            public byte DataType { get; set; } = 1;
+            public int? StudyID { get; set; }
+        }
+
+        /// <summary>
+        /// Adds a test the lab printed but the dictionary did not know yet, so no
+        /// printed result is ever thrown away for being unknown. The row starts as
+        /// "pending specialist review" with no LOINC code (a code is never guessed)
+        /// and is bound to the visit's specialty so the panel shows it at once.
+        /// </summary>
+        [HttpPost("definitions")]
+        public async Task<IActionResult> AddDefinition(AddFactorRequest request, CancellationToken cancellationToken)
+        {
+            string nameEn = (request.NameEn ?? string.Empty).Trim();
+            string nameFa = string.IsNullOrWhiteSpace(request.NameFa) ? nameEn : request.NameFa.Trim();
+            if (nameEn.Length == 0 && nameFa.Length == 0)
+                return BadRequest(new { success = false, message = "نام تست لازم است." });
+            if (nameEn.Length == 0) nameEn = nameFa;
+
+            // The same printed test must never create two dictionary rows.
+            string enLower = nameEn.ToLowerInvariant();
+            string faKey = nameFa.ToLowerInvariant();
+            var factor = await _db.ClinicalFactors
+                .FirstOrDefaultAsync(x => x.IsActive &&
+                    (x.NameEn.ToLower() == enLower || x.NameFa.ToLower() == faKey), cancellationToken);
+            bool created = false;
+            if (factor is null)
+            {
+                factor = new ClinicalFactor
+                {
+                    FactorCode = await UniqueFactorCode(nameEn, cancellationToken),
+                    NameFa = nameFa,
+                    NameEn = nameEn,
+                    ShortCode = string.IsNullOrWhiteSpace(request.ShortCode) ? null : request.ShortCode.Trim(),
+                    Category = "Lab",
+                    DataType = request.DataType == 0 ? (byte)1 : request.DataType,
+                    UnitUCUM = string.IsNullOrWhiteSpace(request.UnitUCUM) ? null : request.UnitUCUM.Trim(),
+                    LoincCode = null,
+                    LoincStatus = 0,
+                    RefLow = request.RefLow,
+                    RefHigh = request.RefHigh,
+                    RefText = string.IsNullOrWhiteSpace(request.RefText) ? null : request.RefText.Trim(),
+                    RefSource = "برگه آزمایش چاپ‌شده (ثبت هنگام استخراج)",
+                    RefPopulation = null,
+                    AbnormalDirection = request.RefLow.HasValue || request.RefHigh.HasValue ? (byte)3 : null,
+                    IsActive = true,
+                    CreatedDate = DateTime.Now
+                };
+                _db.ClinicalFactors.Add(factor);
+                await _db.SaveChangesAsync(cancellationToken);
+                created = true;
+            }
+
+            // Bind it to the visit's specialty (or internal medicine) so the factor
+            // set of that specialty can serve it to the panel right away.
+            int specialtyID = 0;
+            if (request.StudyID.HasValue)
+            {
+                var staffID = await _db.RadiologyStudies.AsNoTracking()
+                    .Where(x => x.StudyID == request.StudyID.Value)
+                    .Select(x => x.DentistStaffID)
+                    .FirstOrDefaultAsync(cancellationToken);
+                specialtyID = (await _db.Staff.AsNoTracking()
+                    .Where(x => x.StaffID == staffID)
+                    .Select(x => x.SpecialtyID)
+                    .FirstOrDefaultAsync(cancellationToken)) ?? 0;
+            }
+            if (specialtyID == 0)
+            {
+                specialtyID = await _db.DentalSpecialties.AsNoTracking()
+                    .Where(x => x.SpecialtyName == "بیماری‌های داخلی")
+                    .Select(x => x.SpecialtyID)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            bool bound = false;
+            if (specialtyID != 0 && !await _db.SpecialtyFactorSets.AsNoTracking()
+                .AnyAsync(x => x.SpecialtyID == specialtyID && x.FactorID == factor.FactorID, cancellationToken))
+            {
+                int maxOrder = await _db.SpecialtyFactorSets.AsNoTracking()
+                    .Where(x => x.SpecialtyID == specialtyID)
+                    .MaxAsync(x => (int?)x.SortOrder, cancellationToken) ?? 0;
+                _db.SpecialtyFactorSets.Add(new SpecialtyFactorSet
+                {
+                    SpecialtyID = specialtyID,
+                    FactorID = factor.FactorID,
+                    IsRequired = false,
+                    IsCommon = false,
+                    SortOrder = maxOrder + 1
+                });
+                await _db.SaveChangesAsync(cancellationToken);
+                bound = true;
+            }
+
+            return Ok(new
+            {
+                success = true,
+                created,
+                bound,
+                factor = new
+                {
+                    factorID = factor.FactorID,
+                    factorCode = factor.FactorCode,
+                    nameFa = factor.NameFa,
+                    nameEn = factor.NameEn,
+                    shortCode = factor.ShortCode,
+                    unitUCUM = factor.UnitUCUM,
+                    refLow = factor.RefLow,
+                    refHigh = factor.RefHigh,
+                    refText = factor.RefText,
+                    dataType = factor.DataType,
+                    loincStatus = factor.LoincStatus
+                }
+            });
+        }
+
+        /// <summary>Builds a readable, unique internal code for a new dictionary row.</summary>
+        private async Task<string> UniqueFactorCode(string nameEn, CancellationToken cancellationToken)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in nameEn.ToLowerInvariant())
+                if (c < 128 && char.IsLetterOrDigit(c)) sb.Append(c);
+            string slug = sb.Length >= 2 ? sb.ToString()[..Math.Min(sb.Length, 24)] : "test";
+            string code = $"LAB.CUSTOM.{slug}";
+            for (int i = 2; await _db.ClinicalFactors.AsNoTracking()
+                .AnyAsync(x => x.FactorCode == code, cancellationToken); i++)
+                code = $"LAB.CUSTOM.{slug}-{i}";
+            return code;
+        }
+
         /// <summary>
         /// All recorded values of one visit, with the factor identity attached, plus
         /// the earlier values of the same factors so the form can draw a trend.
