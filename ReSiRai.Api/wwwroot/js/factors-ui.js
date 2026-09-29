@@ -192,11 +192,15 @@
         return bar;
     }
 
-    async function render(study) {
-        const host = document.getElementById("studyFactorsPanel");
+    async function render(study, hostOverride) {
+        const host = hostOverride || document.getElementById("studyFactorsPanel") || ensurePanelExists();
         if (!host || !study) return;
         studyID = Number(study.studyID);
         currentStudy = study;
+        // Every handler reads the study from its own host, so the same panel can
+        // live in both the visit card and the details form without clashing.
+        host.dataset.renderedFor = String(studyID);
+        host.dataset.studyId = String(studyID);
         host.replaceChildren();
 
         const content = document.createElement("div");
@@ -291,12 +295,12 @@
             extractBtn.type = "button";
             extractBtn.className = "secondary-button";
             extractBtn.textContent = "استخراج از برگه آزمایش";
-            extractBtn.addEventListener("click", () => window.ReSiRaiLabExtract?.open(studyID));
+            extractBtn.addEventListener("click", () => window.ReSiRaiLabExtract?.open(Number(host.dataset.studyId)));
             const consultBtn = document.createElement("button");
             consultBtn.type = "button";
             consultBtn.className = "primary-button";
             consultBtn.textContent = "مشاوره با هوش مصنوعی";
-            consultBtn.addEventListener("click", () => window.ReSiRaiConsult?.open(studyID,
+            consultBtn.addEventListener("click", () => window.ReSiRaiConsult?.open(Number(host.dataset.studyId),
                 testState.enabled && testState.specialtyID ? testState.specialtyID : null));
             const status = document.createElement("span");
             status.className = "factors-status";
@@ -314,7 +318,8 @@
     }
 
     async function save(host, button) {
-        if (saving || !studyID) return;
+        const targetStudyID = Number(host.dataset.studyId);
+        if (saving || !targetStudyID) return;
         const items = [];
         for (const f of factors) {
             const row = host.querySelector(`.factor-row[data-factor-id="${f.factorID}"]`);
@@ -335,7 +340,7 @@
             const r = await fetch("/api/factors/values", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studyID, items })
+                body: JSON.stringify({ studyID: targetStudyID, items })
             });
             const x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
@@ -349,5 +354,66 @@
         }
     }
 
-    window.ReSiRaiFactors = { render };
+    // --- self-mounting -------------------------------------------------
+    // The panel builds its own home and renders itself when a visit card opens,
+    // so it works even when the browser serves an old cached copy of index.html
+    // or app.js. Nothing outside this file is required for the panel to appear.
+    function ensurePanelExists() {
+        let host = document.getElementById("studyFactorsPanel");
+        if (host) return host;
+        const form = document.getElementById("studyDetailsForm");
+        if (!form) return null;
+        const section = document.createElement("section");
+        section.className = "study-form-card";
+        const title = document.createElement("h3");
+        title.className = "study-form-card-title";
+        title.textContent = "شرایط فعلی بیمار";
+        host = document.createElement("div");
+        host.id = "studyFactorsPanel";
+        host.className = "factors-panel";
+        section.append(title, host);
+        const anchor = document.getElementById("studyDetailsStatus");
+        if (anchor) form.insertBefore(section, anchor);
+        else form.appendChild(section);
+        return host;
+    }
+
+    function selfMount() {
+        ensurePanelExists();
+        const section = document.getElementById("studyDetailsSection");
+        if (!section) return;
+        const tryRender = () => {
+            if (section.classList.contains("hidden")) return;
+            const study = window.selectedStudy;
+            if (!study) return;
+            const host = ensurePanelExists();
+            if (host && host.dataset.renderedFor !== String(study.studyID)) render(study);
+        };
+        new MutationObserver(tryRender).observe(section, { attributes: true, attributeFilter: ["class"] });
+        tryRender();
+    }
+
+    // The visit card («نمایش») is the screen actually opened when a visit is
+    // reviewed, so the panel lives there too, on top of the card body.
+    function renderCard(study, body) {
+        if (!study || !body) return;
+        let host = body.querySelector(".factors-card-section .factors-panel");
+        if (!host) {
+            const section = document.createElement("section");
+            section.className = "study-form-card factors-card-section";
+            const title = document.createElement("h3");
+            title.className = "study-form-card-title";
+            title.textContent = "شرایط فعلی بیمار";
+            host = document.createElement("div");
+            host.className = "factors-panel";
+            section.append(title, host);
+            body.prepend(section);
+        }
+        if (host.dataset.renderedFor !== String(study.studyID)) render(study, host);
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", selfMount);
+    else selfMount();
+
+    window.ReSiRaiFactors = { render, renderCard };
 })();

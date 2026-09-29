@@ -496,6 +496,7 @@ window.ReSiRaiSaveStudyDetails=event=>{event?.preventDefault?.();return saveStud
      const setChartOpen=open=>{chartSection.classList.toggle("is-collapsed",!open);chartToggle.setAttribute("aria-expanded",open?"true":"false");chartArrow.textContent=open?"⌃":"⌄";};
      chartToggle.addEventListener("click",()=>setChartOpen(chartSection.classList.contains("is-collapsed")));
      body.append(details,docsSection,chartSection);
+     window.ReSiRaiFactors?.renderCard(study, body);
      const imagesSection=document.createElement("section");imagesSection.className="study-scroll-images";
      const imagesTitle=document.createElement("div");imagesTitle.className="study-scroll-images-title";imagesTitle.textContent="تصاویر مطالعه";
      // همان چهار کار تصویر، کنار خودِ لیست تصاویر — چون کاربر بعد از «نمایش»
