@@ -33,6 +33,10 @@ namespace ReSiRai.Api.Data
         public DbSet<PatientReceiveToken> PatientReceiveTokens { get; set; }
         public DbSet<AIImageAnalysis> AIImageAnalyses { get; set; }
         public DbSet<AppEvent> AppEvents { get; set; }
+        public DbSet<ClinicalFactor> ClinicalFactors { get; set; }
+        public DbSet<SpecialtyFactorSet> SpecialtyFactorSets { get; set; }
+        public DbSet<StudyFactorValue> StudyFactorValues { get; set; }
+        public DbSet<LabReportExtraction> LabReportExtractions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -74,6 +78,23 @@ namespace ReSiRai.Api.Data
             modelBuilder.Entity<UserDentist>().HasKey(x => new { x.UserID, x.ClinicID, x.DentistStaffID });
             modelBuilder.Entity<UserDentist>().HasOne<User>().WithMany().HasForeignKey(x => x.UserID).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<UserDentist>().HasOne<Staff>().WithMany().HasForeignKey(x => x.DentistStaffID).OnDelete(DeleteBehavior.NoAction);
+
+            // A specialty lists factors from the one shared dictionary; the composite
+            // key matches SQL and keeps a factor from being bound twice.
+            modelBuilder.Entity<SpecialtyFactorSet>().HasKey(x => new { x.SpecialtyID, x.FactorID });
+            modelBuilder.Entity<SpecialtyFactorSet>().HasOne<ClinicalFactor>().WithMany().HasForeignKey(x => x.FactorID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<SpecialtyFactorSet>().HasOne<DentalSpecialty>().WithMany().HasForeignKey(x => x.SpecialtyID).OnDelete(DeleteBehavior.NoAction);
+
+            // Factor values belong to a visit and stay over time (trend); the source
+            // column says whether a number was typed, extracted from a lab report or
+            // computed. Deleting rules follow SQL (no action) to stay consistent.
+            modelBuilder.Entity<StudyFactorValue>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<StudyFactorValue>().HasOne<ClinicalFactor>().WithMany().HasForeignKey(x => x.FactorID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<StudyFactorValue>().HasIndex(x => new { x.StudyID, x.FactorID, x.ObservedAt });
+
+            // One lab-report extraction batch belongs to one visit; the raw model
+            // output is kept as the audit trail of every extracted number.
+            modelBuilder.Entity<LabReportExtraction>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
         }
     }
 }
