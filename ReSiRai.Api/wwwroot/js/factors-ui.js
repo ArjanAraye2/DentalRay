@@ -206,9 +206,14 @@
             extractBtn.className = "secondary-button";
             extractBtn.textContent = "استخراج از برگه آزمایش";
             extractBtn.addEventListener("click", () => window.ReSiRaiLabExtract?.open(studyID));
+            const consultBtn = document.createElement("button");
+            consultBtn.type = "button";
+            consultBtn.className = "primary-button";
+            consultBtn.textContent = "مشاوره با هوش مصنوعی";
+            consultBtn.addEventListener("click", () => window.ReSiRaiConsult?.open(studyID));
             const status = document.createElement("span");
             status.className = "factors-status";
-            footer.append(saveBtn, extractBtn, status);
+            footer.append(saveBtn, extractBtn, consultBtn, status);
             host.appendChild(footer);
 
             window.ReSiRaiJalali?.enhanceAll(host);
