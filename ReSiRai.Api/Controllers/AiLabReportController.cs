@@ -119,7 +119,7 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
 
             var factors = await _db.ClinicalFactors.AsNoTracking()
                 .Where(x => x.IsActive)
-                .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.LoincCode, x.UnitUCUM))
+                .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM))
                 .ToListAsync(cancellationToken);
 
             var items = new List<object>();
@@ -144,6 +144,7 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
                         factorID = best?.FactorID,
                         factorCode = best?.FactorCode,
                         factorNameFa = best?.NameFa,
+                        factorShortCode = best?.ShortCode,
                         factorUnit = best?.UnitUCUM,
                         matchConfidence = best?.Confidence ?? 0,
                         matchStatus = best is null ? "unmatched" : (best.Confidence >= 95 ? "matched" : "review")
@@ -165,8 +166,8 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
         }
     }
 
-    private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? LoincCode, string? UnitUCUM);
-    private sealed record MatchResult(int FactorID, string FactorCode, string NameFa, string? UnitUCUM, int Confidence);
+    private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM);
+    private sealed record MatchResult(int FactorID, string FactorCode, string NameFa, string? ShortCode, string? UnitUCUM, int Confidence);
 
     /// <summary>
     /// Name matching between what the lab printed and our dictionary. Confidence
@@ -185,7 +186,8 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
             int dot = f.FactorCode.LastIndexOf('.');
             string codeTail = Norm(dot >= 0 ? f.FactorCode[(dot + 1)..] : f.FactorCode);
 
-            if (n == Norm(f.NameEn) || n == Norm(f.NameFa) || n == codeTail) score = 100;
+            if (n == Norm(f.NameEn) || n == Norm(f.NameFa) || n == codeTail
+                || (!string.IsNullOrEmpty(f.ShortCode) && n == Norm(f.ShortCode))) score = 100;
             else if (!string.IsNullOrEmpty(f.LoincCode) && n == Norm(f.LoincCode)) score = 100;
             else
             {
@@ -194,7 +196,7 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
             }
 
             if (score >= 80 && (best is null || score > best.Confidence))
-                best = new MatchResult(f.FactorID, f.FactorCode, f.NameFa, f.UnitUCUM, score);
+                best = new MatchResult(f.FactorID, f.FactorCode, f.NameFa, f.ShortCode, f.UnitUCUM, score);
         }
         return best;
     }

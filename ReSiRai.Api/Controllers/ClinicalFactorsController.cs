@@ -87,7 +87,7 @@ namespace ReSiRai.Api.Controllers
                 .OrderByDescending(x => x.s.IsCommon).ThenBy(x => x.s.SortOrder).ThenBy(x => x.f.FactorID)
                 .Select(x => new
                 {
-                    x.f.FactorID, x.f.FactorCode, x.f.NameFa, x.f.NameEn,
+                    x.f.FactorID, x.f.FactorCode, x.f.NameFa, x.f.NameEn, x.f.ShortCode,
                     x.f.Category, x.f.DataType, x.f.UnitUCUM,
                     x.f.LoincCode, x.f.LoincStatus,
                     x.f.RefLow, x.f.RefHigh, x.f.RefText, x.f.RefSource, x.f.RefPopulation,

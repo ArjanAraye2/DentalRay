@@ -157,11 +157,12 @@
 
             const mapCell = el("td");
             if (item.factorID) {
-                mapCell.appendChild(el("span", null, `${item.factorNameFa} (${item.matchConfidence}%)`));
+                mapCell.appendChild(el("span", null,
+                    `${item.factorNameFa}${item.factorShortCode ? " (" + item.factorShortCode + ")" : ""} (${item.matchConfidence}%)`));
             } else {
                 const select = document.createElement("select");
                 select.appendChild(new Option("— انتخاب فاکتور —", ""));
-                for (const d of defs) select.appendChild(new Option(d.nameFa, String(d.factorID)));
+                for (const d of defs) select.appendChild(new Option(d.nameFa + (d.shortCode ? ` (${d.shortCode})` : ""), String(d.factorID)));
                 mapCell.appendChild(select);
             }
             tr.appendChild(mapCell);

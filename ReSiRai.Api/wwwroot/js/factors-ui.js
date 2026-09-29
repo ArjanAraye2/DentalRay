@@ -254,6 +254,15 @@
 
                 const label = document.createElement("label");
                 label.textContent = f.nameFa + " ";
+                if (f.shortCode) {
+                    // The lab sheet's short code (Hb, WBC) beside the Persian name,
+                    // so screen and paper read alike.
+                    const code = document.createElement("small");
+                    code.className = "factor-short";
+                    code.textContent = `(${f.shortCode})`;
+                    label.appendChild(code);
+                    label.appendChild(document.createTextNode(" "));
+                }
                 if (f.isRequired) {
                     const req = document.createElement("span");
                     req.className = "factor-required";

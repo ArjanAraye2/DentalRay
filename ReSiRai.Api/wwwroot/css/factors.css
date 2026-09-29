@@ -23,6 +23,7 @@
 .factor-row label { font-size: 12.5px; color: #33454e; direction: rtl; }
 .factor-row label small { color: #7b8b96; font-size: 11px; margin-right: 4px; }
 .factor-row label .factor-required { color: #c0392b; }
+.factor-row label .factor-short { color: #14879b; font-weight: 600; }
 
 .factor-row input,
 .factor-row select {

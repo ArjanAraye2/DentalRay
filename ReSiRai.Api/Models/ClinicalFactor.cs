@@ -24,6 +24,10 @@ public class ClinicalFactor
     [MaxLength(200)]
     public string NameEn { get; set; } = string.Empty;
 
+    /// <summary>Short lab-sheet abbreviation (Hb, WBC, Cr) shown next to the Persian name.</summary>
+    [MaxLength(20)]
+    public string? ShortCode { get; set; }
+
     /// <summary>Vitals | Anthropometry | History | Exam | Lab | Imaging | Score.</summary>
     [MaxLength(40)]
     public string Category { get; set; } = string.Empty;
