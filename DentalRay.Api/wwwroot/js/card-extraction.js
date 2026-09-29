@@ -244,10 +244,12 @@
       again.onclick=()=>analyzeMany(ids,{host,force:true,note:opts.note});
       host.appendChild(again);
     }
-    const ask=document.createElement("button");
-    ask.type="button";ask.className="secondary-button";ask.style.cssText="margin-top:6px";ask.textContent="پرسش از AI";
-    ask.onclick=()=>window.DentalRayImageAI.openChat(ids,x.analysis||{});
-    host.appendChild(ask);
+    if(host){
+      const ask=document.createElement("button");
+      ask.type="button";ask.className="secondary-button";ask.style.cssText="margin-top:6px";ask.textContent="پرسش از AI";
+      ask.onclick=()=>window.DentalRayImageAI.openChat(ids,x.analysis||{});
+      host.appendChild(ask);
+    }
 
     return true;
    }catch(e){fail(e.message||"تحلیل تصاویر انجام نشد.");return false;}
