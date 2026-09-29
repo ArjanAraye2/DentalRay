@@ -1,4 +1,4 @@
-name: Build DentalRay Installer
+name: Build ReSiRai Installer
 
 on:
   push:
@@ -18,15 +18,15 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish DentalRay API
-        run: dotnet publish DentalRay.Api/DentalRay.Api.csproj -c Release -r win-x64 --self-contained true -o publish/DentalRay
+      - name: Publish ReSiRai API
+        run: dotnet publish ReSiRai.Api/ReSiRai.Api.csproj -c Release -r win-x64 --self-contained true -o publish/ReSiRai
 
       - name: Publish Setup Helper
         run: |
-          dotnet publish DentalRay.SetupHelper/DentalRay.SetupHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/DentalRay.SetupHelper
-          New-Item -ItemType Directory -Force publish/DentalRay.SetupHelper/Database | Out-Null
-          Copy-Item DentalRay.Database.Install.sql publish/DentalRay.SetupHelper/Database/DentalRay.Database.Install.sql -Force
-          Copy-Item DentalRay.Database.Install.sql publish/DentalRay.SetupHelper/DentalRay.Database.Install.sql -Force
+          dotnet publish ReSiRai.SetupHelper/ReSiRai.SetupHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/ReSiRai.SetupHelper
+          New-Item -ItemType Directory -Force publish/ReSiRai.SetupHelper/Database | Out-Null
+          Copy-Item ReSiRai.Database.Install.sql publish/ReSiRai.SetupHelper/Database/ReSiRai.Database.Install.sql -Force
+          Copy-Item ReSiRai.Database.Install.sql publish/ReSiRai.SetupHelper/ReSiRai.Database.Install.sql -Force
 
       - name: Install Inno Setup
         shell: powershell
@@ -47,12 +47,12 @@ jobs:
       - name: Build Setup
         shell: powershell
         run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DSourceRoot="${env:GITHUB_WORKSPACE}\publish" /DReleaseStamp="${{ steps.stamp.outputs.value }}" Installer\DentalRay.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DSourceRoot="${env:GITHUB_WORKSPACE}\publish" /DReleaseStamp="${{ steps.stamp.outputs.value }}" Installer\ReSiRai.iss
 
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: DentalRay-Installer
+          name: ReSiRai-Installer
           # The version and date live in the .iss file, so collect whatever it built.
-          path: Installer/Output/DentalRay_Setup_*.exe
+          path: Installer/Output/ReSiRai_Setup_*.exe
           if-no-files-found: error

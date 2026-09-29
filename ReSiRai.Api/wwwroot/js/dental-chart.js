@@ -1,0 +1,236 @@
+// ReSiRai - interactive graphical FDI Dental Chart
+//
+// Three views: a plain numbered row (linear), anatomical rows, and an arch. The
+// tooth artwork comes from tooth-shapes.js so both drawn views share one source of
+// truth for shape, root layout and width.
+(function () {
+  "use strict";
+
+  const permanentRows = [
+    [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28],
+    [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
+  ];
+  const primaryRows = [
+    [55, 54, 53, 52, 51, 61, 62, 63, 64, 65],
+    [85, 84, 83, 82, 81, 71, 72, 73, 74, 75]
+  ];
+  const storageKey = "resirai.dentalChartView";
+  // One factor for the row view. The tooth's own local units already carry the real
+  // proportions, so scaling them all by the same number is all that is needed.
+  const TOOTH_BOX_SCALE = 1.6;
+
+  // The artwork comes from tooth-shapes.js, which is what makes a molar look like a
+  // molar. If it has not loaded yet the row still renders, just as a plain box so the
+  // chart stays usable rather than throwing.
+  function toothSvg(n) {
+    if (window.ReSiRaiToothShapes) return window.ReSiRaiToothShapes.svg(n);
+    return '<svg viewBox="0 0 20 40" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+      '<path class="tooth-outline" d="M10 0 Q20 0 20 14 L18 40 L2 40 L0 14 Q0 0 10 0 Z"/></svg>';
+  }
+
+  function toothButton(n, s) {
+    const b = document.createElement("button");
+    b.type = "button";
+    // A molar is visibly wider than an incisor, and the quadrant tints the tooth
+    // so the four quarters are easy to tell apart.
+    const shapes = window.ReSiRaiToothShapes;
+    b.className = "tooth-button" + (s.has(n) ? " selected" : "") + (shapes ? " " + shapes.quadrantClass(n) : "");
+    b.dataset.tooth = n;
+    b.title = "دندان " + n;
+    if (shapes) {
+      // The local units are the same for every tooth (one shared scale), so the box is
+      // the tooth's own size times one factor. That keeps a molar visibly larger than an
+      // incisor instead of the CSS making them all the same height.
+      const shape = shapes.shapeOf(n);
+      b.style.setProperty("--tooth-width", Math.round(shape.width * TOOTH_BOX_SCALE) + "px");
+      b.style.setProperty("--tooth-height", Math.round(shape.height * TOOTH_BOX_SCALE) + "px");
+    }
+    b.setAttribute("aria-pressed", s.has(n) ? "true" : "false");
+    b.innerHTML = '<span class="tooth-shape">' + toothSvg(n) + '</span><span class="tooth-number">' + n + "</span>";
+    b.onclick = () => {
+      b.classList.toggle("selected");
+      b.setAttribute("aria-pressed", b.classList.contains("selected") ? "true" : "false");
+      syncArch(b.closest(".dental-chart"));
+      summary(b.closest(".dental-chart"));
+    };
+    return b;
+  }
+
+  function addSection(root, title, rows, s) {
+    const g = document.createElement("div");
+    g.className = "dental-chart-group";
+    const h = document.createElement("div");
+    h.className = "dental-chart-group-title";
+    h.textContent = title;
+    g.appendChild(h);
+    rows.forEach((a, i) => {
+      const r = document.createElement("div");
+      r.className = "dental-chart-row dental-chart-row-" + (i ? "lower" : "upper");
+      a.forEach(n => r.appendChild(toothButton(n, s)));
+      g.appendChild(r);
+    });
+    root.appendChild(g);
+  }
+
+  function selected(root) {
+    return Array.from(root.querySelectorAll(".tooth-button.selected")).map(x => Number(x.dataset.tooth));
+  }
+
+  function summary(root) {
+    const t = root.querySelector(".dental-chart-selected"), v = selected(root);
+    if (!t) return;
+    t.textContent = v.length
+      ? "دندان‌های انتخاب‌شده: " + v.sort((a, b) => a - b).join("، ")
+      : "هنوز دندانی انتخاب نشده است.";
+  }
+
+  function syncArch(root) {
+    const box = root.querySelector(".dental-integrated-arch");
+    if (!box) return;
+    if (window.ReSiRaiArchOdontogram) {
+      return withDeps(() => window.ReSiRaiArchOdontogram.render(box, selected(root)));
+    }
+    load("script", "odontogramArchJs", "/js/odontogram-arch.js?v=20260921.3");
+    const s = document.getElementById("odontogramArchJs");
+    s?.addEventListener("load", () => withDeps(() => window.ReSiRaiArchOdontogram?.render(box, selected(root))), { once: true });
+  }
+
+  // A drawn view needs the tooth library and the shared arch geometry. If either is
+  // missing, load it and come back; the call sites do not have to care.
+  function withDeps(done) {
+    const missing = [];
+    if (!window.ReSiRaiToothShapes) missing.push({ id: "resiraiToothShapes", src: "/js/tooth-shapes.js?v=20260921.2" });
+    if (!window.ReSiRaiToothArch) missing.push({ id: "resiraiToothArch", src: "/js/tooth-arch.js?v=20260921.3" });
+    if (!missing.length) return done();
+    let left = missing.length;
+    missing.forEach(dep => {
+      let s = document.getElementById(dep.id);
+      if (!s) {
+        s = document.createElement("script");
+        s.id = dep.id; s.src = dep.src;
+        document.body.appendChild(s);
+      }
+      s.addEventListener("load", () => { if (--left <= 0) done(); }, { once: true });
+      s.addEventListener("error", () => { if (--left <= 0) done(); }, { once: true });
+    });
+  }
+
+  // The natural jaw is a third self-contained renderer. Each drawn view loads its own
+  // file and waits only for that one, so a missing renderer never blocks the others.
+  function syncNatural(root) {
+    const box = root.querySelector(".dental-integrated-natural");
+    if (!box) return;
+    if (window.ReSiRaiNaturalOdontogram) {
+      return withDeps(() => window.ReSiRaiNaturalOdontogram.render(box, selected(root)));
+    }
+    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js?v=20260921.3");
+    const s = document.getElementById("odontogramNaturalJs");
+    s?.addEventListener("load", () => withDeps(() => window.ReSiRaiNaturalOdontogram?.render(box, selected(root))), { once: true });
+  }
+
+  const VIEWS = ["linear", "anatomical", "arch", "natural", "cbct"];
+
+  // The CBCT view remembers its scheme (panoramic / slices / volume) between renders.
+  let cbctScheme = "pano";
+
+  function syncCbct(root) {
+    const box = root.querySelector(".dental-integrated-cbct");
+    if (!box) return;
+    if (window.ReSiRaiCbctOdontogram) {
+      return withDeps(() => window.ReSiRaiCbctOdontogram.render(box, selected(root), cbctScheme));
+    }
+    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260922.1");
+    const s = document.getElementById("odontogramCbctJs");
+    s?.addEventListener("load", () => withDeps(() => window.ReSiRaiCbctOdontogram?.render(box, selected(root), cbctScheme)), { once: true });
+  }
+
+  function setMode(root, m) {
+    VIEWS.forEach(x => root.classList.remove("dental-view-" + x));
+    root.classList.add("dental-view-" + m);
+    root.querySelectorAll(".dental-view-button").forEach(b => b.classList.toggle("active", b.dataset.view === m));
+    if (m === "arch") syncArch(root);
+    if (m === "natural") syncNatural(root);
+    if (m === "cbct") syncCbct(root);
+    try { localStorage.setItem(storageKey, m); } catch (_) { }
+  }
+
+  function toolbar() {
+    const b = document.createElement("div");
+    b.className = "dental-chart-toolbar";
+    b.innerHTML = '<strong>شمای گرافیکی دندان‌ها</strong>' +
+      '<span class="dental-chart-view-label">نوع نمایش:</span>' +
+      '<button type="button" class="dental-view-button" data-view="linear">خطی</button>' +
+      '<button type="button" class="dental-view-button" data-view="anatomical">آناتومیک</button>' +
+      '<button type="button" class="dental-view-button" data-view="arch">قوسی</button>' +
+      '<button type="button" class="dental-view-button" data-view="natural">فک طبیعی</button>' +
+      '<button type="button" class="dental-view-button" data-view="cbct">CBCT</button>';
+    return b;
+  }
+
+  function ensureAssets(done) {
+    load("link", "odontogramArchCss", "/css/odontogram-arch.css?v=20260921.3");
+    load("script", "odontogramArchJs", "/js/odontogram-arch.js?v=20260921.3");
+    load("link", "odontogramNaturalCss", "/css/odontogram-natural.css?v=20260921.2");
+    load("script", "odontogramNaturalJs", "/js/odontogram-natural.js?v=20260921.3");
+    load("link", "odontogramCbctCss", "/css/odontogram-cbct.css?v=20260922.1");
+    load("script", "odontogramCbctJs", "/js/odontogram-cbct.js?v=20260922.1");
+    load("script", "resiraiToothArch", "/js/tooth-arch.js?v=20260921.3");
+    load("script", "resiraiToothShapes", "/js/tooth-shapes.js?v=20260921.2");
+    // Nothing is waited for. index.html loads every one of these tags directly, so on
+    // the real page they are already present; each view also re-checks its own file in
+    // its sync function. Waiting here would only delay the first paint, and a chart
+    // that renders late is worse than one that renders now.
+    done();
+  }
+
+  function load(tag, id, url) {
+    if (document.getElementById(id)) return;
+    const e = document.createElement(tag);
+    e.id = id;
+    if (tag === "link") { e.rel = "stylesheet"; e.href = url; document.head.appendChild(e); }
+    else { e.src = url; document.body.appendChild(e); }
+  }
+
+  window.ReSiRaiDentalChart = {
+    render(container, teeth) {
+      if (!container) return;
+      const s = new Set((teeth || []).map(Number));
+      container.innerHTML = "";
+      // Add the marker class rather than replacing className. Study cards pass in
+      // "study-card-dental-chart study-chart-readonly", and overwriting it wiped the
+      // rules that hide the view buttons and make the chart read-only.
+      container.classList.add("dental-chart");
+      const bar = toolbar();
+      container.appendChild(bar);
+      const arch = document.createElement("div");
+      arch.className = "dental-integrated-arch";
+      container.appendChild(arch);
+      const natural = document.createElement("div");
+      natural.className = "dental-integrated-natural";
+      container.appendChild(natural);
+      const cbct = document.createElement("div");
+      cbct.className = "dental-integrated-cbct";
+      container.appendChild(cbct);
+      const body = document.createElement("div");
+      body.className = "dental-chart-body";
+      addSection(body, "دندان‌های دائمی", permanentRows, s);
+      addSection(body, "دندان‌های شیری", primaryRows, s);
+      container.appendChild(body);
+      const sum = document.createElement("div");
+      sum.className = "dental-chart-selected";
+      container.appendChild(sum);
+      bar.querySelectorAll(".dental-view-button").forEach(b => b.onclick = () => setMode(container, b.dataset.view));
+      let mode = "arch";
+      try { mode = localStorage.getItem(storageKey) || mode; } catch (_) { }
+      if (!["linear", "anatomical", "arch", "natural", "cbct"].includes(mode)) mode = "arch";
+      ensureAssets(() => setMode(container, mode));
+      summary(container);
+    },
+    getSelected(container) { return container ? selected(container).sort((a, b) => a - b) : []; }
+  };
+
+  // index.html loads the tooth library directly; ensureAssets() lazily injects it on
+  // any page that only includes this file, so there is no unconditional load here
+  // (which would add a second tag when the library is already present).
+  load("link", "dentalGraphicStyles", "/css/dental-graphic.css");
+  load("script", "resiraiTerminology", "/js/frontend-terminology.js?v=20260926.2");})();

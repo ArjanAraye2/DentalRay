@@ -1,24 +1,24 @@
 <#
-DentalRay - model vs database schema audit.
+ReSiRai - model vs database schema audit.
 
 Compares every [Table]-mapped model property against the live SQL Server schema,
 so a missing migration (like tblStudyPayments.PaymentMethod) is caught before it
 reaches a running deployment.
 
 Usage:
-  powershell -File tools/audit-schema.ps1 -Server "SERVER\INSTANCE" -User sa -Password "***" -Database DentalRay
+  powershell -File tools/audit-schema.ps1 -Server "SERVER\INSTANCE" -User sa -Password "***" -Database ReSiRai
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Server,
     [string]$User,
     [string]$Password,
-    [string]$Database = "DentalRay",
+    [string]$Database = "ReSiRai",
     [string]$ModelsPath
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-if (-not $ModelsPath) { $ModelsPath = Join-Path $repoRoot "DentalRay.Api/Models" }
+if (-not $ModelsPath) { $ModelsPath = Join-Path $repoRoot "ReSiRai.Api/Models" }
 
 # --- read the live schema ---------------------------------------------------
 $authArgs = if ($User) { @("-U", $User, "-P", $Password) } else { @("-E") }
@@ -61,7 +61,7 @@ foreach ($file in Get-ChildItem $ModelsPath -Filter *.cs) {
 }
 
 # --- report -----------------------------------------------------------------
-Write-Host "DentalRay schema audit"
+Write-Host "ReSiRai schema audit"
 Write-Host "  server : $Server"
 Write-Host "  database: $Database"
 Write-Host "  tables checked: $checkedTables"
@@ -75,5 +75,5 @@ if ($problems.Count -eq 0) {
 Write-Host "MISMATCHES FOUND:" -ForegroundColor Red
 $problems | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
 Write-Host ""
-Write-Host "A missing column usually means a migration in DentalRay.Api/Database was never applied." -ForegroundColor Yellow
+Write-Host "A missing column usually means a migration in ReSiRai.Api/Database was never applied." -ForegroundColor Yellow
 exit 1

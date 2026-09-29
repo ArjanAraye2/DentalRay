@@ -3,12 +3,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/app.js"), "utf8");
-const navigation = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/navigation.js"), "utf8");
-const dashboardController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/DashboardController.cs"), "utf8");
-const studiesController = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/RadiologyStudiesController.cs"), "utf8");
-const studyTypeLookup = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/study-type-lookup.js"), "utf8");
+const html = fs.readFileSync(path.join(root, "ReSiRai.Api/wwwroot/index.html"), "utf8");
+const app = fs.readFileSync(path.join(root, "ReSiRai.Api/wwwroot/js/app.js"), "utf8");
+const navigation = fs.readFileSync(path.join(root, "ReSiRai.Api/wwwroot/js/navigation.js"), "utf8");
+const dashboardController = fs.readFileSync(path.join(root, "ReSiRai.Api/Controllers/DashboardController.cs"), "utf8");
+const studiesController = fs.readFileSync(path.join(root, "ReSiRai.Api/Controllers/RadiologyStudiesController.cs"), "utf8");
+const studyTypeLookup = fs.readFileSync(path.join(root, "ReSiRai.Api/wwwroot/js/study-type-lookup.js"), "utf8");
 
 for (const id of [
     "newStudyButton",
@@ -49,16 +49,16 @@ assert.match(app, /function\s+hydrateStudyCard\s*\(/, "Scrollable Study cards mu
 assert.doesNotMatch(app, /function\s+selectStudyTab\s*\(/, "Studies must not use tab selection.");
 assert.match(app, /sort\(\(a,b\)=>new Date\(b\.studyDate\|\|0\)-new Date\(a\.studyDate\|\|0\)\)/, "Studies must be sorted newest-first.");
 assert.match(html, /id=["']studyDetailsSaveButton["'] type=["']button["']/, "Study save must use an explicit non-submitting button.");
-assert.doesNotMatch(html, /onclick=["'][^"']*DentalRaySaveStudyDetails/, "Study Save must not depend on inline JavaScript.");
+assert.doesNotMatch(html, /onclick=["'][^"']*ReSiRaiSaveStudyDetails/, "Study Save must not depend on inline JavaScript.");
 assert.match(app, /studyDetailsSaveInProgress/, "Study save must guard against duplicate submissions.");
-assert.match(app, /window\.DentalRaySaveStudyDetails=event=>/, "Study Save must expose a direct, cache-diagnostic handler.");
+assert.match(app, /window\.ReSiRaiSaveStudyDetails=event=>/, "Study Save must expose a direct, cache-diagnostic handler.");
 assert.match(app, /studyDetailsSaveButton\?\.addEventListener\(["']click["']/, "Study Save must use a standard click listener.");
-assert.doesNotMatch(html, /onclick=["'][^"']*DentalRayOpenNewStudy/, "New Study must not depend on inline JavaScript.");
-assert.match(app, /window\.DentalRayOpenNewStudy=event=>/, "New Study must expose a direct, cache-diagnostic handler.");
+assert.doesNotMatch(html, /onclick=["'][^"']*ReSiRaiOpenNewStudy/, "New Study must not depend on inline JavaScript.");
+assert.match(app, /window\.ReSiRaiOpenNewStudy=event=>/, "New Study must expose a direct, cache-diagnostic handler.");
 assert.match(app, /newStudyButton\?\.addEventListener\(["']click["']/, "New Study must use a standard click listener.");
 assert.match(html, /<select[^>]*id=["']newStudyType["'][^>]*>\s*<option/, "New Study must use the Study Type lookup.");
 assert.match(app, /studyTypeID/, "New Study payload must use StudyTypeID.");
-assert.match(app, /toothNumbers:window\.DentalRayDentalChart\?\.getSelected\(chart\)\|\|\[\]/, "New Study payload must include selected tooth numbers.");
+assert.match(app, /toothNumbers:window\.ReSiRaiDentalChart\?\.getSelected\(chart\)\|\|\[\]/, "New Study payload must include selected tooth numbers.");
 assert.match(studyTypeLookup, /Number\.isInteger\(Number\(body\.studyTypeID\)\)/, "The legacy Study Type bridge must preserve modern StudyTypeID requests.");
 assert.match(app, /\(غیرفعال\)/, "The current inactive Study type must remain selectable while editing.");
 assert.match(app, /Study saved, but patient workspace refresh failed/, "A refresh failure must not be reported as a failed Study save.");
@@ -66,7 +66,7 @@ assert.match(app, /function\s+renderRecentStudiesSummary\s*\(/, "Design D recent
 assert.match(html, /class=["']patient-identity-hero["']/, "Patient identity must use the compact unified hero layout.");
 assert.match(app, /radiologyimages\/study\/\$\{study\.studyID\}/, "Selected Study images must load inline.");
 
-const controller = fs.readFileSync(path.join(root, "DentalRay.Api/Controllers/PatientsController.cs"), "utf8");
+const controller = fs.readFileSync(path.join(root, "ReSiRai.Api/Controllers/PatientsController.cs"), "utf8");
 assert.match(controller, /\[HttpDelete\("\{patientID:int\}"\)\]/, "Patient DELETE endpoint is missing.");
 assert.match(controller, /RadiologyStudies[\s\S]*AnyAsync\(s => s\.PatientID == patientID\)/, "Backend must block deleting patients with Studies.");
 assert.match(html, /\/js\/navigation\.js/, "Shell navigation script is not loaded.");

@@ -69,8 +69,8 @@
 جای `api.openai.com` به `localhost` وصل شوند:
 
 ```
-الان:   DentalRay.Api  →  api.openai.com          (پول + اینترنت)
-بعد:    DentalRay.Api  →  localhost:8080 (MedGemma)  (رایگان + آفلاین)
+الان:   ReSiRai.Api  →  api.openai.com          (پول + اینترنت)
+بعد:    ReSiRai.Api  →  localhost:8080 (MedGemma)  (رایگان + آفلاین)
 ```
 
 **تغییر کد:** فقط آدرس و فرمت درخواست. سه کنترلر عوض می‌شوند.

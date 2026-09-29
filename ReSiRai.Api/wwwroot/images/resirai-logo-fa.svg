@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="1000" height="620" role="img" aria-label="ReSiRai - logo with Persian name">
+  <defs>
+    <linearGradient id="waveGradFa" x1="70" y1="0" x2="310" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f3e4e"/>
+      <stop offset="0.26" stop-color="#2f3e4e"/>
+      <stop offset="0.46" stop-color="#2b9fd6"/>
+      <stop offset="0.62" stop-color="#2b9fd6"/>
+      <stop offset="0.80" stop-color="#f4511e"/>
+      <stop offset="1" stop-color="#f4511e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="620" fill="#ffffff"/>
+
+  <path d="M70 180 q40 -160 80 0 q40 -110 80 0 q40 -70 80 0" fill="none" stroke="url(#waveGradFa)" stroke-width="9" stroke-linecap="round"/>
+  <path d="M310 180 H626" fill="none" stroke="#3b4a5a" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="641" cy="180" r="15" fill="#2f3e4e"/>
+  <path d="M656 180 H690" stroke="#3b4a5a" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="705" cy="180" r="15" fill="#2b9fd6"/>
+  <path d="M720 180 H754" stroke="#3b4a5a" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="769" cy="180" r="15" fill="#f4511e"/>
+
+  <text x="500" y="330" text-anchor="middle" font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="112" font-weight="250" letter-spacing="2"><tspan fill="#2f3e4e">ReSi</tspan><tspan fill="#2b9fd6">R</tspan><tspan fill="#f4511e">ai</tspan></text>
+
+  <text x="500" y="432" text-anchor="middle" direction="rtl" font-family="Tahoma,'Segoe UI',sans-serif" font-size="58" fill="#455a64">رسیرای</text>
+
+  <text x="500" y="530" text-anchor="middle" font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="30" font-weight="400" letter-spacing="7" fill="#7a8a99">Medical Intelligence Platform</text>
+</svg>

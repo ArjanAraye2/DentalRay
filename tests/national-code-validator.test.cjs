@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const source = fs.readFileSync(
-    path.resolve(__dirname, "../DentalRay.Api/Services/IranianNationalCodeValidator.cs"),
+    path.resolve(__dirname, "../ReSiRai.Api/Services/IranianNationalCodeValidator.cs"),
     "utf8"
 );
 

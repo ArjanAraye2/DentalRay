@@ -1,0 +1,392 @@
+/* ReSiRai - Study finance panel
+   Uses the shared design tokens and the app type scale, and adds the row style
+   used when a payment is edited inline (with the Jalali date picker).
+
+   The panel is collapsible, so the head carries a summary and the forms and rows
+   live in the body. A matching chip in the Study header shows the money state
+   while everything is closed. */
+
+.study-finance {
+    margin: 0 0 12px;
+    border: 1px solid var( --border );
+    border-radius: var( --radius );
+    background: var( --brand-25 );
+    overflow: hidden;
+}
+
+/* --- collapsible head --- */
+.study-finance-head { margin: 0; }
+.study-finance-toggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 0;
+    background: linear-gradient(180deg, #fbfdff, #f3f7fb);
+    color: var( --heading );
+    text-align: start;
+    cursor: pointer;
+}
+.study-finance-toggle:hover { background: #eef6ff; }
+.study-finance-toggle:focus-visible { outline: 2px solid var( --primary ); outline-offset: -2px; }
+.study-finance-arrow {
+    color: var( --primary );
+    font-size: 20px;
+    line-height: 1;
+    flex: 0 0 auto;
+}
+.study-finance-head-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-width: 0;
+}
+.study-finance-head-text strong { font-size: var( --fs-md ); }
+
+/* The one-line summary, tinted by state so a balance stands out. */
+.study-finance-head-summary {
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var( --surface );
+    border: 1px solid var( --border );
+    color: var( --muted-strong );
+    font-size: var( --fs-xs );
+    font-weight: 700;
+}
+.study-finance.is-due .study-finance-head-summary { background: var( --warning-soft ); border-color: #e8cf9a; color: var( --warning ); }
+.study-finance.is-settled .study-finance-head-summary { background: var( --success-soft ); border-color: #b6e0c6; color: var( --success ); }
+.study-finance.is-ok .study-finance-head-summary { background: var( --brand-50, #eef7ff ); border-color: var( --border ); color: var( --primary ); }
+
+.study-finance-body { padding: 10px; }
+
+/* --- پنل اقدامات: همیشه باز، بالای تصاویر -----------------------------
+   یک خط تایپ + یک سطر برای هر اقدام. برچسب‌ها یک بار بالای فهرست‌اند تا
+   سطر کوتاه بماند؛ دکمه‌های کوچک کنار سطر همان ویرایش/حذف‌اند. */
+.study-actions {
+    margin: 0 0 12px;
+    border: 1px solid var(--border );
+    border-radius: var(--radius );
+    background: var(--surface );
+    overflow: hidden;
+}
+.study-actions-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--border );
+    background: linear-gradient(180deg, #fbfdff, #f3f7fb);
+    color: var(--heading );
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+.study-actions-head:focus-visible { outline: 2px solid var(--primary ); outline-offset: -2px; }
+.study-actions-head strong { color: var(--heading ); font-size: var(--fs-sm ); }
+.study-actions-arrow { flex: 0 0 auto; color: var(--primary ); font-size: 18px; line-height: 1; }
+/* خلاصهٔ شرح‌ها در وسطِ هدر؛ هنگامِ بستن هم دیده می‌شود. */
+.study-actions-desc {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted );
+    font-size: var(--fs-xs );
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.study-actions-chip {
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border );
+    background: var(--brand-50, #eef7ff );
+    color: var(--primary );
+    font-size: var(--fs-xs );
+    font-weight: 700;
+    white-space: nowrap;
+}
+.study-actions-body { display: grid; gap: 7px; padding: 9px 10px 10px; }
+.study-actions-form {
+    display: grid;
+    grid-template-columns: minmax(0, 3.2fr) minmax(0, .9fr) minmax(0, .9fr) auto;
+    gap: 6px;
+}
+.study-actions-list { display: grid; gap: 5px; }
+.study-actions-rows { display: grid; gap: 5px; }
+.study-actions-list-head,
+.study-actions-row {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, .7fr) minmax(0, .7fr) minmax(0, .7fr) auto;
+    gap: 7px;
+    align-items: center;
+}
+.study-actions-list-head {
+    padding: 0 7px;
+    color: var(--muted );
+    font-size: var(--fs-xs );
+    font-weight: 700;
+}
+.study-actions-row {
+    padding: 5px 7px;
+    border: 1px solid var(--border );
+    border-radius: var(--radius-sm );
+    background: var(--brand-25 );
+    color: var(--muted-strong );
+    font-size: var(--fs-xs );
+}
+.study-actions-row > span:first-child { color: var(--heading ); font-weight: 600; }
+.study-actions-row .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+/* در پنجرهٔ باریک ستون‌ها جمع می‌شوند، نه اینکه بریده شوند: حداقلِ صفر دارند و
+   متن کوتاه (با «…») در همان سطر می‌ماند. */
+.study-actions-row > span:not(.row-actions),
+.study-actions-list-head > span,
+.study-finance-row > span:not(.row-actions) {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.study-actions-row .row-actions,
+.study-finance-row .row-actions { flex: 0 0 auto; }
+.study-actions-row button { padding: 4px 8px; font-size: var(--fs-xs ); }
+.study-actions-status { min-height: 16px; color: var(--muted ); font-size: var(--fs-xs ); }
+/* خطِ وضعیتِ خالی فضا نگیرد تا پایینِ کارت بی‌دلیل بلند نشود. */
+.study-actions-status:empty { display: none; }
+.study-actions-status.error { color: var(--danger ); }
+
+/* دیکتهٔ شرحِ اقدام: دکمهٔ میکروفن داخلِ خودِ فیلد تا چیدمانِ فرم به‌هم نریزد. */
+.dictate-wrap { position: relative; display: block; min-width: 0; }
+.dictate-wrap input,
+.dictate-wrap textarea { width: 100%; padding-inline-end: 38px; }
+/* نشانگرِ کوچکِ کنارِ دکمه: در حالِ گوش دادن / متنِ موقت */
+.dictate-hint {
+    position: absolute;
+    inset-inline-end: 34px;
+    top: 6px;
+    max-width: calc(100% - 44px);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var( --danger );
+    font-size: var( --fs-xs );
+    font-weight: 600;
+    pointer-events: none;
+}
+.dictate-btn {
+    position: absolute;
+    inset-inline-end: 4px;
+    top: 4px;
+    min-height: 24px;
+    padding: 2px 7px;
+    border: 1px solid var( --border );
+    border-radius: 999px;
+    background: var( --surface );
+    color: var( --muted );
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.dictate-btn:hover { border-color: var( --primary ); color: var( --primary ); }
+.dictate-btn.is-listening {
+    border-color: var( --danger );
+    color: var( --danger );
+    background: var( --danger-soft, #fdecec );
+    animation: dictatePulse 1s ease-in-out infinite;
+}
+@keyframes dictatePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(190, 60, 60, 0.35); }
+    50%      { box-shadow: 0 0 0 6px rgba(190, 60, 60, 0); }
+}
+
+/* --- the chip in the Study header --- */
+.study-finance-chip {
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid var( --border );
+    background: var( --surface );
+    color: var( --muted-strong );
+    font-size: var( --fs-xs );
+    font-weight: 700;
+    white-space: nowrap;
+}
+.study-finance-chip.is-due { background: var( --warning-soft ); border-color: #e8cf9a; color: var( --warning ); }
+.study-finance-chip.is-settled { background: var( --success-soft ); border-color: #b6e0c6; color: var( --success ); }
+.study-finance-chip.is-ok { background: var( --brand-50, #eef7ff ); color: var( --primary ); }
+.study-finance-chip.is-none { display: none; }
+
+/* خلاصهٔ مالی در یک خط: پنج کاشیِ ۱۴۴پیکسلی جایِ داده‌ای را می‌گرفت که همان
+   متن در چیپِ هدر هست — حالا یک ردیف نازک است که در صورت نیاز می‌شکند. */
+.study-finance-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.study-finance-summary div {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: var( --radius-sm );
+    background: var( --surface );
+    border: 1px solid var( --border );
+}
+.study-finance-summary span { font-size: var( --fs-xs ); color: var( --muted ); }
+.study-finance-summary strong { font-size: var( --fs-xs ); color: var( --heading ); font-weight: 700; }
+.study-finance-summary .finance-balance { background: var( --warning-soft ); border-color: #e8cf9a; }
+.study-finance-summary .finance-balance strong { color: var( --warning ); }
+
+.study-finance-columns { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.study-finance-box { padding: 11px; border-radius: var( --radius ); background: var( --surface ); border: 1px solid var( --border ); }
+.study-finance-box h6 { margin: 0 0 9px; color: var( --heading ); font-size: var( --fs-sm ); }
+
+.study-finance-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, .8fr) minmax(0, .8fr) auto;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.study-finance-form.payment {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, 2.6fr) auto;
+}
+/* جای‌گذاریِ صریحِ فیلدها: ویجتِ تاریخ یک div و یک برچسبِ روزِ هفته اضافه می‌کند و
+   بدون این کلاس‌ها، همهٔ ستون‌ها یکی به‌راست می‌رفتند و «شرح» در ستونِ باریک
+   می‌نشست. شرح در ستونِ بلند می‌ماند و روزِ هفته زیرِ تاریخ می‌نشیند. */
+.study-finance-form.payment > .f-date { grid-area: 1 / 1; }
+.study-finance-form.payment > .f-date-note { grid-area: 2 / 1; }
+.study-finance-form.payment > .f-method { grid-area: 1 / 2; }
+.study-finance-form.payment > .f-amount { grid-area: 1 / 3; }
+.study-finance-form.payment > .f-desc { grid-area: 1 / 4; }
+.study-finance-form.payment > .f-refund { grid-area: 1 / 5; }
+.study-finance-form.payment > .f-add { grid-area: 2 / 5; }
+/* در ویرایشِ درون‌خطی، روزِ هفته جا نمی‌گیرد — سطر تک‌خطی می‌ماند. */
+.study-finance-row.edit-row > .f-date { grid-area: 1 / 1; }
+.study-finance-row.edit-row > .f-date-note { display: none; }
+.study-finance-row.edit-row > .f-method { grid-area: 1 / 2; }
+.study-finance-row.edit-row > .f-amount { grid-area: 1 / 3; }
+.study-finance-row.edit-row > .f-desc { grid-area: 1 / 4; }
+.study-finance-row.edit-row > .f-refund { grid-area: 1 / 5; }
+.study-finance-row.edit-row > .f-save { grid-area: 1 / 6; }
+.study-finance-row.edit-row > .f-cancel { grid-area: 1 / 7; }
+.study-finance-form input,
+.study-finance-form select,
+.study-actions-form input {
+    min-width: 0;
+    min-height: 32px;
+    padding: 6px 8px;
+    border: 1px solid var( --border-strong, #c3dae1 );
+    border-radius: var( --radius-sm );
+    background: var( --surface );
+    font-family: inherit;
+    font-size: var( --fs-sm );
+}
+.study-finance-form input:focus,
+.study-finance-form select:focus {
+    border-color: var( --primary );
+    box-shadow: 0 0 0 3px rgba( 12, 55, 70, 0.10 );
+    outline: none;
+}
+.study-finance-form button { padding: 6px 10px; }
+.study-actions-form button { padding: 6px 10px; }
+
+.study-finance-list { display: grid; gap: 6px; }
+.study-finance-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, .65fr)) auto;
+    gap: 7px;
+    align-items: center;
+    padding: 5px 7px;
+    border-radius: var( --radius-sm );
+    background: var( --brand-25 );
+    border: 1px solid var( --border );
+    font-size: var( --fs-xs );
+}
+.study-finance-row.payment {
+    grid-template-columns: minmax(0, .9fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, 2.4fr) auto auto;
+}
+/* Inline edit row: the fields replace the read-only spans. */
+.study-finance-row.edit-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .7fr) minmax(0, .8fr) minmax(0, 3fr) auto auto auto;
+    background: var( --surface );
+    border-color: var( --primary );
+    box-shadow: 0 0 0 3px rgba( 12, 55, 70, 0.08 );
+}
+.study-finance-row .row-actions { display: flex; gap: 4px; }
+.study-finance-row button { padding: 4px 8px; font-size: var( --fs-xs ); }
+
+/* --- Refund ---
+   A refund is stored as a positive amount flagged as refund, so the row is
+   labelled and tinted instead of showing a negative number. */
+.study-finance-row.is-refund {
+    background: #fdf3f2;
+    border-color: #f7d2ce;
+}
+.study-finance-row.is-refund > span:nth-child(2) {
+    color: var( --danger );
+    font-weight: 700;
+}
+.study-finance-row.is-refund > span:nth-child(3) {
+    color: var( --danger );
+    font-weight: 700;
+}
+.study-finance-box.is-refund-mode {
+    border-color: #f5c9c4;
+    background: #fefafa;
+}
+.finance-refund-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px;
+    border: 1px solid var( --border );
+    border-radius: var( --radius-sm );
+    background: var( --surface );
+    color: var( --muted-strong );
+    font-size: var( --fs-xs );
+    white-space: nowrap;
+    cursor: pointer;
+}
+.finance-refund-toggle input { width: auto; cursor: pointer; }
+.study-finance-box.is-refund-mode .finance-refund-toggle,
+.study-finance-row.is-refund .finance-refund-toggle {
+    border-color: #f5c9c4;
+    background: #fff;
+    color: var( --danger );
+    font-weight: 700;
+}
+
+/* --- POS dispatch state on a payment row --- */
+.finance-pos-state {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.finance-pos-state.ok { background: var( --success-soft ); color: var( --success ); }
+.finance-pos-state.err { background: var( --danger-soft ); color: var( --danger ); }
+.study-finance-empty { padding: 9px; color: var( --muted ); text-align: center; font-size: var( --fs-xs ); }
+.study-finance-status { min-height: 18px; margin-top: 7px; font-size: var( --fs-xs ); color: var( --muted ); }
+.study-finance-status.error { color: var( --danger ); }
+
+@media (max-width: 1050px) {
+    .study-finance-columns { grid-template-columns: 1fr; }
+}
+@media (max-width: 650px) {
+    .study-finance-summary { gap: 5px; }
+    .study-finance-form,
+    .study-finance-form.payment,
+    .study-finance-row,
+    .study-finance-row.payment,
+    .study-finance-row.edit-row,
+    .study-actions-list-head,
+    .study-actions-row { grid-template-columns: 1fr; }
+    .study-actions-form { grid-template-columns: 1fr 1fr; }
+    .study-finance-row .row-actions,
+    .study-actions-row .row-actions { justify-content: flex-start; }
+}

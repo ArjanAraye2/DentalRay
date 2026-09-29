@@ -1,0 +1,126 @@
+/* ReSiRai CBCT view - the "CBCT" view.
+   A CBCT study is read on a dark screen, so this view is deliberately dark like the
+   imaging software a dentist already knows, not like the light clinical UI.
+   The teeth are painted in dental-graphic.css, which every view shares. */
+
+.cbct-odontogram {
+    /* The panels are laid out left to right, so the svg must not be mirrored by the
+       page's RTL direction. */
+    direction: ltr;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid #22303f;
+    border-radius: 14px;
+    background: #0a0d11;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.cbct-odontogram svg { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; overflow: visible; }
+
+/* --- scheme switch --- */
+.cbct-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid #1d2836;
+}
+.cbct-toolbar-label { color: #8fa3b8; font-size: var(--fs-xs, 12px); }
+.cbct-scheme-button {
+    padding: 6px 13px;
+    border: 1px solid #2b3a4c;
+    border-radius: 999px;
+    background: #131a23;
+    color: #a9bdd2;
+    font-size: var(--fs-xs, 12px);
+    cursor: pointer;
+}
+.cbct-scheme-button:hover { background: #1b2531; color: #dbe8f5; }
+.cbct-scheme-button.active { background: #2b6cb0; border-color: #3b82f6; color: #fff; }
+
+/* --- panoramic --- */
+.cbct-film { fill: url(#cbctFilm); }
+.cbct-beam { fill: url(#cbctBeam); }
+
+/* An OPG cassette is a wide landscape film, not a square. */
+.cbct-pano svg { aspect-ratio: 1180 / 800; }
+
+/* Anatomy never takes the pointer: only the teeth are clickable. */
+.cbct-anat, .cbct-anat-over { pointer-events: none; }
+
+/* Bone reads as mid grey, air as near black, enamel as the brightest thing on
+   the film. Dense cortical borders are the light lines. */
+.cbct-mandible { fill: #47515b; stroke: #6f7a87; stroke-width: 1.4; opacity: .62; }
+.cbct-alv { fill: #5d6773; stroke: none; opacity: .5; }
+.cbct-maxilla { fill: #3f4954; stroke: #5f6a76; stroke-width: 1.2; opacity: .5; }
+.cbct-tuber { fill: #525d69; stroke: none; opacity: .5; }
+.cbct-crest { fill: none; stroke: #9aa7b4; stroke-width: 2; opacity: .7; stroke-linecap: round; }
+.cbct-cortical { fill: none; stroke: #b4bfca; stroke-width: 3.4; opacity: .9; stroke-linecap: round; }
+.cbct-tmj { fill: none; stroke: #7d8996; stroke-width: 3; opacity: .45; stroke-linecap: round; }
+.cbct-canal { fill: none; stroke: #12171e; stroke-width: 7; opacity: .92; stroke-linecap: round; }
+.cbct-foramen { fill: #12171e; opacity: .92; }
+.cbct-sinus { fill: #0d1219; stroke: #7d8894; stroke-width: 1.6; opacity: .92; }
+.cbct-nose { fill: #0d1219; opacity: .88; }
+.cbct-nose-floor { fill: none; stroke: #8b96a2; stroke-width: 2.6; opacity: .8; }
+.cbct-septum { fill: none; stroke: #9aa6b1; stroke-width: 5; opacity: .85; }
+.cbct-palate { fill: #8d99a6; opacity: .6; }
+.cbct-nose-tip { fill: none; stroke: #6f7a86; stroke-width: 5; opacity: .3; stroke-linecap: round; }
+.cbct-tongue { fill: #333d49; opacity: .13; }
+.cbct-vert { fill: #232c37; stroke: #3a444f; stroke-width: 1.2; opacity: .5; }
+.cbct-hyoid { fill: none; stroke: #c5cdd6; stroke-width: 6; opacity: .85; stroke-linecap: round; }
+
+.cbct-label {
+    font: 700 20px Tahoma, Arial, sans-serif;
+    fill: #7f93a8;
+    text-anchor: middle;
+}
+
+.cbct-tooth { cursor: pointer; }
+
+/* --- MPR --- */
+.cbct-panel-bg { fill: #121820; }
+.cbct-panel-frame { fill: none; stroke: #2b3a4c; stroke-width: 1.5; }
+.cbct-panel-label { font: 700 15px Tahoma, Arial, sans-serif; fill: #8fa3b8; }
+
+.cbct-disc { cursor: pointer; }
+.cbct-disc circle { fill: #c8d2dc; stroke: #8b95a2; stroke-width: 1.2; }
+.cbct-disc text { font: 700 9px Arial, sans-serif; fill: #1b2430; text-anchor: middle; pointer-events: none; }
+.cbct-disc:hover circle { fill: #bfe0ff; stroke: #58a6ff; }
+.cbct-disc.selected circle { fill: #4b9bea; stroke: #7cc0ff; stroke-width: 2; }
+.cbct-disc.selected text { fill: #fff; }
+
+.cbct-side, .cbct-cor { cursor: pointer; }
+.cbct-sidebone, .cbct-corbone { fill: #4b5560; stroke: #6b7684; stroke-width: 1.3; opacity: .5; }
+
+/* --- 3D volume --- */
+.cbct-vol-scene { cursor: grab; }
+.cbct-vol-scene:active { cursor: grabbing; }
+.cbct-vol-tooth { cursor: pointer; }
+.cbct-vol-bone { fill: #6b7684; stroke: #8b95a2; stroke-width: 1; }
+
+.cbct-vol-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #1d2836;
+}
+.cbct-vol-controls .natural-control { color: #8fa3b8; }
+
+/* Visibility per view. */
+.dental-integrated-cbct { display: none; }
+.dental-view-cbct .dental-integrated-cbct { display: block; }
+.dental-view-cbct .dental-integrated-arch,
+.dental-view-cbct .dental-integrated-natural,
+.dental-view-cbct .dental-chart-body > .dental-chart-group { display: none; }
+
+@media (max-width: 700px) {
+    .cbct-odontogram { padding: 5px; }
+    .cbct-toolbar { gap: 6px; }
+    .cbct-scheme-button { padding: 5px 10px; }
+    .cbct-panel-label { font-size: 12px; }
+}

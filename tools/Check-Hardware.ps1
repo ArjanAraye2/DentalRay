@@ -1,5 +1,5 @@
 <#
-    بررسی سخت‌افزار برای DentalRay / Dentix
+    بررسی سخت‌افزار برای ReSiRai / ReSiRai
     ----------------------------------------
     این فایل را روی کامپیوتر مطب اجرا کنید. یک گزارش فارسی می‌سازد که
     می‌گوید آن کامپیوتر برای نصب برنامه مناسب است یا نه.
@@ -71,7 +71,7 @@ $rows += [pscustomobject]@{ نام="SQL Server"; مقدار=$(if($sqlOK){"نصب
 # ---------- گزارش ----------
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "   بررسی سخت‌افزار برای DentalRay / Dentix" -ForegroundColor Cyan
+Write-Host "   بررسی سخت‌افزار برای ReSiRai / ReSiRai" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  نام کامپیوتر : $($cs.Name)" -ForegroundColor White
@@ -95,7 +95,7 @@ $aiReady = ($gpus | Where-Object { [math]::Round($_.AdapterRAM/1GB,1) -ge $REC.G
 
 Write-Host "================================================================" -ForegroundColor Cyan
 if ($failCount -eq 0) {
-    Write-Host "  نتیجه: این کامپیوتر برای نصب DentalRay مناسب است" -ForegroundColor Green
+    Write-Host "  نتیجه: این کامپیوتر برای نصب ReSiRai مناسب است" -ForegroundColor Green
 } else {
     Write-Host "  نتیجه: $failCount مورد کمتر از حداقل است" -ForegroundColor Red
     Write-Host "  موارد زیر را ارتقا دهید:" -ForegroundColor Red
@@ -116,7 +116,7 @@ Write-Host "  این گزارش را برای نصب‌کننده بفرستید
 Write-Host ""
 
 # ---------- ذخیره گزارش ----------
-$out = Join-Path $env:TEMP "DentalRay-Hardware-Report.txt"
+$out = Join-Path $env:TEMP "ReSiRai-Hardware-Report.txt"
 $rows | Out-File $out -Encoding UTF8
 Add-Content $out ""
 Add-Content $out "نام کامپیوتر: $($cs.Name)"

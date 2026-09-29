@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "DentalRay.Api/wwwroot/js/app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "ReSiRai.Api/wwwroot/js/app.js"), "utf8");
 
 assert.match(app, /patientOpenRequestVersion/);
 assert.match(app, /patientOpenAbortController\?\.abort\(\)/);

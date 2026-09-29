@@ -1,5 +1,5 @@
 # ============================================================
-# DentalRay - Git Ignore
+# ReSiRai - Git Ignore
 # ============================================================
 
 # Visual Studio
@@ -66,10 +66,10 @@ Desktop.ini
 *.key
 *.pem
 
-# Runtime external DentalRay configuration
-DentalRay.config.json
+# Runtime external ReSiRai configuration
+ReSiRai.config.json
 # ============================================================
-# Android (DentalRay.Mobile)
+# Android (ReSiRai.Mobile)
 # ============================================================
 **/local.properties
 **/.gradle/

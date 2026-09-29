@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="ReSiRai">
+  <defs>
+    <linearGradient id="g" x1="8" y1="0" x2="39" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f3e4e"/>
+      <stop offset="0.5" stop-color="#2b9fd6"/>
+      <stop offset="1" stop-color="#f4511e"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#f7fafc"/>
+  <!-- the wave, straightening toward the dots -->
+  <path d="M8 22 q5.2 -13 10.4 0 q5.2 9 10.4 0 q5.2 -5 10.4 0" fill="none" stroke="url(#g)" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M39.2 22 H44" stroke="#3b4a5a" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="48.5" cy="22" r="3.4" fill="#2f3e4e"/>
+  <!-- baseline with the three dots -->
+  <line x1="9" y1="45" x2="55" y2="45" stroke="#c2d0d8" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="18" cy="45" r="4.2" fill="#2f3e4e"/>
+  <circle cx="32" cy="45" r="4.2" fill="#2b9fd6"/>
+  <circle cx="46" cy="45" r="4.2" fill="#f4511e"/>
+</svg>

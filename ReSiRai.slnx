@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ReSiRai.Api/ReSiRai.Api.csproj" />
+  <Project Path="ReSiRai.SetupHelper/ReSiRai.SetupHelper.csproj" Id="5896f5e3-9e4d-45ca-abfa-49b2b856b158" />
+</Solution>

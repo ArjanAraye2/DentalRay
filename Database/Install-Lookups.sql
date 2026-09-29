@@ -1,5 +1,5 @@
 /*
- DentalRay lookup tables and installation seed data.
+ ReSiRai lookup tables and installation seed data.
  Safe to run repeatedly.
 */
 

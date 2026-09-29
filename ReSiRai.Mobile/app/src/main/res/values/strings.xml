@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ReSiRai</string>
+    <string name="pairing_title">جفت‌سازی با ReSiRai</string>
+    <string name="pairing_hint">کیوآرکد ساخته‌شده در مطب را مقابل دوربین بگیرید.</string>
+    <string name="pairing_manual">یا در صورت نیاز، دستی وارد کنید</string>
+    <string name="server_address">آدرس سرور</string>
+    <string name="device_token">کلید دستگاه</string>
+    <string name="save">ثبت</string>
+    <string name="back">بازگشت</string>
+    <string name="main_title">ارسال پیامک رادیولوژی</string>
+    <string name="home_guide_text">اگر آیکون ReSiRai روی صفحهٔ اصلی نیست: از کشوی برنامه‌ها آن را پیدا کنید، رویش نگه دارید و «افزودن به صفحهٔ اصلی» را بزنید.</string>
+    <string name="home_guide_ok">متوجه شدم</string>
+</resources>

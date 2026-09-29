@@ -1,4 +1,4 @@
-# مشخصات فنی مورد نیاز — DentalRay / Dentix
+# مشخصات فنی مورد نیاز — ReSiRai / ReSiRai
 ## برای نصب در مطب
 
 **تاریخ:** ۳۱ شهریور ۱۴۰۵
@@ -197,7 +197,7 @@ powershell -ExecutionPolicy Bypass -File .\Check-Hardware.ps1
 
 ```
 ================================================================
-   بررسی سخت‌افزار برای DentalRay / Dentix
+   بررسی سخت‌افزار برای ReSiRai / ReSiRai
 ================================================================
 
   نام کامپیوتر : CLINIC-PC
@@ -223,7 +223,7 @@ powershell -ExecutionPolicy Bypass -File .\Check-Hardware.ps1
 ================================================================
 ```
 
-**گزارش در `%TEMP%\DentalRay-Hardware-Report.txt` هم ذخیره می‌شود.**
+**گزارش در `%TEMP%\ReSiRai-Hardware-Report.txt` هم ذخیره می‌شود.**
 
 ---
 
@@ -256,7 +256,7 @@ powershell -ExecutionPolicy Bypass -File .\Check-Hardware.ps1
 # ۹) باز کردن فایروال (روی سرور)
 
 ```powershell
-New-NetFirewallRule -DisplayName "DentalRay" -Direction Inbound `
+New-NetFirewallRule -DisplayName "ReSiRai" -Direction Inbound `
     -Protocol TCP -LocalPort 5202 -Action Allow
 ```
 
@@ -298,7 +298,7 @@ New-NetFirewallRule -DisplayName "DentalRay" -Direction Inbound `
 | Windows | موجود |
 | .NET Runtime | **رایگان** |
 | SQL Server Express | **رایگان** |
-| برنامه DentalRay | **رایگان** (کد خودتان) |
+| برنامه ReSiRai | **رایگان** (کد خودتان) |
 | مرورگر کامپیوترهای دیگر | **رایگان** |
 | **جمع** | **صفر** |
 
