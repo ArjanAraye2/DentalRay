@@ -186,7 +186,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/mobile-camera-loader.js?v=20260920.1\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js?v=20260919.1\"></script>\n" +
                 "<script src=\"/js/ai-study-analysis.js?v=20260929.4\"></script>\n" +
-                "<script src=\"/js/card-extraction.js?v=20260929.6\"></script>\n" +
+                "<script src=\"/js/card-extraction.js?v=20260929.8\"></script>\n" +
                 "<script src=\"/js/ai-chat.js?v=20260929.1\"></script>\n" +
                 "<script src=\"/js/study-card-scan.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/dictation.js?v=20260929.1\"></script>\n" +
