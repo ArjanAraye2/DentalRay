@@ -88,6 +88,39 @@ public sealed class AiLabReportController : ControllerBase
         return await ExtractCoreAsync(parts, firstRelative, label, request.StudyID, cancellationToken);
     }
 
+    /// <summary>
+    /// Extracts from files picked on this device without attaching them to a
+    /// visit first - the new-visit form needs the numbers before the visit row
+    /// exists. Nothing is stored here; only the review draft is produced.
+    /// </summary>
+    [HttpPost("extract-lab-files")]
+    public async Task<IActionResult> ExtractLabFiles(List<IFormFile> files,
+        [FromQuery] int? studyID = null, CancellationToken cancellationToken = default)
+    {
+        if (files is null || files.Count == 0)
+            return BadRequest(new { success = false, message = "دست‌کم یک فایل لازم است." });
+        if (files.Count > 10)
+            return BadRequest(new { success = false, message = "حداکثر ۱۰ صفحه در هر استخراج قابل انتخاب است." });
+
+        var parts = new List<(string Mime, byte[] Bytes)>();
+        string label = "";
+        foreach (var f in files)
+        {
+            if (f.Length == 0) continue;
+            if (string.IsNullOrWhiteSpace(f.ContentType)
+                || !f.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { success = false, message = "برای استخراج، فایل‌ها باید تصویر (JPG/PNG) باشند." });
+            await using var ms = new MemoryStream();
+            await f.CopyToAsync(ms, cancellationToken);
+            if (label.Length == 0) label = f.FileName;
+            parts.Add((f.ContentType, ms.ToArray()));
+        }
+        if (parts.Count == 0)
+            return BadRequest(new { success = false, message = "فایل تصویری معتبر انتخاب نشده است." });
+        if (parts.Count > 1) label = $"{label} (+{parts.Count - 1} صفحه دیگر)";
+        return await ExtractCoreAsync(parts, "", label, studyID, cancellationToken);
+    }
+
     /// <summary>Loads one image and checks access, existence and file kind.</summary>
     private async Task<(RadiologyImage? image, IActionResult? error)> LoadImageAsync(long imageID,
         CancellationToken cancellationToken)
@@ -173,7 +206,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             {
                 StudyID = studyID ?? 0,
                 FileName = fileLabel,
-                ImagePath = _storage.GetPhysicalPath(firstRelativePath),
+                ImagePath = firstRelativePath.Length == 0 ? "" : _storage.GetPhysicalPath(firstRelativePath),
                 LabName = GetString(root, "labName"),
                 SampleDate = ParseDate(GetString(root, "sampleDate")),
                 RawJson = raw,

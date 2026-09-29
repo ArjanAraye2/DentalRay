@@ -22,9 +22,27 @@
     function close() { if (overlay) { overlay.remove(); overlay = null; } }
 
     function open(studyID, specialtyID) {
-        close();
         studyID = Number(studyID);
         if (!Number.isInteger(studyID) || studyID <= 0 || busy) return;
+        startDialog({ studyID, specialtyID: specialtyID || null });
+    }
+
+    // The new-visit form: the consultation runs over the values typed in but
+    // not saved yet. When the data is not enough, the AI reports what is missing
+    // instead of guessing.
+    function openDraft(opts) {
+        if (busy) return;
+        startDialog({
+            studyID: 0,
+            patientID: opts && opts.patientID ? Number(opts.patientID) : null,
+            description: (opts && opts.description) || null,
+            specialtyID: (opts && opts.specialtyID) || null,
+            items: (opts && opts.items) || []
+        });
+    }
+
+    function startDialog(payload) {
+        close();
         busy = true;
 
         overlay = el("div", "lab-extract-overlay");
@@ -49,16 +67,16 @@
         overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
         document.body.appendChild(overlay);
 
-        load(body, studyID, specialtyID);
+        load(body, payload);
     }
 
-    async function load(body, studyID, specialtyID) {
+    async function load(body, payload) {
         let x;
         try {
             const r = await fetch("/api/ai/consult", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studyID, specialtyID: specialtyID || null })
+                body: JSON.stringify(payload)
             });
             x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "مشاوره ناموفق بود.");
@@ -136,5 +154,5 @@
         }
     }
 
-    window.ReSiRaiConsult = { open };
+    window.ReSiRaiConsult = { open, openDraft };
 })();

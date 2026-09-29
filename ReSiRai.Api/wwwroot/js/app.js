@@ -821,7 +821,7 @@ function offerPatientMessage(patientID,reason,preferredTemplate){
   window.dispatchEvent(new CustomEvent("resirai-offer-message",{detail:{patientID,templateKey:preferredTemplate}}));
  };
 }
-async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await readApiJson(r);if(!r.ok||x.success===false)throw new Error(apiErrorMessage(r,x,"ثبت مراجعه انجام نشد."));const savedStudyID=(x.study&&x.study.studyID)||0;await window.ReSiRaiStudyCardScan?.uploadPending(savedStudyID);const savedPatientID=selectedPatientID;await openPatient(savedPatientID);showToast("مراجعه ثبت شد.");
+async function createStudy(){try{const body={...studyPayload("new"),patientID:selectedPatientID};const r=await fetch("/api/radiologystudies",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),x=await readApiJson(r);if(!r.ok||x.success===false)throw new Error(apiErrorMessage(r,x,"ثبت مراجعه انجام نشد."));const savedStudyID=(x.study&&x.study.studyID)||0;await window.ReSiRaiStudyCardScan?.uploadPending(savedStudyID);if(savedStudyID&&window.ReSiRaiFactors?.commitPending){try{await window.ReSiRaiFactors.commitPending(savedStudyID);}catch(fe){showToast(fe.message||"ثبت مقادیر شرایط فعلی ناموفق بود.","error");}}const savedPatientID=selectedPatientID;await openPatient(savedPatientID);showToast("مراجعه ثبت شد.");
  // A study recorded for a future date is a booked visit, so a reminder makes sense.
  const saved=x.study||x;
  if(Number(saved.status)===3&&saved.followUpDate){

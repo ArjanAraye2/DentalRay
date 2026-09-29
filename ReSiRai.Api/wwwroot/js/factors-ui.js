@@ -29,6 +29,12 @@
     let currentStudy = null;
     let factors = [];
     let saving = false;
+    // Values entered in the new-visit form before the visit row exists; they are
+    // posted the moment the visit is created (commitPending).
+    let pendingItems = [];
+    // The panel that last rendered; the test bar re-renders that one, not some
+    // other panel of the same page.
+    let lastHost = null;
     let testState = loadTestState();
 
     function loadTestState() {
@@ -174,7 +180,7 @@
         hint.className = "factors-testbar-hint";
         hint.textContent = "فقط برای نمایش فاکتورهای آن تخصص؛ مقادیری که ثبت کنید روی همین مراجعه می‌ماند.";
 
-        const reload = () => { if (currentStudy) render(currentStudy); };
+        const reload = () => { if (currentStudy) render(currentStudy, lastHost); };
         checkbox.addEventListener("change", () => {
             testState.enabled = checkbox.checked;
             if (!checkbox.checked) testState.specialtyID = 0;
@@ -195,7 +201,8 @@
     async function render(study, hostOverride) {
         const host = hostOverride || document.getElementById("studyFactorsPanel") || ensurePanelExists();
         if (!host || !study) return;
-        studyID = Number(study.studyID);
+        lastHost = host;
+        studyID = Number(study.studyID) || 0;
         currentStudy = study;
         // Every handler reads the study from its own host, so the same panel can
         // live in both the visit card and the details form without clashing.
@@ -216,11 +223,15 @@
         content.appendChild(note);
 
         try {
-            const defUrl = `/api/factors/definitions?studyID=${studyID}` +
-                (testState.enabled && testState.specialtyID ? `&specialtyID=${testState.specialtyID}` : "");
+            const params = [];
+            if (studyID) params.push(`studyID=${studyID}`);
+            if (testState.enabled && testState.specialtyID) params.push(`specialtyID=${testState.specialtyID}`);
+            const defUrl = `/api/factors/definitions${params.length ? "?" + params.join("&") : ""}`;
             const [defRes, valRes] = await Promise.all([
                 fetch(defUrl, { cache: "no-store" }).then(readJson),
-                fetch(`/api/factors/values?studyID=${studyID}`, { cache: "no-store" }).then(readJson)
+                studyID
+                    ? fetch(`/api/factors/values?studyID=${studyID}`, { cache: "no-store" }).then(readJson)
+                    : Promise.resolve({ success: true, values: [] })
             ]);
             if (!defRes.success) throw new Error(defRes.message || "دریافت فاکتورها ناموفق بود.");
 
@@ -298,19 +309,31 @@
             const saveBtn = document.createElement("button");
             saveBtn.type = "button";
             saveBtn.className = "primary-button";
-            saveBtn.textContent = "ثبت مقادیر";
+            saveBtn.textContent = studyID ? "ثبت مقادیر" : "آماده‌سازی مقادیر";
             saveBtn.addEventListener("click", () => save(host, saveBtn));
             const extractBtn = document.createElement("button");
             extractBtn.type = "button";
             extractBtn.className = "secondary-button";
             extractBtn.textContent = "استخراج از برگه آزمایش";
-            extractBtn.addEventListener("click", () => window.ReSiRaiLabExtract?.open(Number(host.dataset.studyId)));
+            extractBtn.addEventListener("click", () => window.ReSiRaiLabExtract?.open(Number(host.dataset.studyId) || 0));
             const consultBtn = document.createElement("button");
             consultBtn.type = "button";
             consultBtn.className = "primary-button";
             consultBtn.textContent = "مشاوره با هوش مصنوعی";
-            consultBtn.addEventListener("click", () => window.ReSiRaiConsult?.open(Number(host.dataset.studyId),
-                testState.enabled && testState.specialtyID ? testState.specialtyID : null));
+            consultBtn.addEventListener("click", () => {
+                const specialty = testState.enabled && testState.specialtyID ? testState.specialtyID : null;
+                const myID = Number(host.dataset.studyId) || 0;
+                if (myID) { window.ReSiRaiConsult?.open(myID, specialty); return; }
+                // New-visit form: the consultation runs over what is typed in
+                // right now. When the data is not enough, the AI says what is
+                // missing instead of guessing.
+                window.ReSiRaiConsult?.openDraft({
+                    patientID: window.selectedPatientID || null,
+                    description: document.getElementById("newStudyDescription")?.value || "",
+                    specialtyID: specialty,
+                    items: collectItems(host)
+                });
+            });
             const status = document.createElement("span");
             status.className = "factors-status";
             footer.append(saveBtn, extractBtn, consultBtn, status);
@@ -326,9 +349,9 @@
         }
     }
 
-    async function save(host, button) {
-        const targetStudyID = Number(host.dataset.studyId);
-        if (saving || !targetStudyID) return;
+    // Reads the typed values of one panel; shared by saving, pre-save collection
+    // and the pre-save consultation.
+    function collectItems(host) {
         const items = [];
         for (const f of factors) {
             const row = host.querySelector(`.factor-row[data-factor-id="${f.factorID}"]`);
@@ -339,7 +362,22 @@
             if (!value) continue;
             items.push(Object.assign({ factorID: f.factorID, source: 1 }, value));
         }
+        return items;
+    }
+
+    async function save(host, button) {
+        const targetStudyID = Number(host.dataset.studyId) || 0;
+        if (saving) return;
+        const items = collectItems(host);
         if (items.length === 0) { setStatus(host, "هیچ مقداری برای ثبت وارد نشده است.", true); return; }
+
+        if (!targetStudyID) {
+            // New-visit form: hold the values and post them right after the
+            // visit row is created (commitPending).
+            pendingItems = items.concat(pendingItems.filter(p => !items.some(i => i.factorID === p.factorID)));
+            setStatus(host, `${items.length} مقدار آماده شد؛ با ثبتِ مراجعه ذخیره می‌شوند.`, false);
+            return;
+        }
 
         try {
             saving = true;
@@ -360,6 +398,47 @@
             saving = false;
             button.disabled = false;
             button.textContent = "ثبت مقادیر";
+        }
+    }
+
+    // --- pre-save collection (new-visit form) -----------------------
+    // Extraction review, before the visit exists, hands its confirmed rows
+    // here: they fill the form and wait for the visit to be created.
+    function addPending(items) {
+        const incoming = items || [];
+        pendingItems = incoming.concat(pendingItems.filter(p => !incoming.some(i => i.factorID === p.factorID)));
+        const host = document.getElementById("newStudyFactorsPanel");
+        if (!host) return;
+        for (const it of incoming) {
+            const row = host.querySelector(`.factor-row[data-factor-id="${it.factorID}"]`);
+            if (!row) continue;
+            const input = row.querySelector("input, select");
+            if (!input) continue;
+            if (input.type === "checkbox") input.checked = !!it.valueBit;
+            else if (it.valueNumber !== undefined && it.valueNumber !== null) input.value = String(it.valueNumber);
+            else if (it.valueText !== undefined && it.valueText !== null) input.value = it.valueText;
+            else if (it.valueDate) input.value = String(it.valueDate).slice(0, 10);
+            input.dispatchEvent(new Event("input"));
+        }
+    }
+
+    // Called by app.js the moment a new visit is created.
+    async function commitPending(targetStudyID) {
+        if (pendingItems.length === 0) return 0;
+        const items = pendingItems;
+        pendingItems = [];
+        try {
+            const r = await fetch("/api/factors/values", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studyID: Number(targetStudyID), items })
+            });
+            const x = await readJson(r);
+            if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
+            return x.saved || 0;
+        } catch (e) {
+            pendingItems = items;
+            throw e;
         }
     }
 
@@ -390,16 +469,29 @@
     function selfMount() {
         ensurePanelExists();
         const section = document.getElementById("studyDetailsSection");
-        if (!section) return;
-        const tryRender = () => {
-            if (section.classList.contains("hidden")) return;
-            const study = window.selectedStudy;
-            if (!study) return;
-            const host = ensurePanelExists();
-            if (host && host.dataset.renderedFor !== String(study.studyID)) render(study);
-        };
-        new MutationObserver(tryRender).observe(section, { attributes: true, attributeFilter: ["class"] });
-        tryRender();
+        if (section) {
+            const tryRender = () => {
+                if (section.classList.contains("hidden")) return;
+                const study = window.selectedStudy;
+                if (!study) return;
+                const host = ensurePanelExists();
+                if (host && host.dataset.renderedFor !== String(study.studyID)) render(study, host);
+            };
+            new MutationObserver(tryRender).observe(section, { attributes: true, attributeFilter: ["class"] });
+            tryRender();
+        }
+        // The new-visit form gets the draft panel: values are collected here and
+        // saved the moment the visit row is created.
+        const newSection = document.getElementById("newStudySection");
+        const draftHost = document.getElementById("newStudyFactorsPanel");
+        if (newSection && draftHost) {
+            const tryDraft = () => {
+                if (newSection.classList.contains("hidden")) return;
+                if (draftHost.dataset.renderedFor !== "0") render({ studyID: 0 }, draftHost);
+            };
+            new MutationObserver(tryDraft).observe(newSection, { attributes: true, attributeFilter: ["class"] });
+            tryDraft();
+        }
     }
 
     // The visit card («نمایش») is the screen actually opened when a visit is
@@ -424,5 +516,5 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", selfMount);
     else selfMount();
 
-    window.ReSiRaiFactors = { render, renderCard };
+    window.ReSiRaiFactors = { render, renderCard, addPending, commitPending };
 })();

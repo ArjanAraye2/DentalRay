@@ -34,13 +34,14 @@
 
     function open(studyID) {
         close();
-        studyID = Number(studyID);
-        if (!Number.isInteger(studyID) || studyID <= 0) return;
+        studyID = Number(studyID) || 0;
 
         overlay = el("div", "lab-extract-overlay");
         const dialog = el("div", "lab-extract-dialog");
         const head = el("div", "lab-extract-head");
-        head.appendChild(el("h3", null, "استخراج برگه آزمایش"));
+        head.appendChild(el("h3", null, studyID > 0
+            ? "استخراج برگه آزمایش"
+            : "استخراج برگه آزمایش — پیش از ثبت مراجعه"));
         const closeBtn = el("button", "secondary-button", "بستن");
         closeBtn.type = "button";
         closeBtn.addEventListener("click", close);
@@ -61,10 +62,32 @@
         renderPicker(body, studyID);
     }
 
+    // The new-visit form: the pages are picked from this device and read
+    // straight away - nothing is attached to a visit that does not exist yet.
+    function renderFilePicker(body) {
+        body.replaceChildren();
+        body.appendChild(el("div", "factors-empty",
+            "عکس صفحه‌های برگه آزمایش را انتخاب کنید (چند فایل با هم):"));
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.multiple = true;
+        const runBtn = el("button", "primary-button", "استخراج با هوش مصنوعی");
+        runBtn.type = "button";
+        runBtn.addEventListener("click", () => {
+            const files = Array.from(fileInput.files || []);
+            if (files.length === 0) { setStatus(overlay, "ابتدا دست‌کم یک تصویر انتخاب کنید.", true); return; }
+            renderReviewFiles(body, files);
+        });
+        body.append(fileInput, runBtn);
+    }
+
     // Step 1: pick the report pages among the visit's images. A multi-page report
     // is selected as several images (or uploaded right here) and all pages go to
-    // the AI together, so nothing is lost at a page break.
+    // the AI together, so nothing is lost at a page break. Before the visit row
+    // exists (new-visit form), the pages are read straight from the picked files.
     async function renderPicker(body, studyID) {
+        if (!studyID) { renderFilePicker(body); return; }
         body.replaceChildren(el("div", "factors-empty", "در حال دریافت تصاویر مراجعه..."));
         let x;
         try {
@@ -151,16 +174,28 @@
 
     // Step 2: ask the AI for a draft over all selected pages and show it for review.
     async function renderReview(body, studyID, imageIDs) {
+        await runExtraction(body, studyID, () => fetch(`/api/ai/images/extract-lab`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studyID, imageIDs })
+        }));
+    }
+
+    // The same, but the pages are files on this device (new-visit form: the
+    // visit row does not exist yet, so nothing is attached anywhere).
+    async function renderReviewFiles(body, files) {
+        const fd = new FormData();
+        for (const f of files) fd.append("files", f);
+        await runExtraction(body, 0, () => fetch(`/api/ai/images/extract-lab-files`, { method: "POST", body: fd }));
+    }
+
+    async function runExtraction(body, studyID, send) {
         if (busy) return;
         busy = true;
         body.replaceChildren(el("div", "factors-empty", "در حال استخراج برگه آزمایش... این مرحله ممکن است کمی طول بکشد."));
         let x;
         try {
-            const r = await fetch(`/api/ai/images/extract-lab`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studyID, imageIDs })
-            });
+            const r = await send();
             x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "استخراج ناموفق بود.");
         } catch (e) {
@@ -170,7 +205,9 @@
         }
         busy = false;
 
-        const defsX = await fetch(`/api/factors/definitions?studyID=${studyID}`, { cache: "no-store" }).then(readJson);
+        const defsX = await fetch(studyID
+            ? `/api/factors/definitions?studyID=${studyID}`
+            : `/api/factors/definitions`, { cache: "no-store" }).then(readJson);
         const defs = defsX.factors || [];
 
         body.replaceChildren();
@@ -383,20 +420,28 @@
             button.disabled = true;
             button.textContent = "در حال ثبت...";
             setStatus(overlay, "", false);
-            const r = await fetch("/api/factors/values", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studyID, items })
-            });
-            const x = await readJson(r);
-            if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
-            let msg = `${x.saved} مقدار از برگه آزمایش ثبت شد.`;
+            let msg;
+            if (!studyID) {
+                // New-visit form: the values are held in the panel and saved the
+                // moment the visit row is created.
+                window.ReSiRaiFactors?.addPending(items);
+                msg = `${items.length} مقدار آماده شد؛ با ثبتِ مراجعه ذخیره می‌شوند.`;
+            } else {
+                const r = await fetch("/api/factors/values", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ studyID, items })
+                });
+                const x = await readJson(r);
+                if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
+                msg = `${x.saved} مقدار از برگه آزمایش ثبت شد.`;
+                window.ReSiRaiFactors?.render({ studyID });
+            }
             if (added.length) msg += ` ${added.length} تست جدید به دیکشنری افزوده شد.`;
             if (skipped.length) {
                 msg += ` ${skipped.length} مورد ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`;
             }
             setStatus(overlay, msg, skipped.length > 0);
-            window.ReSiRaiFactors?.render({ studyID });
             setTimeout(close, 900);
         } catch (e) {
             setStatus(overlay, e.message || "ثبت مقادیر ناموفق بود.", true);

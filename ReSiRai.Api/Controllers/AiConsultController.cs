@@ -43,6 +43,15 @@ public sealed class AiConsultController : ControllerBase
 
         /// <summary>SuperAdmin-only override, used by the admin test mode.</summary>
         public int? SpecialtyID { get; set; }
+
+        /// <summary>Patient of a visit that is not created yet (new-visit mode).</summary>
+        public int? PatientID { get; set; }
+
+        /// <summary>Reason for visit typed in the new-visit form (new-visit mode).</summary>
+        public string? Description { get; set; }
+
+        /// <summary>Values typed but not saved yet (new-visit mode).</summary>
+        public List<ClinicalFactorsController.FactorValueItem>? Items { get; set; }
     }
 
     /// <summary>One dictionary row of the visit's specialty, flattened for the prompt.</summary>
@@ -52,29 +61,49 @@ public sealed class AiConsultController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Consult(ConsultRequest request, CancellationToken cancellationToken)
     {
-        if (request.StudyID <= 0) return BadRequest(new { success = false, message = "مراجعه مشخص نیست." });
+        // Two modes: an existing visit (StudyID), or the new-visit form where the
+        // values are still only typed in (PatientID + Items). The doctor can ask
+        // before saving anything - when the data is not enough, the AI says so.
+        bool draft = request.StudyID <= 0;
+        if (draft && request.PatientID is null)
+            return BadRequest(new { success = false, message = "مراجعه یا بیمار مشخص نیست." });
 
-        var accessible = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User).Select(x => x.StudyID);
-        bool canAccess = StudyAccessService.IsSuperAdmin(User) || accessible.Contains(request.StudyID);
-        if (!canAccess) return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
+        RadiologyStudy? study = null;
+        Patient? patient = null;
+        string? reason = request.Description;
+        string? notes = null;
+        if (!draft)
+        {
+            var accessible = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User).Select(x => x.StudyID);
+            bool canAccess = StudyAccessService.IsSuperAdmin(User) || accessible.Contains(request.StudyID);
+            if (!canAccess) return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
 
-        var study = await _db.RadiologyStudies.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.StudyID == request.StudyID, cancellationToken);
-        if (study is null) return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
+            study = await _db.RadiologyStudies.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.StudyID == request.StudyID, cancellationToken);
+            if (study is null) return NotFound(new { success = false, message = "مراجعه پیدا نشد." });
+
+            patient = await _db.Patients.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PatientID == study.PatientID, cancellationToken);
+            reason = study.Description;
+            notes = study.Report;
+        }
+        else
+        {
+            patient = await _db.Patients.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PatientID == request.PatientID!.Value, cancellationToken);
+            if (patient is null) return NotFound(new { success = false, message = "بیمار پیدا نشد." });
+        }
 
         string? configError = _ai.ConfigurationError();
         if (configError is not null)
             return StatusCode(503, new { success = false, message = configError });
 
-        var patient = await _db.Patients.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.PatientID == study.PatientID, cancellationToken);
-
         // Factor set of the visit's doctor; internal medicine while a specialty is
         // missing (phase 1 default).
         int? specialtyID = null;
-        if (study.DentistStaffID.HasValue)
+        if (study?.DentistStaffID is { } staffID)
             specialtyID = await _db.Staff.AsNoTracking()
-                .Where(x => x.StaffID == study.DentistStaffID.Value)
+                .Where(x => x.StaffID == staffID)
                 .Select(x => x.SpecialtyID)
                 .FirstOrDefaultAsync(cancellationToken);
         specialtyID ??= await _db.DentalSpecialties.AsNoTracking()
@@ -96,12 +125,30 @@ public sealed class AiConsultController : ControllerBase
                 f.UnitUCUM, f.RefLow, f.RefHigh, f.RefText, f.DataType, s.IsRequired)
         ).ToListAsync(cancellationToken);
 
-        var values = await _db.StudyFactorValues.AsNoTracking()
-            .Where(x => x.StudyID == request.StudyID)
-            .OrderByDescending(x => x.ObservedAt)
-            .ToListAsync(cancellationToken);
+        List<StudyFactorValue> values;
+        if (!draft)
+        {
+            values = await _db.StudyFactorValues.AsNoTracking()
+                .Where(x => x.StudyID == request.StudyID)
+                .OrderByDescending(x => x.ObservedAt)
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            // The typed-but-unsaved values of the new-visit form, seen as one
+            // observation each, so the consultation works before the save.
+            values = (request.Items ?? new()).Select(i => new StudyFactorValue
+            {
+                FactorID = i.FactorID,
+                ValueNumber = i.ValueNumber,
+                ValueText = i.ValueText,
+                ValueBit = i.ValueBit,
+                ValueDate = i.ValueDate,
+                ObservedAt = i.ObservedAt ?? DateTime.Now
+            }).ToList();
+        }
 
-        var prompt = BuildPrompt(patient, study, defs, values, out int recorded, out int requiredMissing);
+        var prompt = BuildPrompt(patient, reason, notes, defs, values, out int recorded, out int requiredMissing);
         int coverage = defs.Count == 0 ? 100 : recorded * 100 / defs.Count;
 
         var stopwatch = Stopwatch.StartNew();
@@ -142,6 +189,7 @@ public sealed class AiConsultController : ControllerBase
             {
                 success = true,
                 studyID = request.StudyID,
+                draft,
                 model = _ai.Model,
                 coverage,
                 requiredMissing,
@@ -157,7 +205,7 @@ public sealed class AiConsultController : ControllerBase
     /// numbers. Unrecorded factors are listed as missing instead of being assumed
     /// normal - the rule that keeps the answer honest.
     /// </summary>
-    private static string BuildPrompt(Patient? patient, RadiologyStudy study,
+    private static string BuildPrompt(Patient? patient, string? reason, string? notes,
         List<ConsultFactor> defs, List<StudyFactorValue> values, out int recorded, out int requiredMissing)
     {
         recorded = 0;
@@ -206,8 +254,8 @@ and clinical factors expressed as standard, sourced numbers (unit + reference ra
 "notRecorded" is UNKNOWN, never normal.
 
 Patient: age {{age?.ToString() ?? "unknown"}}, sex {{sex}}
-Reason for visit: {{study.Description ?? "not recorded"}}
-Doctor's notes: {{study.Report ?? "none"}}
+Reason for visit: {{reason ?? "not recorded"}}
+Doctor's notes: {{notes ?? "none"}}
 
 Factors:
 {{(lines.Count > 0 ? string.Join("\n", lines) : "none recorded")}}
