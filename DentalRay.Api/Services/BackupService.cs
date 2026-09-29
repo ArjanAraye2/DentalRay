@@ -189,6 +189,97 @@ public sealed class BackupService
         }
     }
 
+    /// <summary>یک فایلِ BAK قابلِ انتخاب برای بازگردانی.</summary>
+    public sealed record RestorePoint(string File, long SizeBytes, DateTime Created);
+
+    /// <summary>فایل‌های پشتیبانِ دیتابیس، از جدیدترین به قدیمی‌ترین.</summary>
+    public IReadOnlyList<RestorePoint> GetRestorePoints()
+    {
+        if (!Directory.Exists(DbFolder)) return Array.Empty<RestorePoint>();
+        return Directory.GetFiles(DbFolder, "dentix_*.bak")
+            .Select(f => new FileInfo(f))
+            .OrderByDescending(f => f.LastWriteTime)
+            .Select(f => new RestorePoint(f.Name, f.Length, f.LastWriteTime))
+            .ToList();
+    }
+
+    /// <summary>
+    /// دیتابیس را از یکی از همان فایل‌های BAK برمی‌گرداند.
+    ///
+    /// دو قاعدهٔ ایمنی: فقط نامِ فایل پذیرفته می‌شود و فایل باید در پوشهٔ خودِ
+    /// پشتیبان باشد (هیچ مسیرِ بیرونی خوانده نمی‌شود)؛ و اتصال به master می‌رود
+    /// چون برنامه نمی‌تواند وسطِ جایگزینیِ دیتابیسِ خودش باشد.
+    /// </summary>
+    public async Task RestoreDatabaseAsync(string? fileName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+            fileName.Contains('\\') || fileName.Contains('/'))
+            throw new ArgumentException("نامِ فایلِ پشتیبان نامعتبر است.");
+        string bak = Path.Combine(DbFolder, fileName);
+        if (!File.Exists(bak))
+            throw new FileNotFoundException("فایلِ پشتیبان پیدا نشد.", fileName);
+
+        var masterConnection = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(_db.Database.GetConnectionString())
+        {
+            InitialCatalog = "master"
+        };
+
+        await using var master = new Microsoft.Data.SqlClient.SqlConnection(masterConnection.ConnectionString);
+        await master.OpenAsync(cancellationToken);
+
+        // دیتابیس باید تنها باشد؛ اتصال‌هایِ دیگر (از جمله همین برنامه) قطع می‌شوند.
+        await ExecuteAsync(master, "ALTER DATABASE [Dentix] SET SINGLE_USER WITH ROLLBACK IMMEDIATE", cancellationToken);
+        try
+        {
+            await ExecuteAsync(master,
+                "RESTORE DATABASE [Dentix] FROM DISK = '" + bak.Replace("'", "''") + "' WITH REPLACE, RECOVERY",
+                cancellationToken);
+        }
+        finally
+        {
+            // حتی اگر بازگردانی شکست بخورد، دیتابیس نباید در حالتِ تک‌کاربره بماند.
+            try { await ExecuteAsync(master, "ALTER DATABASE [Dentix] SET MULTI_USER", CancellationToken.None); }
+            catch (Exception e) { _logger.LogError(e, "[DentalRay پشتیبان] بازگردانیِ حالتِ چندکاربره ناموفق"); }
+        }
+
+        // اتصال‌هایِ در صفِ قبلی دیگر معتبر نیستند.
+        Microsoft.Data.SqlClient.SqlConnection.ClearAllPools();
+    }
+
+    private static async Task ExecuteAsync(Microsoft.Data.SqlClient.SqlConnection connection, string sql, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// تصاویرِ غایب از پشتیبان برمی‌گردند. /XO یعنی فایلِ تازه‌تر در مقصد هرگز
+    /// بازنویسی نمی‌شود ⇒ فقط جاهایِ خالی پر می‌شوند.
+    /// </summary>
+    public async Task<int> RestoreImagesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(ImagesFolder))
+            throw new InvalidOperationException("پشتیبانِ تصاویر پیدا نشد.");
+        string destination = _storage.GetRootPath();
+        Directory.CreateDirectory(destination);
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "robocopy",
+            Arguments = $"\"{ImagesFolder}\" \"{destination}\" /E /XO /R:1 /W:1 /NP /NDL /NJH /NFL /BYTES",
+            CreateNoWindow = true,
+            UseShellExecute = false
+        };
+        using var proc = Process.Start(psi);
+        if (proc is null) throw new InvalidOperationException("اجرای robocopy ممکن نشد.");
+        await proc.WaitForExitAsync(cancellationToken);
+        if (proc.ExitCode >= 8)
+            throw new InvalidOperationException($"robocopy با کد {proc.ExitCode} خطا داد.");
+        return proc.ExitCode;
+    }
+
     /// <summary>لاگِ رویدادها ۱۸۰ روز نگه داشته می‌شود؛ پاک‌سازی در همین اجرا انجام می‌شود.</summary>
     private async Task PruneEventsAsync()
     {

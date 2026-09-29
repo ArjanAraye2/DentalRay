@@ -37,6 +37,13 @@
       <div class="form-field backup-keep"><label for="backupKeep">تعدادِ نسخهٔ دیتابیس</label><input id="backupKeep" type="number" min="1" max="100" /></div>
       <button type="button" id="backupSave" class="secondary-button">ذخیرهٔ تنظیمات</button>
     </div>
+    <div class="backup-restore">
+      <div class="dashboard-panel-title"><strong>بازگردانی از پشتیبان</strong><span>جایگزینیِ دیتابیس یا تکمیلِ تصاویر</span></div>
+      <p class="field-hint backup-restore-warning">⚠ بازگردانیِ دیتابیس، همهٔ داده‌های فعلی را با محتوایِ فایلِ انتخاب‌شده عوض می‌کند و قابلِ بازگشت نیست. برای ادامه باید عبارتِ «بازگردانی» تایپ شود.</p>
+      <div id="backupRestoreList" class="backup-restore-list"><p class="field-hint">در حال دریافتِ فهرستِ نسخه‌ها...</p></div>
+      <div class="backup-actions"><button type="button" id="backupRestoreImages" class="secondary-button">تکمیلِ تصاویر از پشتیبان</button></div>
+      <p id="backupRestoreMessage" class="status-message"></p>
+    </div>
     <p id="backupMessage" class="status-message"></p>`;
   settings.appendChild(card);
 
@@ -60,6 +67,7 @@
       if (!r.ok || x.success === false) throw new Error(x.message || "وضعیتِ پشتیبان دریافت نشد.");
       render(x.status || {});
       loaded = true;
+      loadRestorePoints();
     } catch (e) {
       badge.textContent = "نامشخص";
       setMessage(e.message || "وضعیتِ پشتیبان دریافت نشد.", true);
@@ -105,6 +113,128 @@
     el.classList.toggle("error", !!isError);
   }
 
+  const esc = value => { const d = document.createElement("div"); d.textContent = value ?? ""; return d.innerHTML; };
+
+  // ---- بازگردانی ------------------------------------------------------------
+  // عبارتِ تأیید باید دقیقاً «بازگردانی» باشد؛ نویسه‌هایِ عربی/فارسیِ هم‌شکل
+  // هم پذیرفته می‌شوند تا کسی به‌خاطرِ فرقِ کیبورد گیر نکند.
+  const normalizeWord = value => String(value || "")
+    .replace(/ي/g, "ی").replace(/ك/g, "ک").replace(/‌/g, "").trim();
+
+  function askTypedRestore(fileName) {
+    return new Promise(resolve => {
+      const box = document.createElement("div");
+      box.className = "card-extraction-overlay";
+      box.innerHTML = `<div class="card-extraction-dialog" role="dialog" aria-modal="true">
+        <header><div><h3>بازگردانیِ دیتابیس</h3><span>${esc(fileName)}</span></div><button type="button" class="card-extraction-close">×</button></header>
+        <div class="card-extraction-body">
+          <p class="card-extraction-warning">دیتابیسِ فعلی با محتوایِ این فایل عوض می‌شود و همهٔ داده‌های ثبت‌شده پس از این تاریخ از بین می‌روند. این کار برگشت‌پذیر نیست.</p>
+          <p style="margin:10px 0 6px;font-size:13px">برای ادامه دقیقاً تایپ کنید: <strong>بازگردانی</strong></p>
+          <input type="text" class="backup-restore-input" autocomplete="off" spellcheck="false" />
+        </div>
+        <footer><button type="button" class="secondary-button backup-restore-no">انصراف</button><button type="button" class="card-extraction-done backup-restore-yes" disabled>بازگردانی شود</button></footer>
+      </div>`;
+      document.body.appendChild(box);
+      const input = box.querySelector(".backup-restore-input");
+      const yes = box.querySelector(".backup-restore-yes");
+      const onInput = () => { yes.disabled = normalizeWord(input.value) !== "بازگردانی"; };
+      input.addEventListener("input", onInput);
+      const onKey = e => { if (e.key === "Escape") done(false); };
+      function done(ok) {
+        box.remove();
+        document.removeEventListener("keydown", onKey);
+        resolve(ok);
+      }
+      box.querySelector(".card-extraction-close").onclick = () => done(false);
+      box.querySelector(".backup-restore-no").onclick = () => done(false);
+      yes.onclick = () => done(true);
+      box.addEventListener("click", e => { if (e.target === box) done(false); });
+      document.addEventListener("keydown", onKey);
+      setTimeout(() => input.focus(), 0);
+    });
+  }
+
+  function restoreMessage(text, isError) {
+    const el = $("backupRestoreMessage");
+    el.textContent = text || "";
+    el.classList.toggle("error", !!isError);
+  }
+
+  function renderRestorePoints(files) {
+    const list = $("backupRestoreList");
+    if (!files.length) {
+      list.innerHTML = '<p class="field-hint">نسخه‌ای برای بازگردانی پیدا نشد.</p>';
+      return;
+    }
+    list.innerHTML = files.map(f => `<div class="backup-restore-row">
+        <span class="backup-restore-name" dir="ltr">${esc(f.file)}</span>
+        <span class="backup-restore-meta">${esc(whenText(f.created))} · ${esc(sizeText(f.sizeBytes))}</span>
+        <button type="button" class="secondary-button" data-restore="${esc(f.file)}">بازگردانی</button>
+      </div>`).join("");
+    list.querySelectorAll("[data-restore]").forEach(button => {
+      button.addEventListener("click", () => restoreDatabase(button.dataset.restore));
+    });
+  }
+
+  const whenText = value => {
+    if (!value) return "—";
+    try { return new Date(value).toLocaleString("fa-IR", { dateStyle: "short", timeStyle: "short" }); }
+    catch { return String(value); }
+  };
+
+  async function loadRestorePoints() {
+    try {
+      const r = await fetch("/api/backup/restore-points", { cache: "no-store" });
+      const x = await r.json().catch(() => ({}));
+      if (!r.ok || x.success === false) throw new Error(x.message || "فهرستِ نسخه‌ها دریافت نشد.");
+      renderRestorePoints(x.files || []);
+    } catch (e) {
+      $("backupRestoreList").innerHTML = `<p class="field-hint">${esc(e.message)}</p>`;
+    }
+  }
+
+  async function restoreDatabase(fileName) {
+    if (!await askTypedRestore(fileName)) return;
+    restoreMessage("در حال بازگردانی... دیتابیس موقتاً قفل می‌شود.", false);
+    try {
+      const r = await fetch("/api/backup/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: fileName, confirm: "بازگردانی" })
+      });
+      const x = await r.json().catch(() => ({}));
+      if (!r.ok || x.success === false) throw new Error(x.message || "بازگردانی انجام نشد.");
+      if (x.status) render(x.status);
+      const text = "بازگردانی انجام شد. حالا برنامه را یک‌بار ببندید و دوباره باز کنید تا ساختارِ دیتابیس با این نسخه ترمیم شود.";
+      restoreMessage(text, false);
+      window.showToast?.(text, "warning");
+      await loadRestorePoints();
+    } catch (e) {
+      restoreMessage(e.message || "بازگردانی انجام نشد.", true);
+    }
+  }
+
+  async function restoreImages() {
+    const yes = window.askConfirmation
+      ? await window.askConfirmation({
+          title: "تکمیلِ تصاویر از پشتیبان",
+          message: "فایل‌هایی که در پوشهٔ تصاویر نیستند از پشتیبان کپی شوند؟ فایل‌های موجود تغییر نمی‌کنند.",
+          confirmText: "کپی شود",
+          danger: false
+        })
+      : true;
+    if (!yes) return;
+    restoreMessage("در حال کپیِ تصاویر...", false);
+    try {
+      const r = await fetch("/api/backup/restore-images", { method: "POST" });
+      const x = await r.json().catch(() => ({}));
+      if (!r.ok || x.success === false) throw new Error(x.message || "کپیِ تصاویر انجام نشد.");
+      restoreMessage(x.message || "تصاویر تکمیل شد.", false);
+    } catch (e) {
+      restoreMessage(e.message || "کپیِ تصاویر انجام نشد.", true);
+    }
+  }
+
   async function call(url, options, busyButton) {
     if (busyButton) busyButton.disabled = true;
     setMessage("در حال انجام...", false);
@@ -133,6 +263,8 @@
   });
 
   $("backupRefresh").addEventListener("click", () => { setMessage("", false); load(); });
+
+  $("backupRestoreImages").addEventListener("click", restoreImages);
 
   $("backupSave").addEventListener("click", async () => {
     const rootPath = $("backupRootPath").value.trim();

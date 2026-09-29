@@ -5090,6 +5090,70 @@ body { line-height: 1.75; }
 }
 
 
+.backup-restore {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+}
+
+
+.backup-restore-warning {
+    margin: 8px 0 10px;
+    color: #b45309;
+    line-height: 1.8;
+}
+
+
+.backup-restore-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+
+.backup-restore-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 9px 11px;
+    background: #f6fafb;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+
+
+.backup-restore-name {
+    flex: 1 1 230px;
+    font-size: 13px;
+    color: #12333f;
+    word-break: break-all;
+}
+
+
+.backup-restore-meta {
+    font-size: 12px;
+    color: #55707e;
+}
+
+
+.backup-restore-row .secondary-button {
+    color: #b42318;
+    border-color: #f3c3bd;
+}
+
+
+.backup-restore-input {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+}
+
+
 /* ==========================================================
    Reports page
    ========================================================== */
