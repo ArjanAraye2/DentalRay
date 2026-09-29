@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" width="1000" height="540" role="img" aria-label="ReSiRai - gradient wave into three dots">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 520" width="560" height="520" role="img" aria-label="ReSiRai - رسیرای - Medical Intelligence Platform">
   <defs>
-    <linearGradient id="waveGrad" x1="70" y1="0" x2="310" y2="0" gradientUnits="userSpaceOnUse">
+    <linearGradient id="waveGradLogo" x1="43" y1="0" x2="202" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#2f3e4e"/>
       <stop offset="0.26" stop-color="#2f3e4e"/>
       <stop offset="0.46" stop-color="#2b9fd6"/>
@@ -9,20 +9,23 @@
       <stop offset="1" stop-color="#f4511e"/>
     </linearGradient>
   </defs>
-  <rect width="1000" height="540" fill="#ffffff"/>
 
-  <!-- wave: three crests, colour flowing dark → cyan → orange -->
-  <path d="M70 192 q40 -160 80 0 q40 -110 80 0 q40 -70 80 0" fill="none" stroke="url(#waveGrad)" stroke-width="9" stroke-linecap="round"/>
-  <!-- the wave straightens and runs to the dots -->
-  <path d="M310 192 H626" fill="none" stroke="#3b4a5a" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="641" cy="192" r="15" fill="#2f3e4e"/>
-  <path d="M656 192 H690" stroke="#3b4a5a" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="705" cy="192" r="15" fill="#2b9fd6"/>
-  <path d="M720 192 H754" stroke="#3b4a5a" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="769" cy="192" r="15" fill="#f4511e"/>
+  <!-- the mark: three-crest wave straightening into the three dots (43 .. 517) -->
+  <path d="M43 100 q26.5 -84 53 0 q26.5 58 53 0 q26.5 -36 53 0" fill="none" stroke="url(#waveGradLogo)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M202 100 H397" fill="none" stroke="#3b4a5a" stroke-width="6.5" stroke-linecap="round"/>
+  <circle cx="409" cy="100" r="12" fill="#2f3e4e"/>
+  <path d="M421 100 H445" stroke="#3b4a5a" stroke-width="6.5" stroke-linecap="round"/>
+  <circle cx="457" cy="100" r="12" fill="#2b9fd6"/>
+  <path d="M469 100 H493" stroke="#3b4a5a" stroke-width="6.5" stroke-linecap="round"/>
+  <circle cx="505" cy="100" r="12" fill="#f4511e"/>
 
-  <!-- wordmark: ReSi (dark) → R (cyan) → ai (orange) mirrors the wave -->
-  <text x="500" y="344" text-anchor="middle" font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="112" font-weight="250" letter-spacing="2"><tspan fill="#2f3e4e">ReSi</tspan><tspan fill="#2b9fd6">R</tspan><tspan fill="#f4511e">ai</tspan></text>
+  <!-- three lines of exactly equal width: 43 .. 517 (474) -->
+  <text x="280" y="290" text-anchor="middle" textLength="474" lengthAdjust="spacing"
+        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="96" font-weight="250"><tspan fill="#2f3e4e">Re</tspan><tspan fill="#2b9fd6">Si</tspan><tspan fill="#f4511e">Rai</tspan></text>
 
-  <text x="500" y="438" text-anchor="middle" font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="30" font-weight="400" letter-spacing="7" fill="#7a8a99">Medical Intelligence Platform</text>
+  <text x="280" y="382" text-anchor="middle" textLength="474" lengthAdjust="spacingAndGlyphs"
+        font-family="Tahoma,'Segoe UI',sans-serif" font-size="104" fill="#3b4a5a">رسیرای</text>
+
+  <text x="280" y="452" text-anchor="middle" textLength="474" lengthAdjust="spacing"
+        font-family="'Segoe UI Light','Segoe UI',Arial,sans-serif" font-size="28" font-weight="400" fill="#7a8a99">Medical Intelligence Platform</text>
 </svg>

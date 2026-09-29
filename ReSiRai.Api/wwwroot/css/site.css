@@ -206,17 +206,17 @@ textarea:focus-visible,
     border-radius: inherit;
 }
 
-/* The approved logo file, used as-is with its own layout. */
+/* The approved logo file (mark + three equal-width lines), used as-is. */
 .sidebar-brand-logo {
-    height: 84px;
+    height: 150px;
     width: auto;
     max-width: 100%;
     display: block;
-    margin: 6px auto;
+    margin: 8px auto;
 }
 
 .header-brand-logo {
-    height: 62px;
+    height: 92px;
     width: auto;
     max-width: 100%;
     display: block;
