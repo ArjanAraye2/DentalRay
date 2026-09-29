@@ -129,8 +129,13 @@
     load();
   }
 
-  // آیتمِ منو فقط برای مدیرِ سیستم دیده می‌شود.
-  function sync() { link.classList.toggle("hidden", !isSuper()); }
+  // آیتمِ منو فقط برای مدیرِ سیستم دیده می‌شود؛ اگر دسترسی وسطِ کار بازپس
+  // گرفته شود، خودِ صفحه هم بسته می‌شود.
+  function sync() {
+    const allowed = isSuper();
+    link.classList.toggle("hidden", !allowed);
+    if (!allowed) section.classList.add("hidden");
+  }
   window.addEventListener("dentalray-auth-changed", sync);
   setTimeout(sync, 0);
 

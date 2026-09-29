@@ -28,6 +28,11 @@ namespace DentalRay.Api.Models
         // Optional account expiration date. After this date the account cannot sign in.
         public DateTime? EndDate { get; set; }
 
+        // Lets an ordinary account open the financial/operational reports without
+        // becoming SuperAdmin. SuperAdmin always has it; for everyone else it is
+        // granted from the user administration screen.
+        public bool ViewReports { get; set; }
+
         // Verified mobile used only for account recovery and security notifications.
         [MaxLength(30)]
         public string? RecoveryMobile { get; set; }

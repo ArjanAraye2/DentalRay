@@ -5088,3 +5088,154 @@ body { line-height: 1.75; }
 .backup-settings-row .secondary-button {
     margin-bottom: 2px;
 }
+
+
+/* ==========================================================
+   Reports page
+   ========================================================== */
+
+.reports-actions {
+    display: flex;
+    gap: 8px;
+}
+
+
+.reports-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin: 14px 0;
+    padding: 12px;
+    background: #f6fafb;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+
+.reports-filters .form-field {
+    flex: 0 1 170px;
+}
+
+
+.reports-filters input {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 13px;
+}
+
+
+.reports-presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+
+.reports-presets .secondary-button,
+.reports-filters .secondary-button {
+    font-size: 12.5px;
+}
+
+
+.reports-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+
+.reports-cards .metric-red {
+    background: #fdecea;
+}
+
+
+.reports-cards .metric-red strong {
+    color: #b42318;
+}
+
+
+.reports-block {
+    margin: 24px 0;
+    break-inside: avoid;
+}
+
+
+.reports-block-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+
+.reports-block-head strong {
+    font-size: 15px;
+    color: #12333f;
+}
+
+
+.reports-block-head span {
+    font-size: 12.5px;
+    color: #55707e;
+}
+
+
+.reports-print-head {
+    display: none;
+}
+
+
+@media print {
+    .app-sidebar,
+    .main-header,
+    .reports-filters,
+    .reports-actions,
+    .toast-container {
+        display: none !important;
+    }
+
+    .app-shell {
+        padding: 0;
+        margin: 0;
+    }
+
+    .page-container {
+        padding: 0;
+    }
+
+    .page-container > section {
+        display: none !important;
+    }
+
+    #reportsSection {
+        display: block !important;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .reports-print-head {
+        display: block;
+        margin-bottom: 14px;
+        font-size: 13px;
+        color: #333333;
+    }
+
+    .reports-cards {
+        gap: 8px;
+    }
+
+    .table-container {
+        overflow: visible !important;
+    }
+
+    body {
+        background: #ffffff;
+    }
+}

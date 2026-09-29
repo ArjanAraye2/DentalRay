@@ -22,7 +22,7 @@ public class UsersAdminController : ControllerBase
     {
         var users=await _context.Users.AsNoTracking().Join(_context.Staff.AsNoTracking(),
             u=>u.StaffID,s=>s.StaffID,(u,s)=>new {
-                u.UserID,u.StaffID,UserName=s.NationalCode,s.NationalCode,s.FirstName,s.LastName,s.StaffType,u.IsActive,u.StartDate,u.EndDate,
+                u.UserID,u.StaffID,UserName=s.NationalCode,s.NationalCode,s.FirstName,s.LastName,s.StaffType,u.IsActive,u.StartDate,u.EndDate,u.ViewReports,
                 HasPassword=!string.IsNullOrWhiteSpace(u.PasswordHash)
             }).OrderBy(x=>x.LastName).ThenBy(x=>x.FirstName).ToListAsync();
         return Ok(new { success=true, users });
@@ -86,7 +86,7 @@ public class UsersAdminController : ControllerBase
         return Ok(new {success=true});
     }
 
-    public sealed class CreateRequest { public int StaffID {get;set;} public string Password {get;set;}=string.Empty; public bool IsActive {get;set;}=true; public DateTime? StartDate {get;set;} public DateTime? EndDate {get;set;} }
+    public sealed class CreateRequest { public int StaffID {get;set;} public string Password {get;set;}=string.Empty; public bool IsActive {get;set;}=true; public DateTime? StartDate {get;set;} public DateTime? EndDate {get;set;} public bool ViewReports {get;set;} }
     [HttpPost]
     public async Task<IActionResult> Create(CreateRequest request)
     {
@@ -95,13 +95,13 @@ public class UsersAdminController : ControllerBase
         if(await _context.Users.AnyAsync(x=>x.StaffID==request.StaffID)) return Conflict(new {success=false,message="برای این پرسنل قبلاً حساب کاربری ساخته شده است."});
         if(!request.StartDate.HasValue) return BadRequest(new {success=false,message="تاریخ شروع فعالیت الزامی است."});
         if(string.IsNullOrWhiteSpace(request.Password)) return BadRequest(new {success=false,message="رمز عبور الزامی است."});
-        var user=new User {StaffID=staff.StaffID,UserName=staff.NationalCode,IsActive=request.IsActive,StartDate=request.StartDate,EndDate=request.EndDate};
+        var user=new User {StaffID=staff.StaffID,UserName=staff.NationalCode,IsActive=request.IsActive,StartDate=request.StartDate,EndDate=request.EndDate,ViewReports=request.ViewReports};
         user.PasswordHash=_hasher.HashPassword(user,request.Password);
         _context.Users.Add(user); await _context.SaveChangesAsync();
         return Ok(new {success=true,userID=user.UserID,userName=staff.NationalCode});
     }
 
-    public sealed class UpdateRequest { public bool IsActive {get;set;} public string? NewPassword {get;set;} public DateTime? StartDate {get;set;} public DateTime? EndDate {get;set;} }
+    public sealed class UpdateRequest { public bool IsActive {get;set;} public string? NewPassword {get;set;} public DateTime? StartDate {get;set;} public DateTime? EndDate {get;set;} public bool ViewReports {get;set;} }
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id,UpdateRequest request)
     {
@@ -110,7 +110,7 @@ public class UsersAdminController : ControllerBase
         var staff=await _context.Staff.AsNoTracking().FirstOrDefaultAsync(x=>x.StaffID==user.StaffID);
         if(staff==null) return BadRequest(new {success=false,message="پرسنل مرتبط یافت نشد."});
         if(!request.StartDate.HasValue) return BadRequest(new {success=false,message="تاریخ شروع فعالیت الزامی است."});
-        user.UserName=staff.NationalCode; user.IsActive=request.IsActive; user.StartDate=request.StartDate; user.EndDate=request.EndDate;
+        user.UserName=staff.NationalCode; user.IsActive=request.IsActive; user.StartDate=request.StartDate; user.EndDate=request.EndDate; user.ViewReports=request.ViewReports;
         if(!string.IsNullOrWhiteSpace(request.NewPassword)) user.PasswordHash=_hasher.HashPassword(user,request.NewPassword);
         await _context.SaveChangesAsync();
         return Ok(new {success=true});

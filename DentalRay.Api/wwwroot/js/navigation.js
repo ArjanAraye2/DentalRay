@@ -76,9 +76,8 @@
       <div id="settingsAdminActions" class="settings-admin-actions"></div>`;
     main.appendChild(settings);
 
-    const placeholders = {
-        reports: ["گزارش‌ها", "گزارش‌های مدیریتی و آماری سامانه"]
-    };
+    // «گزارش‌ها» دیگر placeholder نیست: ماژولِ reports-ui.js صفحهٔ واقعی را می‌سازد.
+    const placeholders = {};
     const placeholderSections = {};
     Object.entries(placeholders).forEach(([name, [title, description]]) => {
         const section = document.createElement("section");
@@ -605,6 +604,8 @@
         if (name === "patients") { dashboardVisible = false; stopDashboardAutoRefresh(); return openPatients(); }
         if (name === "settings") { dashboardVisible = false; stopDashboardAutoRefresh(); return openSettings(); }
         if (name === "help") { dashboardVisible = false; stopDashboardAutoRefresh(); return openHelp(); }
+        // گزارش‌ها: دسترسی در خودِ ماژول بررسی می‌شود (مدیرِ سیستم یا پرچمِ گزارش‌ها).
+        if (name === "reports") { dashboardVisible = false; stopDashboardAutoRefresh(); return window.DentalRayReports?.open(); }
         // لاگِ رویدادها فقط برای مدیرِ سیستم است؛ ماژولِ خودش دسترسی را بررسی می‌کند.
         if (name === "events") { dashboardVisible = false; stopDashboardAutoRefresh(); return window.DentalRayEvents?.open(); }
         if (placeholderSections[name]) { dashboardVisible = false; stopDashboardAutoRefresh(); return openPlaceholder(name); }

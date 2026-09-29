@@ -42,7 +42,7 @@ namespace DentalRay.Api.Controllers
                     var result = _passwordHasher.VerifyHashedPassword(superUser, superHash, request.Password);
                     if (result != PasswordVerificationResult.Failed)
                     {
-                        var identity = new LoginIdentity(0, userName, 0, "مدیر", "سیستم", 0, true);
+                        var identity = new LoginIdentity(0, userName, 0, "مدیر", "سیستم", 0, true, true);
                         await SignInAsync(identity);
                         await _events.LogAsync("login", detail: "ورود موفق — مدیر سیستم", userName: userName);
                         return Ok(new { success = true, user = identity });
@@ -79,7 +79,7 @@ namespace DentalRay.Api.Controllers
                 await _events.LogAsync("login", outcome: "fail", detail: "ورود ناموفق — پرسنل مرتبط با حساب نیست", userID: user.UserID, userName: userName);
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
             }
-            var normalIdentity = new LoginIdentity(user.UserID, staff.NationalCode, staff.StaffID, staff.FirstName, staff.LastName, staff.StaffType, false);
+            var normalIdentity = new LoginIdentity(user.UserID, staff.NationalCode, staff.StaffID, staff.FirstName, staff.LastName, staff.StaffType, false, user.ViewReports);
             await SignInAsync(normalIdentity);
             await _events.LogAsync("login", detail: "ورود موفق", userID: user.UserID, userName: staff.NationalCode);
             return Ok(new { success = true, user = normalIdentity });
@@ -150,7 +150,8 @@ namespace DentalRay.Api.Controllers
                 new("StaffType", identity.StaffType.ToString()),
                 new("FirstName", identity.FirstName),
                 new("LastName", identity.LastName),
-                new("IsSuperAdmin", identity.IsSuperAdmin ? "true" : "false")
+                new("IsSuperAdmin", identity.IsSuperAdmin ? "true" : "false"),
+                new("ViewReports", identity.ViewReports ? "true" : "false")
             };
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties { IsPersistent = false, AllowRefresh = true });
@@ -161,10 +162,10 @@ namespace DentalRay.Api.Controllers
             int.TryParse(User.FindFirstValue("UserID"), out int userID);
             int.TryParse(User.FindFirstValue("StaffID"), out int staffID);
             byte.TryParse(User.FindFirstValue("StaffType"), out byte staffType);
-            return new LoginIdentity(userID, User.Identity?.Name ?? string.Empty, staffID, User.FindFirstValue("FirstName") ?? string.Empty, User.FindFirstValue("LastName") ?? string.Empty, staffType, string.Equals(User.FindFirstValue("IsSuperAdmin"), "true", StringComparison.OrdinalIgnoreCase));
+            return new LoginIdentity(userID, User.Identity?.Name ?? string.Empty, staffID, User.FindFirstValue("FirstName") ?? string.Empty, User.FindFirstValue("LastName") ?? string.Empty, staffType, string.Equals(User.FindFirstValue("IsSuperAdmin"), "true", StringComparison.OrdinalIgnoreCase), string.Equals(User.FindFirstValue("ViewReports"), "true", StringComparison.OrdinalIgnoreCase));
         }
 
-        public sealed record LoginIdentity(int UserID, string UserName, int StaffID, string FirstName, string LastName, byte StaffType, bool IsSuperAdmin);
+        public sealed record LoginIdentity(int UserID, string UserName, int StaffID, string FirstName, string LastName, byte StaffType, bool IsSuperAdmin, bool ViewReports);
         private sealed record ResetCode(string Code, DateTimeOffset ExpiresAt, int Attempts);
     }
 }

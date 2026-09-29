@@ -98,6 +98,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DentalRayDbContext>();
     try { await db.Database.ExecuteSqlRawAsync("IF COL_LENGTH('tblUsers', 'RecoveryMobile') IS NULL ALTER TABLE tblUsers ADD RecoveryMobile nvarchar(30) NULL"); } catch { }
+    // دسترسیِ «گزارش‌ها»: برای کاربرانِ عادی یک پرچمِ جدا تا حسابدار/منشیٔ مالی
+    // بتواند گزارش ببیند بی‌آنکه مدیرِ سیستم شود.
+    try { await db.Database.ExecuteSqlRawAsync("IF COL_LENGTH('tblUsers', 'ViewReports') IS NULL ALTER TABLE tblUsers ADD ViewReports bit NOT NULL CONSTRAINT DF_tblUsers_ViewReports DEFAULT (0)"); } catch { }
     // نتیجهٔ تحلیلِ AI تصویر، تا تصویرِ بیمار فقط یک بار از مطب خارج شود و
     // بازدیدهای بعدی بدون هزینه و بدونِ ارسالِ دوباره انجام شود.
     try
@@ -186,8 +189,9 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/card-extraction.js?v=20260929.3\"></script>\n" +
                 "<script src=\"/js/study-card-scan.js?v=20260928.1\"></script>\n" +
                 "<script src=\"/js/dictation.js?v=20260928.3\"></script>\n" +
-                "<script src=\"/js/events-ui.js?v=20260929.1\"></script>\n" +
+                "<script src=\"/js/events-ui.js?v=20260929.2\"></script>\n" +
                 "<script src=\"/js/backup-settings.js?v=20260929.1\"></script>\n" +
+                "<script src=\"/js/reports-ui.js?v=20260929.2\"></script>\n" +
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
