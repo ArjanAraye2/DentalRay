@@ -206,6 +206,21 @@ textarea:focus-visible,
     border-radius: inherit;
 }
 
+/* The agreed logo (mark + wordmark) in the sidebar and the header. */
+.sidebar-brand-logo {
+    height: 44px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+}
+
+.header-brand-logo {
+    height: 48px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+}
+
 
 .main-header h1 {
     margin: 0;
