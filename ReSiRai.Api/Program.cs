@@ -196,6 +196,11 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/login-ui.js?v=20260921.1\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
+            // The entry page is rewritten on every request (feature scripts are
+            // injected here), so browsers must not hold an old copy of it -
+            // otherwise brand, layout or script-version changes keep showing
+            // from cache.
+            context.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
             await context.Response.WriteAsync(html);
             return;
         }
