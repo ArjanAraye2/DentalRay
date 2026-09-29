@@ -75,3 +75,92 @@
 .factors-status.error { color: #b3261e; }
 
 .factors-empty { font-size: 12.5px; color: #7b8b96; padding: 8px 0; }
+
+/* Lab-report extraction review dialog */
+.lab-extract-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 51, 63, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.lab-extract-dialog {
+    background: #fff;
+    border-radius: 14px;
+    width: min(860px, 94vw);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 18px 50px rgba(12, 55, 70, 0.35);
+}
+
+.lab-extract-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e2ebee;
+}
+
+.lab-extract-head h3 { margin: 0; font-size: 16px; color: #12333f; }
+
+.lab-extract-body { padding: 14px 18px; overflow: auto; }
+
+.lab-extract-foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-top: 1px solid #e2ebee;
+}
+
+.lab-extract-status { font-size: 12px; color: #455a64; }
+.lab-extract-status.error { color: #b3261e; }
+
+.lab-extract-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 10px 0 14px;
+}
+
+.lab-extract-pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #cfdce2;
+    border-radius: 10px;
+    padding: 8px;
+    cursor: pointer;
+    background: #f8fbfc;
+}
+
+.lab-extract-pick img {
+    width: 100%;
+    height: 90px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.lab-extract-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.lab-extract-table th,
+.lab-extract-table td {
+    border: 1px solid #e2ebee;
+    padding: 6px 8px;
+    text-align: right;
+    vertical-align: middle;
+}
+
+.lab-extract-table th { background: #f2f7f9; color: #12333f; font-weight: 700; }
+.lab-extract-table select { width: 100%; padding: 4px 6px; border: 1px solid #cfdce2; border-radius: 6px; }

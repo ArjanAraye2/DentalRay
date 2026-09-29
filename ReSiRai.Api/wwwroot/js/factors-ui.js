@@ -201,9 +201,14 @@
             saveBtn.className = "primary-button";
             saveBtn.textContent = "ثبت مقادیر";
             saveBtn.addEventListener("click", () => save(host, saveBtn));
+            const extractBtn = document.createElement("button");
+            extractBtn.type = "button";
+            extractBtn.className = "secondary-button";
+            extractBtn.textContent = "استخراج از برگه آزمایش";
+            extractBtn.addEventListener("click", () => window.ReSiRaiLabExtract?.open(studyID));
             const status = document.createElement("span");
             status.className = "factors-status";
-            footer.append(saveBtn, status);
+            footer.append(saveBtn, extractBtn, status);
             host.appendChild(footer);
 
             window.ReSiRaiJalali?.enhanceAll(host);
