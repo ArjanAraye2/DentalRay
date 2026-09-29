@@ -1,0 +1,77 @@
+/* ReSiRai - clinical factors panel ("sharayet-e feli") in the visit card. */
+
+.factors-panel { display: block; }
+
+.factors-group { margin-top: 14px; }
+.factors-group-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #12333f;
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2ebee;
+}
+
+.factor-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.2fr) minmax(110px, 0.8fr) minmax(120px, 1fr);
+    gap: 8px;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.factor-row label { font-size: 12.5px; color: #33454e; direction: rtl; }
+.factor-row label small { color: #7b8b96; font-size: 11px; margin-right: 4px; }
+.factor-row label .factor-required { color: #c0392b; }
+
+.factor-row input,
+.factor-row select {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 12.5px;
+    border: 1px solid #cfdce2;
+    border-radius: 8px;
+    background: #fff;
+    direction: ltr;
+    text-align: left;
+}
+
+.factor-row input:focus,
+.factor-row select:focus { outline: 2px solid #1ba7c0; border-color: #1ba7c0; }
+
+.factor-ref {
+    font-size: 11px;
+    color: #7b8b96;
+    direction: ltr;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.factor-flag {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: #b3261e;
+    background: #fdecea;
+    border-radius: 6px;
+    padding: 2px 8px;
+    display: none;
+}
+
+.factor-row.abnormal .factor-flag { display: inline-block; }
+.factor-row.abnormal input { border-color: #b3261e; background: #fdf3f2; }
+
+.factors-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #e2ebee;
+}
+
+.factors-status { font-size: 12px; color: #455a64; }
+.factors-status.error { color: #b3261e; }
+
+.factors-empty { font-size: 12.5px; color: #7b8b96; padding: 8px 0; }

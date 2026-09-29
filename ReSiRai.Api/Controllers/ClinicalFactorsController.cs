@@ -45,11 +45,35 @@ namespace ReSiRai.Api.Controllers
         /// <summary>
         /// The factor set of one specialty: shared dictionary rows joined with the
         /// specialty binding (required / always shown / order). The visit form builds
-        /// its sections from this one call.
+        /// its sections from this one call. Callers may pass a visit instead of a
+        /// specialty; the specialty is then taken from the visit's doctor, falling
+        /// back to internal medicine when the doctor has none.
         /// </summary>
         [HttpGet("definitions")]
-        public async Task<IActionResult> Definitions([FromQuery] int specialtyID, [FromQuery] string? category = null)
+        public async Task<IActionResult> Definitions([FromQuery] int? specialtyID = null,
+            [FromQuery] int? studyID = null, [FromQuery] string? category = null)
         {
+            if (!specialtyID.HasValue && studyID.HasValue)
+            {
+                var staffID = await _db.RadiologyStudies.AsNoTracking()
+                    .Where(x => x.StudyID == studyID.Value)
+                    .Select(x => x.DentistStaffID)
+                    .FirstOrDefaultAsync();
+                specialtyID = await _db.Staff.AsNoTracking()
+                    .Where(x => x.StaffID == staffID)
+                    .Select(x => x.SpecialtyID)
+                    .FirstOrDefaultAsync();
+            }
+            if (!specialtyID.HasValue)
+            {
+                // Phase 1 starts from internal medicine; a doctor without a specialty
+                // therefore sees the internal-medicine factor set.
+                specialtyID = await _db.DentalSpecialties.AsNoTracking()
+                    .Where(x => x.SpecialtyName == "بیماری‌های داخلی")
+                    .Select(x => x.SpecialtyID)
+                    .FirstOrDefaultAsync();
+            }
+
             var query =
                 from f in _db.ClinicalFactors.AsNoTracking()
                 join s in _db.SpecialtyFactorSets.AsNoTracking() on f.FactorID equals s.FactorID

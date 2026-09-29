@@ -316,6 +316,7 @@ async function openStudyDetails(study){
  E.studyDetailsFollowUpNote.value=study.followUpNote||"";
  syncStudyDetailsStatusFields();
  setStudyDetailsEditing(false);setFormStatus(E.studyDetailsStatus,"",false);
+window.ReSiRaiFactors?.render(study);
  try{const r=await fetch(`/api/radiologystudies/${study.studyID}`,{cache:"no-store"}),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"اطلاعات Study دریافت نشد."));const teeth=x.toothNumbers||x.study?.toothNumbers||[];if(window.ReSiRaiDentalChart)window.ReSiRaiDentalChart.render(E.studyDetailsDentalChart,teeth);}catch{if(window.ReSiRaiDentalChart)window.ReSiRaiDentalChart.render(E.studyDetailsDentalChart,[]);}finally{E.studyDetailsDentalChart?.classList.add("study-chart-readonly");}
  window.scrollTo(0,0);
 }
