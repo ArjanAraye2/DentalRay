@@ -145,7 +145,9 @@
             const tr = el("tr");
             const include = document.createElement("input");
             include.type = "checkbox";
-            include.checked = item.matchStatus === "matched";
+            // Every readable row is pre-selected: the doctor unchecks what is not
+            // wanted instead of hunting for what the AI happened to tick.
+            include.checked = String(item.value ?? "").trim() !== "";
             tr.appendChild(tdOf(include));
 
             tr.appendChild(el("td", null, item.name || ""));
@@ -185,6 +187,23 @@
         return td;
     }
 
+    // Printed values may carry Persian digits, thousands separators or a
+    // "<"/">" mark; all of those must survive into a number instead of the row
+    // being silently dropped.
+    function normalizeDigits(s) {
+        return String(s ?? "")
+            .replace(/[\u06F0-\u06F9]/g, c => String(c.charCodeAt(0) - 0x06F0))
+            .replace(/[\u0660-\u0669]/g, c => String(c.charCodeAt(0) - 0x0660));
+    }
+
+    function parsePrintedNumber(raw) {
+        let s = normalizeDigits(raw).trim();
+        s = s.replace(/[٬,\s]/g, "").replace(/^[<>≤≥]+/, "").replace(/%$/, "");
+        if (s === "") return null;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+    }
+
     // Step 3: store the confirmed rows through the factors API (source = 2).
     async function confirmRows(body, studyID, extractionID, button) {
         if (busy) return;
@@ -193,38 +212,49 @@
         const byId = new Map(defs.map(d => [d.factorID, d]));
 
         const items = [];
+        const skipped = [];
         for (const tr of body.querySelectorAll(".lab-extract-table tbody tr")) {
             const include = tr.querySelector('input[type="checkbox"]');
             if (!include || !include.checked) continue;
+            const printedName = (tr.cells[1]?.textContent || "").trim();
             let factorID = Number(tr.dataset.factorId || 0);
             const select = tr.querySelector("select");
             if (select && select.value) factorID = Number(select.value);
-            if (!factorID) continue;
+            // A ticked row is never dropped in silence: it is either saved or
+            // reported back with the reason it could not be.
+            if (!factorID) { skipped.push(`${printedName}: فاکتور انتخاب نشده`); continue; }
 
             const f = byId.get(factorID);
             const raw = (tr.dataset.value || "").trim();
+            if (raw === "") { skipped.push(`${printedName}: مقدار خالی`); continue; }
             const item = { factorID, source: 2, extractionID, confidence: Number(tr.dataset.confidence || 0) };
             if (f && f.dataType === 1) {
-                const n = Number(raw);
-                if (!Number.isFinite(n)) continue;
+                const n = parsePrintedNumber(raw);
+                if (n === null) { skipped.push(`${printedName}: مقدار عددی خوانده نشد`); continue; }
                 item.valueNumber = n;
             } else if (f && f.dataType === 3) {
-                item.valueBit = /^(yes|بله|positive|pos|1)/i.test(raw);
+                item.valueBit = /^(yes|بله|positive|pos|1)/i.test(normalizeDigits(raw));
             } else if (f && f.dataType === 2) {
                 let options = [];
                 try { options = JSON.parse(f.optionsJson || "[]"); } catch { }
-                const hit = options.find(o => String(o.t).trim() === raw);
-                if (!hit) continue;
+                const rawN = normalizeDigits(raw).trim().toLowerCase();
+                const hit = options.find(o => normalizeDigits(o.t).trim().toLowerCase() === rawN);
+                if (!hit) { skipped.push(`${printedName}: گزینهٔ مناسب پیدا نشد`); continue; }
                 item.valueNumber = Number(hit.v);
             } else if (f && f.dataType === 5) {
                 item.valueDate = raw;
             } else {
-                item.valueText = raw || "";
+                item.valueText = raw;
             }
             items.push(item);
         }
 
-        if (items.length === 0) { setStatus(overlay, "هیچ ردیفی برای ثبت انتخاب نشده است.", true); return; }
+        if (items.length === 0) {
+            setStatus(overlay, skipped.length
+                ? `هیچ موردی ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`
+                : "هیچ ردیفی برای ثبت انتخاب نشده است.", true);
+            return;
+        }
 
         try {
             busy = true;
@@ -238,7 +268,11 @@
             });
             const x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
-            setStatus(overlay, `${x.saved} مقدار از برگه آزمایش ثبت شد.`, false);
+            let msg = `${x.saved} مقدار از برگه آزمایش ثبت شد.`;
+            if (skipped.length) {
+                msg += ` ${skipped.length} مورد ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`;
+            }
+            setStatus(overlay, msg, skipped.length > 0);
             window.ReSiRaiFactors?.render({ studyID });
             setTimeout(close, 900);
         } catch (e) {
