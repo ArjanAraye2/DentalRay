@@ -9,6 +9,8 @@ namespace ReSiRai.Api.Controllers;
 
 // Reads one photographed/printed laboratory report and returns a review-only
 // draft of the tests, each one matched against the clinical factor dictionary.
+// A report of several pages is sent as ONE AI call - the pages belong together
+// and no result row is lost at a page break.
 //
 // Nothing extracted by AI reaches the patient record automatically: the review
 // screen shows the draft, a human confirms it, and the confirmed numbers are
@@ -32,34 +34,97 @@ public sealed class AiLabReportController : ControllerBase
         _ai = ai;
     }
 
+    public sealed class ExtractManyRequest
+    {
+        public int? StudyID { get; set; }
+        public List<long> ImageIDs { get; set; } = new();
+    }
+
+    /// <summary>Extracts from one already attached image.</summary>
     [HttpPost("{imageID:long}/extract-lab")]
     public async Task<IActionResult> ExtractLab(long imageID, [FromQuery] int? studyID = null,
         CancellationToken cancellationToken = default)
     {
+        var loaded = await LoadImageAsync(imageID, cancellationToken);
+        if (loaded.error is not null) return loaded.error;
+
+        var image = loaded.image!;
+        string path = _storage.GetPhysicalPath(image.RelativePath);
+        byte[] bytes = await System.IO.File.ReadAllBytesAsync(path, cancellationToken);
+        return await ExtractCoreAsync(new List<(string Mime, byte[] Bytes)> { (image.ContentType, bytes) },
+            image.RelativePath, image.RelativePath, studyID, cancellationToken);
+    }
+
+    /// <summary>
+    /// Extracts from several images of ONE report (a multi-page lab sheet). All
+    /// pages are read together in a single AI call.
+    /// </summary>
+    [HttpPost("extract-lab")]
+    public async Task<IActionResult> ExtractLabMany(ExtractManyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.ImageIDs is null || request.ImageIDs.Count == 0)
+            return BadRequest(new { success = false, message = "دست‌کم یک تصویر لازم است." });
+        var ids = request.ImageIDs.Distinct().ToList();
+        if (ids.Count > 10)
+            return BadRequest(new { success = false, message = "حداکثر ۱۰ صفحه در هر استخراج قابل انتخاب است." });
+
+        var parts = new List<(string Mime, byte[] Bytes)>();
+        string firstRelative = "";
+        string label = "";
+        int page = 0;
+        foreach (var id in ids)
+        {
+            var loaded = await LoadImageAsync(id, cancellationToken);
+            if (loaded.error is not null) return loaded.error;
+
+            var image = loaded.image!;
+            string path = _storage.GetPhysicalPath(image.RelativePath);
+            page++;
+            if (page == 1) { firstRelative = image.RelativePath; label = image.RelativePath; }
+            parts.Add((image.ContentType, await System.IO.File.ReadAllBytesAsync(path, cancellationToken)));
+        }
+        if (parts.Count > 1) label = $"{label} (+{parts.Count - 1} صفحه دیگر)";
+        return await ExtractCoreAsync(parts, firstRelative, label, request.StudyID, cancellationToken);
+    }
+
+    /// <summary>Loads one image and checks access, existence and file kind.</summary>
+    private async Task<(RadiologyImage? image, IActionResult? error)> LoadImageAsync(long imageID,
+        CancellationToken cancellationToken)
+    {
         var image = await _db.RadiologyImages.AsNoTracking()
             .FirstOrDefaultAsync(x => x.ImageID == imageID, cancellationToken);
-        if (image is null) return NotFound(new { success = false, message = "تصویر پیدا نشد." });
+        if (image is null) return (null, NotFound(new { success = false, message = "تصویر پیدا نشد." }));
 
         var accessibleStudyIDs = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User)
             .Select(x => x.StudyID);
         bool canAccess = StudyAccessService.IsSuperAdmin(User) || await _db.RadiologyStudyImages.AsNoTracking()
             .AnyAsync(x => x.ImageID == imageID && accessibleStudyIDs.Contains(x.StudyID), cancellationToken);
-        if (!canAccess) return NotFound(new { success = false, message = "تصویر پیدا نشد." });
+        if (!canAccess) return (null, NotFound(new { success = false, message = "تصویر پیدا نشد." }));
 
         if (!image.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            return BadRequest(new { success = false, message = "برای استخراج، تصویر باید JPG یا PNG باشد." });
+            return (null, BadRequest(new { success = false, message = "برای استخراج، تصویر باید JPG یا PNG باشد." }));
 
         string path = _storage.GetPhysicalPath(image.RelativePath);
         if (!System.IO.File.Exists(path))
-            return NotFound(new { success = false, message = "فایل تصویر روی دیسک پیدا نشد." });
+            return (null, NotFound(new { success = false, message = "فایل تصویر روی دیسک پیدا نشد." }));
 
+        return (image, null);
+    }
+
+    /// <summary>The shared extraction: one AI call over the pages, one batch row.</summary>
+    private async Task<IActionResult> ExtractCoreAsync(List<(string Mime, byte[] Bytes)> parts,
+        string firstRelativePath, string fileLabel, int? studyID, CancellationToken cancellationToken)
+    {
         string? configError = _ai.ConfigurationError();
         if (configError is not null)
             return StatusCode(503, new { success = false, message = configError });
 
-        byte[] bytes = await System.IO.File.ReadAllBytesAsync(path, cancellationToken);
-        string prompt = """
-This image is a printed laboratory report, possibly in Persian and/or English.
+        string pagesIntro = parts.Count == 1
+            ? "This image is a printed laboratory report, possibly in Persian and/or English."
+            : $"These {parts.Count} images are the pages (in the given order) of ONE printed laboratory report, possibly in Persian and/or English. Read all pages together and extract every test result row across all of them.";
+        string prompt = $$"""
+{{pagesIntro}}
 Transcribe only what is printed. Never guess values or invent rows.
 Extract every test result row you can read.
 Return ONLY valid JSON with this exact shape:
@@ -73,13 +138,13 @@ Return ONLY valid JSON with this exact shape:
 - flag: H, L or normal when the report prints such a mark, otherwise null
 - sampleDate: sampling date exactly as printed, keeping its calendar
 - labName: laboratory name if printed
-If the image is not a laboratory report, return {"notALabReport":true,"labName":null,"sampleDate":null,"tests":[]}
+If the images are not laboratory reports, return {"notALabReport":true,"labName":null,"sampleDate":null,"tests":[]}
 """;
 
         string raw;
         try
         {
-            raw = await _ai.CompleteJsonAsync(prompt, new[] { (image.ContentType, bytes) }, cancellationToken);
+            raw = await _ai.CompleteJsonAsync(prompt, parts, cancellationToken);
         }
         catch (AiException e)
         {
@@ -107,8 +172,8 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
             var batch = new LabReportExtraction
             {
                 StudyID = studyID ?? 0,
-                FileName = image.RelativePath,
-                ImagePath = _storage.GetPhysicalPath(image.RelativePath),
+                FileName = fileLabel,
+                ImagePath = _storage.GetPhysicalPath(firstRelativePath),
                 LabName = GetString(root, "labName"),
                 SampleDate = ParseDate(GetString(root, "sampleDate")),
                 RawJson = raw,
@@ -157,7 +222,7 @@ If the image is not a laboratory report, return {"notALabReport":true,"labName":
             return Ok(new
             {
                 success = true,
-                imageID,
+                imageID = (long?)null,
                 extractionID = batch.ExtractionID,
                 labName = batch.LabName,
                 sampleDateRaw = GetString(root, "sampleDate"),

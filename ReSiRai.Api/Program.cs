@@ -179,21 +179,21 @@ app.Use(async (context, next) =>
         if (File.Exists(indexPath))
         {
             string html = await File.ReadAllTextAsync(indexPath);
-            const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css?v=20260930.7\" />";
-            const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20260930.7\" />";
+            const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css?v=20260930.8\" />";
+            const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20260930.8\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}{cardExtractionStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
             const string featureScripts =
-                "<script src=\"/js/mobile-camera-loader.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/study-type-lookup.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/ai-study-analysis.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/card-extraction.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/ai-chat.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/study-card-scan.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/dictation.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/events-ui.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/backup-settings.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/reports-ui.js?v=20260930.7\"></script>\n" +
-                "<script src=\"/js/login-ui.js?v=20260930.7\"></script>";
+                "<script src=\"/js/mobile-camera-loader.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/study-type-lookup.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/ai-study-analysis.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/card-extraction.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/ai-chat.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/study-card-scan.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/dictation.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/events-ui.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/backup-settings.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/reports-ui.js?v=20260930.8\"></script>\n" +
+                "<script src=\"/js/login-ui.js?v=20260930.8\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             // The entry page is rewritten on every request (feature scripts are

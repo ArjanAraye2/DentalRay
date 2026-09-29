@@ -1,6 +1,8 @@
 // ReSiRai - lab-report extraction review.
 //
-// The doctor picks one visit image (a printed lab report), the AI returns a draft
+// The doctor picks the pages of a printed lab report among the visit's images
+// (a report is often several pages; the pages are sent to the AI together and
+// can also be photographed right inside this dialog), the AI returns a draft
 // of the printed tests, and a human confirms the rows. Only confirmed rows are
 // stored - with source = 2 (lab-report extraction) and the extraction batch id -
 // so every number in the record keeps its evidence and its confidence.
@@ -59,7 +61,9 @@
         renderPicker(body, studyID);
     }
 
-    // Step 1: pick the report image among the visit's images.
+    // Step 1: pick the report pages among the visit's images. A multi-page report
+    // is selected as several images (or uploaded right here) and all pages go to
+    // the AI together, so nothing is lost at a page break.
     async function renderPicker(body, studyID) {
         body.replaceChildren(el("div", "factors-empty", "در حال دریافت تصاویر مراجعه..."));
         let x;
@@ -74,48 +78,89 @@
 
         const images = x.images || [];
         body.replaceChildren();
-        if (images.length === 0) {
-            body.appendChild(el("div", "factors-empty", "برای این مراجعه تصویری ثبت نشده است."));
-            return;
-        }
-
-        body.appendChild(el("div", "factors-empty", "تصویر برگه آزمایش را انتخاب کنید:"));
+        body.appendChild(el("div", "factors-empty",
+            "صفحه‌های برگه آزمایش را انتخاب کنید — برای برگهٔ چندصفحه‌ای چند تصویر را با هم تیک بزنید:"));
         const grid = el("div", "lab-extract-grid");
-        let chosen = null;
-        for (const image of images) {
-            const item = el("label", "lab-extract-pick");
-            const radio = document.createElement("input");
-            radio.type = "radio";
-            radio.name = "labExtractImage";
-            radio.value = String(image.imageID);
-            const thumb = document.createElement("img");
-            thumb.loading = "lazy";
-            thumb.alt = "تصویر";
-            thumb.src = `/api/radiologyimages/${image.imageID}`;
-            thumb.addEventListener("click", () => { radio.checked = true; chosen = image; });
-            radio.addEventListener("change", () => { chosen = image; });
-            item.append(radio, thumb);
-            grid.appendChild(item);
-        }
         body.appendChild(grid);
+
+        const drawGrid = () => {
+            grid.replaceChildren();
+            for (const image of images) {
+                const item = el("label", "lab-extract-pick");
+                const box = document.createElement("input");
+                box.type = "checkbox";
+                box.name = "labExtractImage";
+                box.value = String(image.imageID);
+                const thumb = document.createElement("img");
+                thumb.loading = "lazy";
+                thumb.alt = "تصویر";
+                thumb.src = `/api/radiologyimages/${image.imageID}`;
+                thumb.addEventListener("click", () => { box.checked = !box.checked; });
+                item.append(box, thumb);
+                grid.appendChild(item);
+            }
+        };
+        drawGrid();
+
+        // Pages not attached yet can be photographed/added right here.
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.multiple = true;
+        fileInput.style.display = "none";
+        const uploadBtn = el("button", "secondary-button", "افزودن تصویر جدید (عکس برگه)");
+        uploadBtn.type = "button";
+        uploadBtn.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", async () => {
+            const files = Array.from(fileInput.files || []);
+            fileInput.value = "";
+            if (files.length === 0) return;
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = "در حال آپلود...";
+            let added = 0;
+            for (const f of files) {
+                const fd = new FormData();
+                fd.append("file", f);
+                try {
+                    const r = await fetch(`/api/radiologyimages?studyID=${studyID}`, { method: "POST", body: fd });
+                    const rx = await readJson(r);
+                    if (r.ok && rx.success) {
+                        images.push({ imageID: rx.imageID });
+                        added++;
+                    }
+                } catch { }
+            }
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = "افزودن تصویر جدید (عکس برگه)";
+            drawGrid();
+            if (added) setStatus(overlay, `${added} تصویر اضافه شد؛ صفحه‌های برگه را تیک بزنید.`, false);
+        });
+        body.appendChild(uploadBtn);
+        body.appendChild(fileInput);
 
         const runBtn = el("button", "primary-button", "استخراج با هوش مصنوعی");
         runBtn.type = "button";
         runBtn.addEventListener("click", () => {
-            if (!chosen) { setStatus(overlay, "ابتدا یک تصویر انتخاب کنید.", true); return; }
-            renderReview(body, studyID, chosen.imageID);
+            const chosen = Array.from(grid.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(b => Number(b.value));
+            if (chosen.length === 0) { setStatus(overlay, "ابتدا دست‌کم یک تصویر انتخاب کنید.", true); return; }
+            renderReview(body, studyID, chosen);
         });
         body.appendChild(runBtn);
     }
 
-    // Step 2: ask the AI for a draft and show it for review.
-    async function renderReview(body, studyID, imageID) {
+    // Step 2: ask the AI for a draft over all selected pages and show it for review.
+    async function renderReview(body, studyID, imageIDs) {
         if (busy) return;
         busy = true;
         body.replaceChildren(el("div", "factors-empty", "در حال استخراج برگه آزمایش... این مرحله ممکن است کمی طول بکشد."));
         let x;
         try {
-            const r = await fetch(`/api/ai/images/${imageID}/extract-lab?studyID=${studyID}`, { method: "POST" });
+            const r = await fetch(`/api/ai/images/extract-lab`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studyID, imageIDs })
+            });
             x = await readJson(r);
             if (!r.ok || !x.success) throw new Error(x.message || "استخراج ناموفق بود.");
         } catch (e) {
