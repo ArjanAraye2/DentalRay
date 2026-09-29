@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using DentalRay.Api.Data;
 using DentalRay.Api.Models;
 using DentalRay.Api.Services;
@@ -29,6 +30,16 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
     private int? CurrentUserID()
         => int.TryParse(User.FindFirst("UserID")?.Value, out int uid) && uid > 0 ? uid : (int?)null;
 
+    /// <summary>نکتهٔ کاربر را به نتیجهٔ تحلیل می‌چسباند تا در نمایش و در تاریخچه بماند.</summary>
+    private static string WithNote(string rawJson, string note)
+    {
+        if (note.Length == 0) return rawJson;
+        var node = JsonNode.Parse(rawJson) as JsonObject;
+        if (node is null) return rawJson;
+        node["practitionerNote"] = note;
+        return node.ToJsonString();
+    }
+
     /// <summary>1 = radiology analysis (matches tblAIImageAnalyses.Kind).</summary>
     private const byte KindRadiology = 1;
     /// <summary>Bump when the prompt changes, so a stored result can be spotted as old.</summary>
@@ -49,8 +60,13 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
 
         string path=_storage.GetPhysicalPath(image.RelativePath);
         if(!System.IO.File.Exists(path))return NotFound(new{success=false,message="فایل فیزیکی تصویر پیدا نشد."});
+        // نکتهٔ ویژهٔ کاربر همراهِ تصویر می‌رود («روی فلان قسمت بیشتر دقت کن»)؛
+        // اگر نکته‌ای باشد، نتیجهٔ ذخیره‌شده کافی نیست و دوباره تحلیل می‌شود.
+        string note = Request.Query["note"].ToString().Trim();
+        if (note.Length > 500) note = note[..500];
+
         // یک تحلیلِ معتبر ذخیره شده ⇒ بدونِ ارسالِ دوبارهٔ تصویر همان بازمی‌گردد.
-        bool force = string.Equals(Request.Query["force"], "1", StringComparison.OrdinalIgnoreCase);
+        bool force = string.Equals(Request.Query["force"], "1", StringComparison.OrdinalIgnoreCase) || note.Length > 0;
         AIImageAnalysis? saved = await _db.AIImageAnalyses.AsNoTracking()
             .FirstOrDefaultAsync(x => x.ImageID == imageID && x.Kind == KindRadiology, cancellationToken);
         if (saved is not null && !force)
@@ -112,6 +128,8 @@ Return ONLY valid JSON with this shape:
 {"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
 EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
+        if (note.Length > 0)
+            prompt += "\n\nPractitioner's extra instruction (follow it, but still return ONLY the JSON described above):\n" + note;
         string raw;
         try{raw=await _ai.CompleteJsonAsync(prompt,new[]{(image.ContentType,bytes)},cancellationToken);}
         catch(AiException e)
@@ -123,6 +141,9 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
             return StatusCode(e.HttpStatus,new{success=false,message=e.UserMessage,detail=e.Detail});
         }
 
+        // نکتهٔ کاربر کنارِ نتیجه ذخیره می‌شود تا بعداً معلوم شود چه پرسیده شده.
+        string resultJson = WithNote(raw, note);
+
         // ذخیره تا تصویر فقط یک بار از مطب خارج شود؛ اگر ذخیره هم نشد، تحلیل از بین نرود.
         AIImageAnalysis? row = saved;
         DateTime? analyzedAt = null;
@@ -133,7 +154,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
                 row = new AIImageAnalysis { ImageID = imageID, Kind = KindRadiology };
                 _db.AIImageAnalyses.Add(row);
             }
-            row.AnalysisJson = raw;
+            row.AnalysisJson = resultJson;
             row.Model = _ai.Model ?? string.Empty;
             row.PromptVersion = PromptVersion;
             row.AnalyzedAt = DateTime.Now;
@@ -150,7 +171,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
         }
 
         await _events.LogAsync("ai.image", detail:$"تحلیلِ تک‌تصویر — مدل {_ai.Model}", durationMs:(int)watch.ElapsedMilliseconds, userID:CurrentUserID());
-        try{using var analysis=JsonDocument.Parse(raw);return Ok(new{success=true,imageID,analysis=analysis.RootElement.Clone(),cached=false,analyzedAt,model=_ai.Model,stale=false});}
+        try{using var analysis=JsonDocument.Parse(resultJson);return Ok(new{success=true,imageID,analysis=analysis.RootElement.Clone(),note,cached=false,analyzedAt,model=_ai.Model,stale=false});}
         catch(JsonException){return StatusCode(502,new{success=false,message="فرمت نتیجه تحلیل معتبر نبود."});}
     }
 
@@ -161,7 +182,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
     /// <summary>سقفِ تصویر در هر درخواستِ مشترک (با تحلیلِ همهٔ تصاویر یکی است).</summary>
     private const int MaxManyImages = 6;
 
-    public sealed record AnalyzeManyRequest(long[]? ImageIDs);
+    public sealed record AnalyzeManyRequest(long[]? ImageIDs, string? Note);
 
     // چند تصویرِ انتخاب‌شده که به هم مرتبط‌اند یک‌جا بررسی می‌شوند. نتیجه برای همان
     // مجموعه ذخیره می‌شود؛ بنابراین اگر همان تصویرها را دوباره انتخاب کنید، بدونِ
@@ -211,7 +232,11 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
         var setIds = selected.Select(x => x.ImageID).OrderBy(x => x).ToList();
         long keyImageID = setIds[0];
 
-        bool force = string.Equals(Request.Query["force"], "1", StringComparison.OrdinalIgnoreCase);
+        // نکتهٔ ویژهٔ کاربر ⇒ تحلیلِ تازه لازم است.
+        string note = (request?.Note ?? string.Empty).Trim();
+        if (note.Length > 500) note = note[..500];
+
+        bool force = string.Equals(Request.Query["force"], "1", StringComparison.OrdinalIgnoreCase) || note.Length > 0;
         AIImageAnalysis? saved = await _db.AIImageAnalyses.AsNoTracking()
             .FirstOrDefaultAsync(x => x.ImageID == keyImageID && x.Kind == KindManyImages, cancellationToken);
         if (saved is not null && !force)
@@ -304,6 +329,8 @@ Return ONLY valid JSON with this shape:
 {"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
 EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
+        if (note.Length > 0)
+            prompt += "\n\nPractitioner's extra instruction (follow it, but still return ONLY the JSON described above):\n" + note;
 
         string raw;
         try
@@ -340,6 +367,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
                 row.AnalysisJson = JsonSerializer.Serialize(new Dictionary<string, object?>
                 {
                     ["imageIDs"] = setIds,
+                    ["note"] = note,
                     ["analysis"] = analysis.RootElement.Clone()
                 });
                 row.Model = _ai.Model ?? string.Empty;
@@ -364,6 +392,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
                 imageIDs = setIds,
                 imageCount = selected.Count,
                 analysis = analysis.RootElement.Clone(),
+                note,
                 cached = false,
                 analyzedAt,
                 model = _ai.Model,
@@ -371,5 +400,168 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
                 truncated
             });
         }
+    }
+
+    // ---- گفت‌وگوی پیوسته پس از تحلیل ----------------------------------------
+    // سرویسِ AI حافظه ندارد؛ پس زمینه را همین‌جا می‌سازیم: گزارشِ ذخیره‌شده +
+    // پرسش‌های قبلی. تصویر فقط وقتی خودِ کاربر بخواهد دوباره می‌رود — یعنی
+    // «دوباره آپلود» لازم نیست و پرسشِ متنی چند ثانیه‌ای جواب می‌دهد.
+
+    public sealed record AskTurn(string? Question, string? Answer);
+    public sealed record AskRequest(IReadOnlyList<long>? ImageIDs, string? Question, bool WithImages, IReadOnlyList<AskTurn>? History);
+
+    /// <summary>گزارشِ ذخیره‌شدهٔ همین مجموعه تصویر؛ اگر ذخیره‌ای نباشد null.</summary>
+    private async Task<string?> LoadReportAsync(IReadOnlyList<long> ids, CancellationToken cancellationToken)
+    {
+        if (ids.Count == 1)
+        {
+            var row = await _db.AIImageAnalyses.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ImageID == ids[0] && x.Kind == KindRadiology, cancellationToken);
+            return row?.AnalysisJson;
+        }
+
+        long key = ids.Min();
+        var setRow = await _db.AIImageAnalyses.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ImageID == key && x.Kind == KindManyImages, cancellationToken);
+        if (setRow is null) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(setRow.AnalysisJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object) return null;
+            if (!doc.RootElement.TryGetProperty("imageIDs", out var stored) || stored.ValueKind != JsonValueKind.Array)
+                return null;
+            var storedIds = stored.EnumerateArray()
+                .Select(e => e.ValueKind == JsonValueKind.Number ? e.GetInt64() : -1L)
+                .OrderBy(x => x)
+                .ToList();
+            if (!storedIds.SequenceEqual(ids.OrderBy(x => x))) return null;
+            return doc.RootElement.TryGetProperty("analysis", out var inner)
+                ? inner.GetRawText()
+                : doc.RootElement.GetRawText();
+        }
+        catch (JsonException) { return null; }
+    }
+
+    [HttpPost("ask")]
+    public async Task<IActionResult> Ask([FromBody] AskRequest? request, CancellationToken cancellationToken)
+    {
+        var ids = (request?.ImageIDs ?? Array.Empty<long>()).Distinct().Take(MaxManyImages).ToList();
+        if (ids.Count == 0)
+            return BadRequest(new { success = false, message = "تصویری انتخاب نشده است." });
+
+        string question = (request?.Question ?? string.Empty).Trim();
+        if (question.Length == 0)
+            return BadRequest(new { success = false, message = "پرسش خالی است." });
+        if (question.Length > 1000) question = question[..1000];
+
+        bool withImages = request?.WithImages == true;
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+
+        // دسترسی: همان قاعدهٔ تحلیل، برای تک‌تکِ تصویرها.
+        if (!StudyAccessService.IsSuperAdmin(User))
+        {
+            var accessibleStudyIDs = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User).Select(x => x.StudyID);
+            var linked = await _db.RadiologyStudyImages.AsNoTracking()
+                .Where(x => ids.Contains(x.ImageID) && accessibleStudyIDs.Contains(x.StudyID))
+                .Select(x => x.ImageID)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            var linkedSet = linked.ToHashSet();
+            if (ids.Any(id => !linkedSet.Contains(id)))
+                return NotFound(new { success = false, message = "تصویر پیدا نشد." });
+        }
+
+        string? report = await LoadReportAsync(ids, cancellationToken);
+        if (report is null)
+            return BadRequest(new { success = false, message = "ابتدا این تصویرها را تحلیل کنید؛ پرسش روی همان گزارش انجام می‌شود." });
+
+        string? configError = _ai.ConfigurationError();
+        if (configError is not null)
+            return StatusCode(503, new { success = false, message = configError });
+
+        // ارسالِ دوبارهٔ تصویر فقط با همان تأییدِ نشست (consentِ تحلیل).
+        if (withImages && !string.Equals(Request.Query["consent"], "1", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { success = false, needsConsent = true, message = "برای ارسالِ دوبارهٔ تصویر، تأییدِ حریم خصوصی لازم است." });
+
+        var payload = new List<(string Mime, byte[] Bytes)>();
+        if (withImages)
+        {
+            foreach (var id in ids)
+            {
+                var image = await _db.RadiologyImages.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.ImageID == id, cancellationToken);
+                if (image is null) continue;
+                string path = _storage.GetPhysicalPath(image.RelativePath);
+                if (!System.IO.File.Exists(path)) continue;
+                payload.Add((image.ContentType, await System.IO.File.ReadAllBytesAsync(path, cancellationToken)));
+            }
+            if (payload.Count == 0)
+                return NotFound(new { success = false, message = "فایل تصویری قابل خواندن پیدا نشد." });
+        }
+
+        // زمینه در همان یک پیام می‌رود چون سرویس بینِ درخواست‌ها حافظه ندارد.
+        var context = new System.Text.StringBuilder();
+        context.AppendLine("You are assisting a licensed practitioner with a follow-up question about an analysis report of their patient's images.");
+        context.AppendLine("Answer in Persian. Base the answer on the report below and do not invent findings that are not in it.");
+        context.AppendLine("When images are attached you may look at them again; otherwise, if the question needs another look, say plainly that the images must be sent again.");
+        context.AppendLine("Never give a definitive diagnosis or a prescription. Keep the answer short and practical.");
+        context.AppendLine();
+        context.AppendLine("ANALYSIS REPORT (JSON):");
+        context.AppendLine(report);
+
+        var history = (request?.History ?? Array.Empty<AskTurn>())
+            .Where(h => h is not null && !string.IsNullOrWhiteSpace(h.Question))
+            .TakeLast(6)
+            .ToList();
+        if (history.Count > 0)
+        {
+            context.AppendLine();
+            context.AppendLine("EARLIER EXCHANGE:");
+            foreach (var turn in history)
+            {
+                context.AppendLine("Practitioner: " + turn.Question);
+                if (!string.IsNullOrWhiteSpace(turn.Answer)) context.AppendLine("Assistant: " + turn.Answer);
+            }
+        }
+
+        context.AppendLine();
+        context.AppendLine("PRACTITIONER'S QUESTION:");
+        context.AppendLine(question);
+        context.AppendLine();
+        context.AppendLine("Return ONLY valid JSON: {\"answer\":\"...\"} — every string in Persian.");
+
+        string raw;
+        try
+        {
+            raw = await _ai.CompleteJsonAsync(context.ToString(), payload, cancellationToken, compactImages: true);
+        }
+        catch (AiException e)
+        {
+            await _events.LogAsync("ai.chat", outcome: "fail",
+                detail: $"پرسش از AI ناموفق — {e.UserMessage}",
+                durationMs: (int)watch.ElapsedMilliseconds, userID: CurrentUserID());
+            return StatusCode(e.HttpStatus, new { success = false, message = e.UserMessage, detail = e.Detail });
+        }
+
+        string answer;
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            answer = doc.RootElement.TryGetProperty("answer", out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString() ?? string.Empty
+                : doc.RootElement.GetRawText();
+        }
+        catch (JsonException)
+        {
+            return StatusCode(502, new { success = false, message = "فرمت پاسخ AI معتبر نبود." });
+        }
+        if (answer.Trim().Length == 0)
+            return StatusCode(502, new { success = false, message = "پاسخی دریافت نشد؛ دوباره تلاش کنید." });
+
+        await _events.LogAsync("ai.chat",
+            detail: $"پرسش از AI ({(withImages ? "با تصویر" : "بدونِ تصویر")}) — مدل {_ai.Model}",
+            durationMs: (int)watch.ElapsedMilliseconds, userID: CurrentUserID());
+
+        return Ok(new { success = true, answer, withImages, imageCount = ids.Count });
     }
 }

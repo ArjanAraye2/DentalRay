@@ -13,6 +13,8 @@ const isDocument=im=>String(im?.imageTypeName||"").trim()==="کارت سابقه
 
 async function analyze(card,button){
  const studyID=Number(card.dataset.studyId);if(!studyID)return;
+ const noteInput=card.querySelector(".ai-note-input");
+ const note=noteInput?noteInput.value.trim():"";
  // The Study body is built on first open, so the result has a home whether or not
  // the row has been opened yet.
  let host=card.querySelector('.ai-study-analysis');
@@ -28,7 +30,7 @@ async function analyze(card,button){
   // تک‌تصویر مسیرِ خودش را دارد (ذخیرهٔ جداگانه و پنجرهٔ تک‌تصویر)؛ دو تصویر به بالا مشترک.
   if(images.length===1){host.innerHTML='';if(window.DentalRayImageAI)window.DentalRayImageAI.analyze(images[0]);return;}
   if(!window.DentalRayImageAI||!window.DentalRayImageAI.analyzeMany)throw new Error('ماژول تحلیل هنوز آماده نیست؛ صفحه را تازه‌سازی کنید.');
-  await window.DentalRayImageAI.analyzeMany(images.map(im=>im.imageID),{host});
+  await window.DentalRayImageAI.analyzeMany(images.map(im=>im.imageID),{host,note});
  }catch(error){host.innerHTML=`<p class="error">${esc(error.message||'تحلیل هوش مصنوعی انجام نشد.')}</p>`;}
  finally{button.disabled=false;}
 }

@@ -4991,6 +4991,121 @@ body { line-height: 1.75; }
 
 
 /* ==========================================================
+   Practitioner note + AI follow-up chat
+   ========================================================== */
+
+.ai-note-input {
+    width: 100%;
+    margin: 10px 0 2px;
+    padding: 8px 11px;
+    border: 1px dashed #0f516566;
+    border-radius: 8px;
+    background: #f8fcfd;
+    font-size: 13px;
+}
+
+
+.ai-note-input:focus {
+    border-style: solid;
+    background: #ffffff;
+}
+
+
+.ai-chat-report {
+    margin: 0 0 10px;
+    font-size: 12.5px;
+    color: #4a6b78;
+}
+
+
+.ai-chat-report summary {
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+
+.ai-chat-report pre {
+    max-height: 240px;
+    overflow: auto;
+    padding: 8px;
+    background: #f6fafb;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    direction: ltr;
+    text-align: left;
+    white-space: pre-wrap;
+}
+
+
+.ai-chat-log {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 4px 0 10px;
+}
+
+
+.ai-chat-bubble {
+    max-width: 92%;
+    padding: 8px 11px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.9;
+    white-space: pre-wrap;
+}
+
+
+.ai-chat-bubble.is-user {
+    align-self: flex-start;
+    background: #e8f4f8;
+    color: #0f5165;
+    border: 1px solid #0f516533;
+}
+
+
+.ai-chat-bubble.is-ai {
+    align-self: flex-end;
+    background: #f4f7f9;
+    color: #12333f;
+    border: 1px solid var(--border);
+}
+
+
+.ai-chat-bubble.is-error {
+    background: #fdecea;
+    color: #b42318;
+    border-color: #f3c3bd;
+}
+
+
+.ai-chat-input {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13.5px;
+    resize: vertical;
+}
+
+
+.ai-chat-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 9px;
+}
+
+
+.ai-chat-actions .field-hint {
+    flex: 1 1 200px;
+}
+
+
+/* ==========================================================
    Backup card in settings
    ========================================================== */
 
