@@ -27,7 +27,7 @@
   section.innerHTML = `
     <div class="section-header">
       <div><h2>لاگ رویدادها</h2><p>ورود، پیامک، تحلیل هوش مصنوعی، پشتیبان و شروع برنامه</p></div>
-      <div class="events-actions"><button type="button" id="eventsRefresh" class="secondary-button">تازه‌سازی</button></div>
+      <div class="events-actions"><button type="button" id="eventsExport" class="secondary-button">خروجیِ CSV</button><button type="button" id="eventsRefresh" class="secondary-button">تازه‌سازی</button></div>
     </div>
     <div class="events-filters">
       <div class="form-field"><label for="eventsKind">نوع رویداد</label><select id="eventsKind"><option value="all">همه</option></select></div>
@@ -48,6 +48,9 @@
 
   const $ = id => document.getElementById(id);
   const esc = value => { const d = document.createElement("div"); d.textContent = value ?? ""; return d.innerHTML; };
+
+  // دادهٔ آخرین بارِ بارگذاری‌شده، برای خروجیِ CSV (همان فیلترِ فعلی).
+  let lastEvents = [];
 
   async function load() {
     const status = $("eventsStatus");
@@ -85,6 +88,7 @@
 
   function render(events, total) {
     const body = $("eventsBody");
+    lastEvents = events || [];
     body.innerHTML = "";
     if (!events.length) {
       const tr = document.createElement("tr");
@@ -143,6 +147,42 @@
   let searchTimer = null;
   $("eventsQuery").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 400); });
   $("eventsRefresh").addEventListener("click", load);
+
+  // خروجیِ اکسل: BOM تا فارسی در Excel درست خوانده شود و کاما/گیومه درست گِریخته شود.
+  const csvCell = value => {
+    const text = String(value ?? "");
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+
+  function exportCsv() {
+    if (!lastEvents.length) {
+      window.showToast?.("رویدادی برای خروجی وجود ندارد.", "error");
+      return;
+    }
+    const header = ["زمان", "نوع", "نتیجه", "کاربر", "مدت (ثانیه)", "توضیح"];
+    const lines = [header.map(csvCell).join(",")];
+    lastEvents.forEach(e => {
+      lines.push([
+        typeof formatPersianDateTime === "function" ? formatPersianDateTime(e.eventAt) : (e.eventAt || ""),
+        kindLabel[e.kind] || e.kind,
+        e.outcome === "fail" ? "ناموفق" : "موفق",
+        e.userName || (e.userID ? `#${e.userID}` : ""),
+        e.durationMs == null || e.durationMs === "" ? "" : Math.round(Number(e.durationMs) / 100) / 10,
+        e.detail || ""
+      ].map(csvCell).join(","));
+    });
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `dentix-events-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  $("eventsExport").addEventListener("click", exportCsv);
 
   window.DentalRayEvents = { open };
 })();

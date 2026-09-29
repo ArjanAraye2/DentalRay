@@ -10,7 +10,7 @@
   // صفحهٔ جزئیات/ویرایشِ مراجعه
   "studyDetailsBodyPart", "studyDetailsDescription", "studyDetailsReport"
  ];
- const ACTION_DESC = '.study-actions-form input[placeholder="شرح اقدام"]';
+ const ACTION_DESC = '.study-actions-form input[type="text"]'; // placeholder در حالتِ بازپرداخت عوض می‌شود
 
  let recognition = null;
  let listening = false;
