@@ -483,6 +483,75 @@ Return ONLY valid JSON with this exact shape:
         return jpeg is null ? NotFound() : File(jpeg, "image/jpeg");
     }
 
+    public sealed class RereadRequest
+    {
+        public long ExtractionID { get; set; }
+        public int Row { get; set; }
+    }
+
+    /// <summary>
+    /// Re-reads ONE row's snippet - the exact band of paper shown to the doctor -
+    /// instead of the whole sheet. The deterministic OCR runs on the crop first;
+    /// if a cell stays unreadable the vision model reads just that crop. Trust but
+    /// verify, and when verification fails, fix the spot without redoing the work.
+    /// </summary>
+    [HttpPost("reread")]
+    public async Task<IActionResult> Reread(RereadRequest request, CancellationToken cancellationToken)
+    {
+        var batch = await _db.LabReportExtractions.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ExtractionID == request.ExtractionID, cancellationToken);
+        if (batch is null || string.IsNullOrWhiteSpace(batch.ImagePath) || !System.IO.File.Exists(batch.ImagePath))
+            return NotFound(new { success = false, message = "برگه پیدا نشد." });
+
+        List<LabSheetParser.Row>? rows = null;
+        try { rows = JsonSerializer.Deserialize<List<LabSheetParser.Row>>(batch.RawJson ?? "[]"); }
+        catch (JsonException) { }
+        if (rows is null || request.Row < 0 || request.Row >= rows.Count)
+            return NotFound(new { success = false, message = "ردیف پیدا نشد." });
+        var original = rows[request.Row];
+
+        byte[] image = await System.IO.File.ReadAllBytesAsync(batch.ImagePath, cancellationToken);
+        byte[] crop = CropRows(image, new List<(LabSheetParser.Row Row, int Index)> { (original, request.Row) }) ?? image;
+
+        // OCR قطعی روی خودِ همان تکه.
+        string tsv = await _ai.OcrTsvAsync(crop, cancellationToken);
+        var fresh = LabSheetParser.ParseTsv(tsv);
+        string n0 = Norm(original.Name);
+        var pick = fresh.FirstOrDefault(r => Norm(r.Name) == n0)
+            ?? fresh.Where(r => n0.Length > 0 && (Norm(r.Name).Contains(n0) || n0.Contains(Norm(r.Name))))
+                .OrderByDescending(r => r.Value.Length).FirstOrDefault();
+
+        if (pick is null)
+            return Ok(new
+            {
+                success = true,
+                name = original.Name,
+                value = original.Value,
+                unit = original.Unit,
+                refText = original.RefText,
+                suggested = original.Suggested,
+                note = "این ناحیه دوباره خوانده شد ولی چیزِ تازه‌ای پیدا نشد؛ مقادیرِ قبلی حفظ شد."
+            });
+
+        // اگر مقدار هنوز خالی است، فقط همین تکه را مدلِ بینایی ببیند.
+        if (pick.Value.Length == 0)
+        {
+            var one = new List<LabSheetParser.Row> { pick };
+            await SuggestMissingAsync(crop, one, cancellationToken);
+            pick = one[0];
+        }
+
+        return Ok(new
+        {
+            success = true,
+            name = pick.Name,
+            value = pick.Value,
+            unit = pick.Unit,
+            refText = pick.RefText,
+            suggested = pick.Suggested
+        });
+    }
+
     /// <summary>
     /// نوارِ ردیف‌های گم‌شده که روی هم چیده شده‌اند: مدل باید عدد را درشت و
     /// خوانا ببیند، نه اینکه در عکسِ بزرگِ کلِ صفحه دنبالش بگردد.

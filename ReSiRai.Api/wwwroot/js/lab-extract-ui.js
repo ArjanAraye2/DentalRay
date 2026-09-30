@@ -243,6 +243,44 @@
             peek.addEventListener("click", () =>
                 window.open(`/api/ai/images/crop?extractionID=${encodeURIComponent(x.extractionID ?? "")}&row=${rowIndex}`, "_blank"));
             nameCell.appendChild(peek);
+            // اگر تکهٔ برگه با عدد نمی‌خواند، فقط همان ناحیه دوباره خوانده
+            // می‌شود؛ نه کلِ برگه.
+            const redo = document.createElement("button");
+            redo.type = "button";
+            redo.className = "lab-extract-peek";
+            redo.textContent = "↻";
+            redo.title = "همین ناحیه را دوباره بخوان (بدونِ خواندنِ کلِ برگه)";
+            redo.addEventListener("click", async () => {
+                if (busy) return;
+                busy = true;
+                redo.disabled = true;
+                try {
+                    const r = await fetch("/api/ai/images/reread", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ extractionID: x.extractionID, row: rowIndex })
+                    });
+                    const y = await readJson(r);
+                    if (!r.ok || !y.success) throw new Error(y.message || "بازخوانی ناموفق بود.");
+                    valueInput.value = y.value ?? "";
+                    refInput.value = y.refText ?? "";
+                    unitCell.textContent = y.unit ?? "";
+                    tr.dataset.value = valueInput.value;
+                    tr.dataset.refText = refInput.value;
+                    tr.dataset.unit = y.unit ?? "";
+                    delete tr.dataset.picked;
+                    tr.classList.remove("is-saved", "is-skipped");
+                    tr.classList.add("is-reread");
+                    tr.classList.toggle("is-suggested", !!y.suggested);
+                    if (y.note) tr.title = y.note;
+                } catch (e) {
+                    alert(e.message || "بازخوانی ناموفق بود.");
+                } finally {
+                    busy = false;
+                    redo.disabled = false;
+                }
+            });
+            nameCell.appendChild(redo);
             tr.appendChild(nameCell);
             // The value cell is editable: when OCR mangles a row the doctor fixes
             // the number here and presses confirm again - no more dead ends.
@@ -262,7 +300,8 @@
             });
             valueCell.appendChild(valueInput);
             tr.appendChild(valueCell);
-            tr.appendChild(el("td", null, item.unit || ""));
+            const unitCell = el("td", null, item.unit || "");
+            tr.appendChild(unitCell);
             // The printed range is editable too: when OCR drops or garbles it,
             // the doctor types what the paper says and it saves with the value.
             const refCell = el("td");

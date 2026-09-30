@@ -49,6 +49,12 @@ public static class LabSheetParser
     private static readonly Regex BareRangeRegex = new(
         @"^\s*\d+(?:[.,]\d+)?\s*-\s*\d+(?:[.,]\d+)?\s*$", RegexOptions.Compiled);
 
+    // عددِ کم‌اعتماد با یکی‌دو نمادِ زباله جلویش («`51.1»): بعد از پاک‌سازی،
+    // خودِ عددِ چاپ‌شده به دست می‌آید.
+    private static readonly Regex AlmostNumberRegex = new(
+        @"^[^\d<>\-+]{0,2}(?<n>[<>]?\s*-?\d+(?:[.,]\d+)?\s*(?:-\s*\d+(?:[.,]\d+)?)?\s*%?)$",
+        RegexOptions.Compiled);
+
     // سطرهایِ توضیحِ بازه، نه تست: «Adults :»، «Moderate risk :»، «Highrisk >6».
     private static readonly string[] ContinuationWords =
         { "adult", "children", "risk", "normal", "average", "borderline", "high", "low",
@@ -169,7 +175,19 @@ public static class LabSheetParser
             bool pureNumber = PureNumberRegex.IsMatch(text);
             // OCR خراب: کلماتِ غیرعددیِ کم‌اعتبار هرگز نگه داشته نمی‌شوند؛ عددِ
             // کم‌اعتبار هم فقط اگر بالای ۳۰ باشد می‌ماند.
-            if (!(pureNumber ? conf >= 30 : conf >= 40)) continue;
+            if (!(pureNumber ? conf >= 30 : conf >= 40))
+            {
+                // عددِ چاپ‌شده با رنگِ متفاوت (مثلاً قرمزِ پرچم‌دار) با اعتمادِ
+                // کم و یکی‌دو نمادِ زباله جلویش خوانده می‌شود («`51.1»). اگر بعد
+                // از پاک‌سازی عددِ تمیز بماند، همان عددِ برگه است.
+                var almost = AlmostNumberRegex.Match(text);
+                if (almost.Success && conf >= 20)
+                {
+                    text = NormalizeDigits(almost.Groups["n"].Value.Trim());
+                    pureNumber = true;
+                }
+                else continue;
+            }
             words.Add(new TsvWord(text, left, top, width, height, conf, $"{parts[1]}/{parts[2]}/{parts[3]}/{parts[4]}"));
         }
         return words;

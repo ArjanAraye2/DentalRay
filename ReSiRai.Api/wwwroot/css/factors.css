@@ -257,6 +257,7 @@
     opacity: 0.65;
 }
 .lab-extract-peek:hover { opacity: 1; background: #dff4f8; }
+.lab-extract-table tr.is-reread { box-shadow: inset 3px 0 0 #2a7da8; }
 .lab-extract-value {
     width: 100%;
     box-sizing: border-box;
