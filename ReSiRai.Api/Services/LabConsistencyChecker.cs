@@ -170,7 +170,7 @@ public static class LabConsistencyChecker
                     $"احتمالِ ممیزِ گم‌شده: مقدارِ {name} ({n}) بسیار بالاتر از بازه است، اما {n / 10m} داخلِ بازه می‌نشیند؛ به‌احتمالِ زیاد ممیزِ اعشار در OCR یا ثبت گم شده. مقدار را با برگه تطبیق و تصحیح کنید.",
                     $"{name} ({n}) is far above the range while {n / 10m} fits it - the decimal point was probably lost in OCR or entry. Compare with the sheet and correct it.",
                     $"تصحیحِ مقدارِ {name} به {n / 10m} و در صورتِ شک، تکرارِ آزمایش — دلیل: ممیزِ اعشارِ گم‌شده، تحلیل بر مبنایِ عددِ اشتباه انجام می‌شود."));
-            else if (o.RefHigh is { } hi && n > hi * 10)
+            else if (o.RefHigh is { } hiTop && n > hiTop * 10)
                 findings.Add(new("implausible-high", "warn", new[] { name },
                     $"احتمالِ خطای ثبت/واحد: مقدارِ {name} ({n}) بیش از ۱۰ برابرِ بالاترینِ بازهٔ معمول است؛ برگه را دوباره ببینید و واحد را بررسی کنید.",
                     $"Probable unit or entry error: {name} ({n}) is more than 10 times the top of the usual range; re-check the sheet and the unit.",
