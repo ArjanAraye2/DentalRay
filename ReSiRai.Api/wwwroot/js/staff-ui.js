@@ -106,10 +106,10 @@
     }
 
     function updateSpecialtyVisibility() {
-        const dentist = $("staffType").value === "2";
-        $("staffSpecialtyField").classList.toggle("hidden", !dentist);
-        $("staffSpecialtyID").required = dentist;
-        if (!dentist) $("staffSpecialtyID").value = "";
+        const doctor = $("staffType").value === "2";
+        $("staffSpecialtyField").classList.toggle("hidden", !doctor);
+        $("staffSpecialtyID").required = doctor;
+        if (!doctor) $("staffSpecialtyID").value = "";
     }
 
     function openForm(s = null) {

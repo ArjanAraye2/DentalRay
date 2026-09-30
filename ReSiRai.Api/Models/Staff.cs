@@ -18,11 +18,11 @@ namespace ReSiRai.Api.Models
         [Required, MaxLength(100)]
         public string LastName { get; set; } = string.Empty;
 
-        // 1 = Employee, 2 = Dentist
+        // 1 = Employee, 2 = Doctor
         public byte StaffType { get; set; }
         public int? SpecialtyID { get; set; }
 
-        // Referring dentists receive the image link by SMS, so a staff record
+        // Referring doctors receive the image link by SMS, so a staff record
         // needs a reachable number. Optional: legacy rows have none.
         [MaxLength(30)]
         public string? Mobile { get; set; }

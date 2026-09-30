@@ -1,7 +1,7 @@
 // ReSiRai natural jaw - the "فک طبیعی" view.
 //
 // The wheel view was too abstract: a circle of teeth does not look like a mouth. This
-// one draws a real dental arch - a horseshoe that is deeper than it is wide, with the
+// one draws a real teeth arch - a horseshoe that is deeper than it is wide, with the
 // incisors at the front and the molars curving back - and the teeth sit on it at their
 // real relative widths, so an incisor is narrow and a molar is wide.
 //
@@ -148,7 +148,7 @@
         const on = g.classList.contains("selected");
         g.setAttribute("aria-pressed", on ? "true" : "false");
         const n = Number(g.dataset.tooth);
-        const root = container.closest(".dental-chart");
+        const root = container.closest(".teeth-chart");
         const original = root && root.querySelector('.tooth-button[data-tooth="' + n + '"]');
         if (original) {
           original.classList.toggle("selected", on);

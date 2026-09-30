@@ -101,12 +101,12 @@ public sealed class AiConsultController : ControllerBase
         // Factor set of the visit's doctor; internal medicine while a specialty is
         // missing (phase 1 default).
         int? specialtyID = null;
-        if (study?.DentistStaffID is { } staffID)
+        if (study?.DoctorStaffID is { } staffID)
             specialtyID = await _db.Staff.AsNoTracking()
                 .Where(x => x.StaffID == staffID)
                 .Select(x => x.SpecialtyID)
                 .FirstOrDefaultAsync(cancellationToken);
-        specialtyID ??= await _db.DentalSpecialties.AsNoTracking()
+        specialtyID ??= await _db.Specialties.AsNoTracking()
             .Where(x => x.SpecialtyName == "بیماری‌های داخلی")
             .Select(x => x.SpecialtyID)
             .FirstOrDefaultAsync(cancellationToken);

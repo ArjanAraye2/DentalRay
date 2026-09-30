@@ -56,7 +56,7 @@ BEGIN
         PatientID     INT NOT NULL,
         -- Local date and time shown to the clinic; stored as DateTime like StudyDate.
         AppointmentDate DATETIME2(0) NOT NULL,
-        DentistStaffID  INT NULL,
+        DoctorStaffID  INT NULL,
         -- 1 = scheduled, 2 = attended, 3 = cancelled, 4 = no-show
         Status        TINYINT NOT NULL CONSTRAINT DF_tblAppointments_Status DEFAULT(1),
         Note          NVARCHAR(500) NULL,

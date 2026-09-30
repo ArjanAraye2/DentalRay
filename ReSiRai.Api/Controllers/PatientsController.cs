@@ -270,9 +270,9 @@ namespace ReSiRai.Api.Controllers
                     s.StudyID, s.PatientID, s.StudyDate, s.StudyTypeID,
                     StudyTypeName = st.StudyTypeName,
                     s.BodyPart, s.Description, s.Report, s.CreatedDate, s.ModifiedDate,
-                    s.DentistStaffID,
-                    DentistName = _context.Staff.AsNoTracking()
-                        .Where(st => st.StaffID == s.DentistStaffID)
+                    s.DoctorStaffID,
+                    DoctorName = _context.Staff.AsNoTracking()
+                        .Where(st => st.StaffID == s.DoctorStaffID)
                         .Select(st => st.FirstName + " " + st.LastName).FirstOrDefault(),
                     s.Status, s.FollowUpDate, s.FollowUpNote, s.WaitStageID,
                     WaitStageName = _context.WaitStages.AsNoTracking()
@@ -362,7 +362,7 @@ namespace ReSiRai.Api.Controllers
 
         // Merge is a Patient-level data-correction operation.
         // It is intentionally independent of Study authorization: Study ownership/scope fields
-        // (ClinicID and DentistStaffID) are preserved when the duplicate Patient is merged.
+        // (ClinicID and DoctorStaffID) are preserved when the duplicate Patient is merged.
         [HttpPost("merge")]
         public async Task<IActionResult> MergePatients(MergePatientRequest request)
         {

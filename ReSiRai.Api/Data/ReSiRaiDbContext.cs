@@ -17,10 +17,10 @@ namespace ReSiRai.Api.Data
         public DbSet<Staff> Staff { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
         public DbSet<ClinicStaff> ClinicStaff { get; set; }
-        public DbSet<DentalSpecialty> DentalSpecialties { get; set; }
+        public DbSet<Specialty> Specialties { get; set; }
         public DbSet<ImageType> ImageTypes { get; set; }
         public DbSet<User> Users { get; set; }
-        public DbSet<UserDentist> UserDentists { get; set; }
+        public DbSet<UserDoctor> UserDoctors { get; set; }
         public DbSet<StudyAction> StudyActions { get; set; }
         public DbSet<StudyPayment> StudyPayments { get; set; }
         public DbSet<PosSetting> PosSettings { get; set; }
@@ -67,23 +67,23 @@ namespace ReSiRai.Api.Data
             modelBuilder.Entity<ClinicStaff>().HasOne<Clinic>().WithMany().HasForeignKey(x => x.ClinicID).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<ClinicStaff>().HasOne<Staff>().WithMany().HasForeignKey(x => x.StaffID).OnDelete(DeleteBehavior.NoAction);
 
-            // Specialty is optional for employees and is used for dentists.
-            modelBuilder.Entity<Staff>().HasOne<DentalSpecialty>().WithMany().HasForeignKey(x => x.SpecialtyID).OnDelete(DeleteBehavior.NoAction);
+            // Specialty is optional for employees and is used for doctors.
+            modelBuilder.Entity<Staff>().HasOne<Specialty>().WithMany().HasForeignKey(x => x.SpecialtyID).OnDelete(DeleteBehavior.NoAction);
 
             // Every ReSiRai User belongs to exactly one Staff record.
             modelBuilder.Entity<User>().HasOne<Staff>().WithMany().HasForeignKey(x => x.StaffID).OnDelete(DeleteBehavior.NoAction);
 
-            // Employee access to dentists is clinic-specific. Keeping the same
+            // Employee access to doctors is clinic-specific. Keeping the same
             // composite key as SQL prevents duplicate assignments.
-            modelBuilder.Entity<UserDentist>().HasKey(x => new { x.UserID, x.ClinicID, x.DentistStaffID });
-            modelBuilder.Entity<UserDentist>().HasOne<User>().WithMany().HasForeignKey(x => x.UserID).OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<UserDentist>().HasOne<Staff>().WithMany().HasForeignKey(x => x.DentistStaffID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<UserDoctor>().HasKey(x => new { x.UserID, x.ClinicID, x.DoctorStaffID });
+            modelBuilder.Entity<UserDoctor>().HasOne<User>().WithMany().HasForeignKey(x => x.UserID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<UserDoctor>().HasOne<Staff>().WithMany().HasForeignKey(x => x.DoctorStaffID).OnDelete(DeleteBehavior.NoAction);
 
             // A specialty lists factors from the one shared dictionary; the composite
             // key matches SQL and keeps a factor from being bound twice.
             modelBuilder.Entity<SpecialtyFactorSet>().HasKey(x => new { x.SpecialtyID, x.FactorID });
             modelBuilder.Entity<SpecialtyFactorSet>().HasOne<ClinicalFactor>().WithMany().HasForeignKey(x => x.FactorID).OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<SpecialtyFactorSet>().HasOne<DentalSpecialty>().WithMany().HasForeignKey(x => x.SpecialtyID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<SpecialtyFactorSet>().HasOne<Specialty>().WithMany().HasForeignKey(x => x.SpecialtyID).OnDelete(DeleteBehavior.NoAction);
 
             // Factor values belong to a visit and stay over time (trend); the source
             // column says whether a number was typed, extracted from a lab report or

@@ -52,7 +52,7 @@ public sealed class AiCardExtractionController : ControllerBase
 
         byte[] bytes = await System.IO.File.ReadAllBytesAsync(path, cancellationToken);
         string prompt = """
-This image is a photographed legacy dental patient card, possibly handwritten in Persian.
+This image is a photographed legacy teeth patient card, possibly handwritten in Persian.
 Transcribe only what is visible. Never guess missing characters or values.
 Extract only candidate Study fields. Patient identity and contact fields are already known and must be ignored.
 Use null for absent or unreadable values.

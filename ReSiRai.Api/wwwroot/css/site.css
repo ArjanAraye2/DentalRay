@@ -1449,17 +1449,17 @@ button {
     background: #f6fafb;
     cursor: default;
 }
-/* The "مشاهده / ویرایش" panel is the main place a dentist looks at a Study. Its chart
+/* The "مشاهده / ویرایش" panel is the main place a doctor looks at a Study. Its chart
    is read-only (the teeth are not editable there) but the view buttons must stay
    usable, otherwise the panel is stuck on a single view - which is what used to
    happen when the whole toolbar was hidden. */
-#studyDetailsDentalChart.study-chart-readonly {
+#studyDetailsTeethChart.study-chart-readonly {
     pointer-events: none;
 }
-#studyDetailsDentalChart.study-chart-readonly .dental-chart-toolbar {
+#studyDetailsTeethChart.study-chart-readonly .teeth-chart-toolbar {
     pointer-events: auto;
 }
-#studyDetailsDentalChart.study-chart-readonly .dental-chart-selected {
+#studyDetailsTeethChart.study-chart-readonly .teeth-chart-selected {
     display: none;
 }
 
@@ -1998,7 +1998,7 @@ button {
     border-color: var( --border );
     opacity:1;
 }
-#studyDetailsDentalChart {
+#studyDetailsTeethChart {
     padding: 14px;
     min-height: 170px;
     background:#ffffff;
@@ -3003,13 +3003,13 @@ table button {
 .recent-study-text strong { font-size: 12px; }
 .recent-study-text small { color: #55707e; font-size: 12px; }
 
-.patient-summary-dental-chart {
+.patient-summary-teeth-chart {
     min-height: 215px;
     pointer-events: none;
     overflow: hidden;
 }
 
-.patient-summary-dental-chart .dental-chart-body { font-size: 12px; }
+.patient-summary-teeth-chart .teeth-chart-body { font-size: 12px; }
 
 @media (max-width: 1250px) {
     .patient-overview-grid {
@@ -3307,7 +3307,7 @@ table button {
     #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width { grid-column: auto; }
 }
 
-/* Studies belong to the patient, but each dental chart belongs to one Study.
+/* Studies belong to the patient, but each teeth chart belongs to one Study.
    The overview therefore has two columns and Studies flow vertically below it. */
 #patientsSection + #patientDetailsSection .patient-overview-grid {
     grid-template-columns: minmax(320px, 38%) minmax(480px, 62%);
@@ -3631,23 +3631,23 @@ table button {
    teeth can be looked at in any of the views, but the teeth themselves are not
    clickable and the "selected" list is pointless here.
    Hiding the whole toolbar was wrong - it left the card stuck on one view. */
-.study-card-dental-chart {
+.study-card-teeth-chart {
     min-height: 245px;
     overflow: hidden;
 }
 
-.study-card-dental-chart .dental-chart-toolbar { pointer-events: auto; }
-.study-card-dental-chart .dental-chart-body,
-.study-card-dental-chart .dental-integrated-arch,
-.study-card-dental-chart .dental-integrated-natural,
-.study-card-dental-chart .dental-chart-selected { pointer-events: none; }
+.study-card-teeth-chart .teeth-chart-toolbar { pointer-events: auto; }
+.study-card-teeth-chart .teeth-chart-body,
+.study-card-teeth-chart .teeth-integrated-arch,
+.study-card-teeth-chart .teeth-integrated-natural,
+.study-card-teeth-chart .teeth-chart-selected { pointer-events: none; }
 
 /* The natural jaw is turned by dragging, so it must keep receiving pointer events
    even inside a read-only Study card. */
-.study-card-dental-chart .dental-integrated-natural { pointer-events: auto; }
+.study-card-teeth-chart .teeth-integrated-natural { pointer-events: auto; }
 
-.study-card-dental-chart .dental-chart-selected { display: none; }
-.study-card-dental-chart .dental-chart-toolbar strong { font-size: 13px; }
+.study-card-teeth-chart .teeth-chart-selected { display: none; }
+.study-card-teeth-chart .teeth-chart-toolbar strong { font-size: 13px; }
 
 /* نمودار در کارتِ مراجعه: بستهٔ پیش‌فرض (حدود ۲۸۵px جا می‌گیرد). سطرِ سربرگ هم
    دکمهٔ باز/بسته است و خلاصهٔ دندان‌ها را نشان می‌دهد تا هنگام بستن چیزی از دست نرود. */
@@ -3678,7 +3678,7 @@ table button {
     text-overflow: ellipsis;
 }
 .study-scroll-chart:not(.is-collapsed) .study-chart-toggle { margin-bottom: 7px; }
-.study-scroll-chart.is-collapsed .study-card-dental-chart { display: none; }
+.study-scroll-chart.is-collapsed .study-card-teeth-chart { display: none; }
 .study-scroll-chart.is-collapsed { padding-bottom: 9px; }
 
 /* شمارهٔ سریالِ مراجعه در هدر کارت: قدیمی‌ترین =۱ */
@@ -3775,7 +3775,7 @@ table button {
     .study-scroll-header { align-items: flex-start; flex-direction: column; }
     .study-scroll-actions { width: 100%; }
     .study-scroll-actions button { flex: 1; }
-    .study-card-dental-chart { min-height: 210px; }
+    .study-card-teeth-chart { min-height: 210px; }
 }
 
 /* Global navigation and Settings hub. */

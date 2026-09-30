@@ -30,7 +30,7 @@ namespace ReSiRai.Api.Controllers
         /// <summary>
         /// Active stages with their specialty name. A caller may pass a specialty to
         /// get the stages for it plus the ones that apply to everyone, which is what
-        /// the study form uses to suggest a stage from the chosen dentist.
+        /// the study form uses to suggest a stage from the chosen doctor.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> List([FromQuery] int? specialtyID = null, [FromQuery] bool all = false)
@@ -46,7 +46,7 @@ namespace ReSiRai.Api.Controllers
                 {
                     x.WaitStageID, x.Name, x.SpecialtyID, x.SmsTemplate,
                     x.SortOrder, x.IsActive,
-                    SpecialtyName = _db.DentalSpecialties.AsNoTracking()
+                    SpecialtyName = _db.Specialties.AsNoTracking()
                         .Where(s => s.SpecialtyID == x.SpecialtyID)
                         .Select(s => s.SpecialtyName).FirstOrDefault()
                 })

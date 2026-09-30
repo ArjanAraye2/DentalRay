@@ -34,7 +34,7 @@ FROM @ImageTypes s
 WHERE NOT EXISTS (SELECT 1 FROM dbo.tblImageTypes t WHERE t.ImageTypeName=s.ImageTypeName);
 GO
 
-/* Study Types describe dental procedures/work, not radiology image categories. */
+/* Study Types describe teeth procedures/work, not radiology image categories. */
 IF OBJECT_ID(N'dbo.tblStudyTypes', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblStudyTypes

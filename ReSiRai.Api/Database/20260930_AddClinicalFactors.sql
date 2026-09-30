@@ -69,7 +69,7 @@ BEGIN
         SortOrder INT NOT NULL CONSTRAINT DF_tblSpecialtyFactorSets_SortOrder DEFAULT(0),
         CONSTRAINT PK_tblSpecialtyFactorSets PRIMARY KEY(SpecialtyID,FactorID),
         CONSTRAINT FK_tblSpecialtyFactorSets_Factors FOREIGN KEY(FactorID) REFERENCES dbo.tblClinicalFactors(FactorID),
-        CONSTRAINT FK_tblSpecialtyFactorSets_Specialties FOREIGN KEY(SpecialtyID) REFERENCES dbo.tblDentalSpecialties(SpecialtyID)
+        CONSTRAINT FK_tblSpecialtyFactorSets_Specialties FOREIGN KEY(SpecialtyID) REFERENCES dbo.tblSpecialties(SpecialtyID)
     );
 END;
 GO
@@ -125,8 +125,8 @@ GO
 /* =========================
    5. Seed: internal medicine
    ========================= */
-IF NOT EXISTS(SELECT 1 FROM dbo.tblDentalSpecialties WHERE SpecialtyName = N'بیماری‌های داخلی')
-    INSERT INTO dbo.tblDentalSpecialties(SpecialtyName, IsActive) VALUES (N'بیماری‌های داخلی', 1);
+IF NOT EXISTS(SELECT 1 FROM dbo.tblSpecialties WHERE SpecialtyName = N'بیماری‌های داخلی')
+    INSERT INTO dbo.tblSpecialties(SpecialtyName, IsActive) VALUES (N'بیماری‌های داخلی', 1);
 GO
 
 /* --- 5a. Vitals & anthropometry (always shown) --- */
@@ -212,7 +212,7 @@ VALUES
 GO
 
 /* --- 5e. Bind factor set to internal medicine --- */
-DECLARE @sid INT = (SELECT TOP 1 SpecialtyID FROM dbo.tblDentalSpecialties WHERE SpecialtyName = N'بیماری‌های داخلی');
+DECLARE @sid INT = (SELECT TOP 1 SpecialtyID FROM dbo.tblSpecialties WHERE SpecialtyName = N'بیماری‌های داخلی');
 
 /* always-shown core */
 INSERT INTO dbo.tblSpecialtyFactorSets(SpecialtyID,FactorID,IsRequired,IsCommon,SortOrder)

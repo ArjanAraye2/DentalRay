@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ReSiRai.Api.Models
 {
-    [Table("tblDentalSpecialties")]
-    public class DentalSpecialty
+    [Table("tblSpecialties")]
+    public class Specialty
     {
         [Key]
         public int SpecialtyID { get; set; }

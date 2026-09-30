@@ -7,7 +7,7 @@ namespace ReSiRai.Api.Services
 {
     // Central authorization rules for Radiology Studies.
     // Keeping these rules in one service prevents individual controllers from
-    // accidentally implementing different Dentist/Employee access behavior.
+    // acciteethly implementing different Doctor/Employee access behavior.
     public class StudyAccessService
     {
         private readonly ReSiRaiDbContext _db;
@@ -21,20 +21,20 @@ namespace ReSiRai.Api.Services
             int staffID = ReadInt(principal, "StaffID");
             int staffType = ReadInt(principal, "StaffType");
 
-            // Dentist: only Studies explicitly owned by that Dentist.
+            // Doctor: only Studies explicitly owned by that Doctor.
             if (staffType == 2)
-                return studies.Where(s => s.DentistStaffID == staffID);
+                return studies.Where(s => s.DoctorStaffID == staffID);
 
-            // Employee: only Studies whose Clinic + Dentist pair is assigned to
-            // this User in tblUserDentists. Legacy Studies with NULL ownership are
+            // Employee: only Studies whose Clinic + Doctor pair is assigned to
+            // this User in tblUserDoctors. Legacy Studies with NULL ownership are
             // intentionally not visible to ordinary users.
             if (staffType == 1)
                 return studies.Where(s =>
-                    s.ClinicID.HasValue && s.DentistStaffID.HasValue &&
-                    _db.UserDentists.Any(a =>
+                    s.ClinicID.HasValue && s.DoctorStaffID.HasValue &&
+                    _db.UserDoctors.Any(a =>
                         a.UserID == userID &&
                         a.ClinicID == s.ClinicID.Value &&
-                        a.DentistStaffID == s.DentistStaffID.Value));
+                        a.DoctorStaffID == s.DoctorStaffID.Value));
 
             // Unknown/invalid staff type receives no Study access.
             return studies.Where(_ => false);

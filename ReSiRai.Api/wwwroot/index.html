@@ -8,10 +8,10 @@
     <link rel="stylesheet" href="/css/site.css?v=20260930.9" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20260930.9" />
 <link rel="stylesheet" href="/css/factors.css?v=20260930.9" />
-    <!-- Loaded up-front so Study/Dental forms never flash unstyled; the JS
+    <!-- Loaded up-front so Study/Teeth forms never flash unstyled; the JS
          helpers use these ids and therefore skip injecting them again. -->
-    <link id="studyDentalStylesheet" rel="stylesheet" href="/css/study-dental.css?v=20260930.9" />
-    <link id="dentalGraphicStyles" rel="stylesheet" href="/css/dental-graphic.css?v=20260930.9" />
+    <link id="studyTeethStylesheet" rel="stylesheet" href="/css/study-teeth.css?v=20260930.9" />
+    <link id="teethGraphicStyles" rel="stylesheet" href="/css/teeth-graphic.css?v=20260930.9" />
     <link id="odontogramArchCss" rel="stylesheet" href="/css/odontogram-arch.css?v=20260930.9" />
     <link rel="stylesheet" href="/css/pos-settings.css?v=20260930.9" />
     <link rel="stylesheet" href="/css/patient-messages.css?v=20260930.9" />
@@ -120,8 +120,8 @@
           <input id="studyDetailsStudyDate" data-jalali-datetime type="text" maxlength="16" readonly />
         </div>
         <div class="form-field">
-          <label for="studyDetailsDentist">دندانپزشک</label>
-          <select id="studyDetailsDentist"></select>
+          <label for="studyDetailsDoctor">دندانپزشک</label>
+          <select id="studyDetailsDoctor"></select>
           <small class="field-hint">مرحله انتظار از تخصص دندانپزشک پیشنهاد می‌شود.</small>
         </div>
         <div class="form-field">
@@ -177,7 +177,7 @@
 
     <section class="study-form-card">
       <h3 class="study-form-card-title">شمای دندان‌ها</h3>
-      <div id="studyDetailsDentalChart"></div>
+      <div id="studyDetailsTeethChart"></div>
     </section>
 
     <div id="studyDetailsStatus" class="status-message"></div>

@@ -1,4 +1,4 @@
-// SuperAdmin-only Dental Specialty management screen.
+// SuperAdmin-only Teeth Specialty management screen.
 (() => {
     const main = document.querySelector(".page-container");
     const header = document.querySelector(".header-content");

@@ -1,7 +1,7 @@
 /* ReSiRai CBCT view - the "CBCT" view.
    A CBCT study is read on a dark screen, so this view is deliberately dark like the
-   imaging software a dentist already knows, not like the light clinical UI.
-   The teeth are painted in dental-graphic.css, which every view shares. */
+   imaging software a doctor already knows, not like the light clinical UI.
+   The teeth are painted in teeth-graphic.css, which every view shares. */
 
 .cbct-odontogram {
     /* The panels are laid out left to right, so the svg must not be mirrored by the
@@ -112,11 +112,11 @@
 .cbct-vol-controls .natural-control { color: #8fa3b8; }
 
 /* Visibility per view. */
-.dental-integrated-cbct { display: none; }
-.dental-view-cbct .dental-integrated-cbct { display: block; }
-.dental-view-cbct .dental-integrated-arch,
-.dental-view-cbct .dental-integrated-natural,
-.dental-view-cbct .dental-chart-body > .dental-chart-group { display: none; }
+.teeth-integrated-cbct { display: none; }
+.teeth-view-cbct .teeth-integrated-cbct { display: block; }
+.teeth-view-cbct .teeth-integrated-arch,
+.teeth-view-cbct .teeth-integrated-natural,
+.teeth-view-cbct .teeth-chart-body > .teeth-chart-group { display: none; }
 
 @media (max-width: 700px) {
     .cbct-odontogram { padding: 5px; }

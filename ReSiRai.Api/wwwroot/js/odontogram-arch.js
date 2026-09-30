@@ -104,7 +104,7 @@
         const on = g.classList.contains("selected");
         g.setAttribute("aria-pressed", on ? "true" : "false");
         const n = Number(g.dataset.tooth);
-        const root = container.closest(".dental-chart");
+        const root = container.closest(".teeth-chart");
         const original = root && root.querySelector('.tooth-button[data-tooth="' + n + '"]');
         if (original) {
           original.classList.toggle("selected", on);

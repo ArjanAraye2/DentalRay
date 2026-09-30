@@ -25,10 +25,10 @@ namespace ReSiRai.Api.Models
         public int? WaitStageID { get; set; }
 
         /// <summary>
-        /// The dentist who owns the study. Their specialty decides which waiting
+        /// The doctor who owns the study. Their specialty decides which waiting
         /// stages are offered.
         /// </summary>
-        public int? DentistStaffID { get; set; }
+        public int? DoctorStaffID { get; set; }
 
         /// <summary>Required when Status is 3, so a reminder always has a date.</summary>
         public DateTime? FollowUpDate { get; set; }

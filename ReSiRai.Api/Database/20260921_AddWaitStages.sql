@@ -30,7 +30,7 @@ BEGIN
         CreatedDate  DATETIME2(0) NOT NULL CONSTRAINT DF_tblWaitStages_Created DEFAULT(SYSDATETIME()),
         ModifiedDate DATETIME2(0) NULL,
         CONSTRAINT FK_tblWaitStages_Specialties FOREIGN KEY(SpecialtyID)
-            REFERENCES dbo.tblDentalSpecialties(SpecialtyID)
+            REFERENCES dbo.tblSpecialties(SpecialtyID)
     );
 END;
 GO
@@ -55,13 +55,13 @@ BEGIN
         (N'دندانپزشکی کودکان',        N'نوبت کودک',       N'{patient} عزیز، نوبت دندانپزشکی کودک شما ثبت شد. ReSiRai', 70),
         (N'دندانپزشک عمومی',          N'پیگیری درمان',    N'{patient} عزیز، برای پیگیری درمان با مطب تماس بگیرید. ReSiRai', 80)
     ) AS v(SpecialtyName, Name, Sms, Sort)
-    LEFT JOIN dbo.tblDentalSpecialties s
+    LEFT JOIN dbo.tblSpecialties s
         ON s.SpecialtyName = v.SpecialtyName AND s.IsActive = 1
     WHERE s.SpecialtyID IS NOT NULL;
 END;
 GO
 
-/* A stage that applies to everyone, used when the dentist has no specialty set. */
+/* A stage that applies to everyone, used when the doctor has no specialty set. */
 IF NOT EXISTS (SELECT 1 FROM dbo.tblWaitStages WHERE SpecialtyID IS NULL)
 BEGIN
     INSERT INTO dbo.tblWaitStages (Name, SpecialtyID, SmsTemplate, SortOrder)

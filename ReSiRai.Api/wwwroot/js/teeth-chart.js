@@ -1,4 +1,4 @@
-// ReSiRai - interactive graphical FDI Dental Chart
+// ReSiRai - interactive graphical FDI Teeth Chart
 //
 // Three views: a plain numbered row (linear), anatomical rows, and an arch. The
 // tooth artwork comes from tooth-shapes.js so both drawn views share one source of
@@ -14,7 +14,7 @@
     [55, 54, 53, 52, 51, 61, 62, 63, 64, 65],
     [85, 84, 83, 82, 81, 71, 72, 73, 74, 75]
   ];
-  const storageKey = "resirai.dentalChartView";
+  const storageKey = "resirai.teethChartView";
   // One factor for the row view. The tooth's own local units already carry the real
   // proportions, so scaling them all by the same number is all that is needed.
   const TOOTH_BOX_SCALE = 1.6;
@@ -50,22 +50,22 @@
     b.onclick = () => {
       b.classList.toggle("selected");
       b.setAttribute("aria-pressed", b.classList.contains("selected") ? "true" : "false");
-      syncArch(b.closest(".dental-chart"));
-      summary(b.closest(".dental-chart"));
+      syncArch(b.closest(".teeth-chart"));
+      summary(b.closest(".teeth-chart"));
     };
     return b;
   }
 
   function addSection(root, title, rows, s) {
     const g = document.createElement("div");
-    g.className = "dental-chart-group";
+    g.className = "teeth-chart-group";
     const h = document.createElement("div");
-    h.className = "dental-chart-group-title";
+    h.className = "teeth-chart-group-title";
     h.textContent = title;
     g.appendChild(h);
     rows.forEach((a, i) => {
       const r = document.createElement("div");
-      r.className = "dental-chart-row dental-chart-row-" + (i ? "lower" : "upper");
+      r.className = "teeth-chart-row teeth-chart-row-" + (i ? "lower" : "upper");
       a.forEach(n => r.appendChild(toothButton(n, s)));
       g.appendChild(r);
     });
@@ -77,7 +77,7 @@
   }
 
   function summary(root) {
-    const t = root.querySelector(".dental-chart-selected"), v = selected(root);
+    const t = root.querySelector(".teeth-chart-selected"), v = selected(root);
     if (!t) return;
     t.textContent = v.length
       ? "دندان‌های انتخاب‌شده: " + v.sort((a, b) => a - b).join("، ")
@@ -85,7 +85,7 @@
   }
 
   function syncArch(root) {
-    const box = root.querySelector(".dental-integrated-arch");
+    const box = root.querySelector(".teeth-integrated-arch");
     if (!box) return;
     if (window.ReSiRaiArchOdontogram) {
       return withDeps(() => window.ReSiRaiArchOdontogram.render(box, selected(root)));
@@ -118,7 +118,7 @@
   // The natural jaw is a third self-contained renderer. Each drawn view loads its own
   // file and waits only for that one, so a missing renderer never blocks the others.
   function syncNatural(root) {
-    const box = root.querySelector(".dental-integrated-natural");
+    const box = root.querySelector(".teeth-integrated-natural");
     if (!box) return;
     if (window.ReSiRaiNaturalOdontogram) {
       return withDeps(() => window.ReSiRaiNaturalOdontogram.render(box, selected(root)));
@@ -134,7 +134,7 @@
   let cbctScheme = "pano";
 
   function syncCbct(root) {
-    const box = root.querySelector(".dental-integrated-cbct");
+    const box = root.querySelector(".teeth-integrated-cbct");
     if (!box) return;
     if (window.ReSiRaiCbctOdontogram) {
       return withDeps(() => window.ReSiRaiCbctOdontogram.render(box, selected(root), cbctScheme));
@@ -145,9 +145,9 @@
   }
 
   function setMode(root, m) {
-    VIEWS.forEach(x => root.classList.remove("dental-view-" + x));
-    root.classList.add("dental-view-" + m);
-    root.querySelectorAll(".dental-view-button").forEach(b => b.classList.toggle("active", b.dataset.view === m));
+    VIEWS.forEach(x => root.classList.remove("teeth-view-" + x));
+    root.classList.add("teeth-view-" + m);
+    root.querySelectorAll(".teeth-view-button").forEach(b => b.classList.toggle("active", b.dataset.view === m));
     if (m === "arch") syncArch(root);
     if (m === "natural") syncNatural(root);
     if (m === "cbct") syncCbct(root);
@@ -156,14 +156,14 @@
 
   function toolbar() {
     const b = document.createElement("div");
-    b.className = "dental-chart-toolbar";
+    b.className = "teeth-chart-toolbar";
     b.innerHTML = '<strong>شمای گرافیکی دندان‌ها</strong>' +
-      '<span class="dental-chart-view-label">نوع نمایش:</span>' +
-      '<button type="button" class="dental-view-button" data-view="linear">خطی</button>' +
-      '<button type="button" class="dental-view-button" data-view="anatomical">آناتومیک</button>' +
-      '<button type="button" class="dental-view-button" data-view="arch">قوسی</button>' +
-      '<button type="button" class="dental-view-button" data-view="natural">فک طبیعی</button>' +
-      '<button type="button" class="dental-view-button" data-view="cbct">CBCT</button>';
+      '<span class="teeth-chart-view-label">نوع نمایش:</span>' +
+      '<button type="button" class="teeth-view-button" data-view="linear">خطی</button>' +
+      '<button type="button" class="teeth-view-button" data-view="anatomical">آناتومیک</button>' +
+      '<button type="button" class="teeth-view-button" data-view="arch">قوسی</button>' +
+      '<button type="button" class="teeth-view-button" data-view="natural">فک طبیعی</button>' +
+      '<button type="button" class="teeth-view-button" data-view="cbct">CBCT</button>';
     return b;
   }
 
@@ -191,35 +191,35 @@
     else { e.src = url; document.body.appendChild(e); }
   }
 
-  window.ReSiRaiDentalChart = {
+  window.ReSiRaiTeethChart = {
     render(container, teeth) {
       if (!container) return;
       const s = new Set((teeth || []).map(Number));
       container.innerHTML = "";
       // Add the marker class rather than replacing className. Study cards pass in
-      // "study-card-dental-chart study-chart-readonly", and overwriting it wiped the
+      // "study-card-teeth-chart study-chart-readonly", and overwriting it wiped the
       // rules that hide the view buttons and make the chart read-only.
-      container.classList.add("dental-chart");
+      container.classList.add("teeth-chart");
       const bar = toolbar();
       container.appendChild(bar);
       const arch = document.createElement("div");
-      arch.className = "dental-integrated-arch";
+      arch.className = "teeth-integrated-arch";
       container.appendChild(arch);
       const natural = document.createElement("div");
-      natural.className = "dental-integrated-natural";
+      natural.className = "teeth-integrated-natural";
       container.appendChild(natural);
       const cbct = document.createElement("div");
-      cbct.className = "dental-integrated-cbct";
+      cbct.className = "teeth-integrated-cbct";
       container.appendChild(cbct);
       const body = document.createElement("div");
-      body.className = "dental-chart-body";
+      body.className = "teeth-chart-body";
       addSection(body, "دندان‌های دائمی", permanentRows, s);
       addSection(body, "دندان‌های شیری", primaryRows, s);
       container.appendChild(body);
       const sum = document.createElement("div");
-      sum.className = "dental-chart-selected";
+      sum.className = "teeth-chart-selected";
       container.appendChild(sum);
-      bar.querySelectorAll(".dental-view-button").forEach(b => b.onclick = () => setMode(container, b.dataset.view));
+      bar.querySelectorAll(".teeth-view-button").forEach(b => b.onclick = () => setMode(container, b.dataset.view));
       let mode = "arch";
       try { mode = localStorage.getItem(storageKey) || mode; } catch (_) { }
       if (!["linear", "anatomical", "arch", "natural", "cbct"].includes(mode)) mode = "arch";
@@ -232,5 +232,5 @@
   // index.html loads the tooth library directly; ensureAssets() lazily injects it on
   // any page that only includes this file, so there is no unconditional load here
   // (which would add a second tag when the library is already present).
-  load("link", "dentalGraphicStyles", "/css/dental-graphic.css");
+  load("link", "teethGraphicStyles", "/css/teeth-graphic.css");
   load("script", "resiraiTerminology", "/js/frontend-terminology.js?v=20260926.2");})();

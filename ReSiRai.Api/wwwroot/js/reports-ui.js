@@ -107,7 +107,7 @@
     ]);
     const methodRows = (f.byMethod || []).map(x => [esc(x.label), num(x.count), money(x.amount)]);
     const typeRows = (v.byStudyType || []).map(x => [esc(x.name), num(x.count)]);
-    const dentistRows = (v.byDentist || []).map(x => [esc(x.name), num(x.count)]);
+    const doctorRows = (v.byDoctor || []).map(x => [esc(x.name), num(x.count)]);
     const imageRows = (im.byType || []).map(x => [esc(x.name), num(x.count)]);
     const debtorRows = (d.debtors || []).map(x => [esc(x.name), esc(x.mobile || "—"), money(x.balance)]);
 
@@ -117,7 +117,7 @@
       block("دریافتی به تفکیکِ روش", "",
         table(["روش", "تعداد", "مبلغ"], methodRows)) +
       block("مراجعات", `${num(v.patientCount)} بیمار در این بازه`,
-        table(["نوع مراجعه", "تعداد"], typeRows) + table(["دندانپزشک", "تعداد"], dentistRows)) +
+        table(["نوع مراجعه", "تعداد"], typeRows) + table(["دندانپزشک", "تعداد"], doctorRows)) +
       block("تصاویر", `${num(im.total)} تصویر`,
         table(["نوع تصویر", "تعداد"], imageRows)) +
       block("بدهکاران", (d.debtors || []).length ? `مجموعِ نمایش‌داده‌شده: ${money(debtorTotal)}` : "",

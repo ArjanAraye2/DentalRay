@@ -77,7 +77,7 @@ namespace ReSiRai.Api.Models
 
         public DateTime AppointmentDate { get; set; }
 
-        public int? DentistStaffID { get; set; }
+        public int? DoctorStaffID { get; set; }
 
         /// <summary>1 = scheduled, 2 = attended, 3 = cancelled, 4 = no-show.</summary>
         public byte Status { get; set; } = 1;

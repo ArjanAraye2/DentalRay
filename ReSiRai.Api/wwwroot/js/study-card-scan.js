@@ -175,8 +175,8 @@
   if (picked.teeth?.on) {
    const arr = String(picked.teeth.value).split(/[،,\s]+/)
     .map(v => Number(normalizeDigits(v))).filter(Number.isFinite);
-   const chart = document.getElementById("newStudyDentalChart");
-   if (arr.length && chart && window.ReSiRaiDentalChart) { window.ReSiRaiDentalChart.render(chart, arr); used++; }
+   const chart = document.getElementById("newStudyTeethChart");
+   if (arr.length && chart && window.ReSiRaiTeethChart) { window.ReSiRaiTeethChart.render(chart, arr); used++; }
    else if (arr.length) notes.push("نمودارِ دندان‌ها هنوز آماده نیست؛ شماره‌ها انتخاب نشدند.");
   }
 

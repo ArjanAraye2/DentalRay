@@ -24,13 +24,13 @@ namespace ReSiRai.Api.Controllers
                 if (study.StudyTypeID <= 0) return BadRequest(new { success=false, message="StudyTypeID is required." });
                 if (!await _context.StudyTypes.AnyAsync(t=>t.StudyTypeID==study.StudyTypeID && t.IsActive)) return BadRequest(new { success=false, message="Selected Study type does not exist or is inactive." });
 
-                // Ordinary users may create a Study only inside their permitted Dentist/Clinic scope.
+                // Ordinary users may create a Study only inside their permitted Doctor/Clinic scope.
                 // Super Admin may also create legacy/test Studies without ownership while migration is unfinished.
                 if (!StudyAccessService.IsSuperAdmin(User))
                 {
-                    if (!study.ClinicID.HasValue || !study.DentistStaffID.HasValue)
-                        return BadRequest(new { success=false, message="ClinicID and DentistStaffID are required." });
-                    if (!await CanCreateForDentistAsync(study.ClinicID.Value, study.DentistStaffID.Value))
+                    if (!study.ClinicID.HasValue || !study.DoctorStaffID.HasValue)
+                        return BadRequest(new { success=false, message="ClinicID and DoctorStaffID are required." });
+                    if (!await CanCreateForDoctorAsync(study.ClinicID.Value, study.DoctorStaffID.Value))
                         return Forbid();
                 }
 
@@ -80,7 +80,7 @@ namespace ReSiRai.Api.Controllers
             var toothRows=await _context.RadiologyStudyTeeth.AsNoTracking().Where(x=>ids.Contains(x.StudyID)).ToListAsync();
             var typeIds=studies.Select(s=>s.StudyTypeID).Distinct().ToList();
             var types=await _context.StudyTypes.AsNoTracking().Where(t=>typeIds.Contains(t.StudyTypeID)).ToDictionaryAsync(t=>t.StudyTypeID,t=>t.StudyTypeName);
-            var result=studies.Select(s=>new{s.StudyID,s.PatientID,s.ClinicID,s.DentistStaffID,s.StudyDate,s.StudyTypeID,StudyTypeName=types.GetValueOrDefault(s.StudyTypeID),s.BodyPart,s.Description,s.Report,s.CreatedDate,s.ModifiedDate,s.Status,s.FollowUpDate,s.FollowUpNote,s.WaitStageID,ToothNumbers=toothRows.Where(t=>t.StudyID==s.StudyID).Select(t=>(int)t.ToothNumber).OrderBy(n=>n).ToArray()}).ToList();
+            var result=studies.Select(s=>new{s.StudyID,s.PatientID,s.ClinicID,s.DoctorStaffID,s.StudyDate,s.StudyTypeID,StudyTypeName=types.GetValueOrDefault(s.StudyTypeID),s.BodyPart,s.Description,s.Report,s.CreatedDate,s.ModifiedDate,s.Status,s.FollowUpDate,s.FollowUpNote,s.WaitStageID,ToothNumbers=toothRows.Where(t=>t.StudyID==s.StudyID).Select(t=>(int)t.ToothNumber).OrderBy(n=>n).ToArray()}).ToList();
             return Ok(new{success=true,patientID,count=result.Count,studies=result});
         }
 
@@ -110,10 +110,10 @@ namespace ReSiRai.Api.Controllers
                 var followUpNote = NormalizeOptionalText(request.FollowUpNote);
                 study.StudyDate=request.StudyDate;study.StudyTypeID=request.StudyTypeID;study.BodyPart=body;study.Description=desc;study.Report=report;
                 study.Status=request.Status;
-                // The dentist identifies the specialty, which drives waiting stages.
-                if(request.DentistStaffID.HasValue&&!await _context.Staff.AnyAsync(s=>s.StaffID==request.DentistStaffID.Value&&s.StaffType==2))
+                // The doctor identifies the specialty, which drives waiting stages.
+                if(request.DoctorStaffID.HasValue&&!await _context.Staff.AnyAsync(s=>s.StaffID==request.DoctorStaffID.Value&&s.StaffType==2))
                     return BadRequest(new{success=false,message="دندانپزشک انتخاب‌شده معتبر نیست."});
-                study.DentistStaffID=request.DentistStaffID;
+                study.DoctorStaffID=request.DoctorStaffID;
                 // A follow-up date only makes sense for status 3, so it is cleared
                 // when the Study is completed or simply open.
                 study.FollowUpDate=request.Status==3?request.FollowUpDate:null;
@@ -145,13 +145,13 @@ namespace ReSiRai.Api.Controllers
             return null;
         }
 
-        private async Task<bool> CanCreateForDentistAsync(int clinicID,int dentistStaffID)
+        private async Task<bool> CanCreateForDoctorAsync(int clinicID,int doctorStaffID)
         {
             int.TryParse(User.FindFirst("StaffID")?.Value,out int staffID);
             int.TryParse(User.FindFirst("StaffType")?.Value,out int staffType);
             int.TryParse(User.FindFirst("UserID")?.Value,out int userID);
-            if(staffType==2)return staffID==dentistStaffID;
-            if(staffType==1)return await _context.UserDentists.AsNoTracking().AnyAsync(x=>x.UserID==userID&&x.ClinicID==clinicID&&x.DentistStaffID==dentistStaffID);
+            if(staffType==2)return staffID==doctorStaffID;
+            if(staffType==1)return await _context.UserDoctors.AsNoTracking().AnyAsync(x=>x.UserID==userID&&x.ClinicID==clinicID&&x.DoctorStaffID==doctorStaffID);
             return false;
         }
 

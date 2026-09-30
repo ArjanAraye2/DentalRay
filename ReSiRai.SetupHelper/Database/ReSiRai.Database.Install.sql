@@ -1,31 +1,11 @@
-/* ReSiRai database initialization / upgrade - authoritative schema
+/* ReSiRai database initialization - authoritative schema
    Source: verified ReSiRai database schema export (15 user tables).
    Non-destructive: existing data and legacy columns are preserved.
 */
 SET NOCOUNT ON;
 
 IF DB_ID(N'ReSiRai') IS NULL
-BEGIN
-    IF DB_ID(N'Dentix') IS NOT NULL
-    BEGIN
-        /* ALTER DATABASE ... MODIFY NAME cannot run inside a transaction, so the
-           name change happens here before XACT_ABORT is enabled for the schema
-           work below. */
-        PRINT N'Renaming legacy Dentix database to ReSiRai (patient data is preserved).';
-        ALTER DATABASE [Dentix] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-        ALTER DATABASE [Dentix] MODIFY NAME = [ReSiRai];
-        ALTER DATABASE [ReSiRai] SET MULTI_USER;
-    END
-    ELSE IF DB_ID(N'DentalRay') IS NOT NULL
-    BEGIN
-        PRINT N'Renaming legacy DentalRay database to ReSiRai (patient data is preserved).';
-        ALTER DATABASE [DentalRay] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-        ALTER DATABASE [DentalRay] MODIFY NAME = [ReSiRai];
-        ALTER DATABASE [ReSiRai] SET MULTI_USER;
-    END
-    ELSE
-        CREATE DATABASE [ReSiRai];
-END;
+    CREATE DATABASE [ReSiRai];
 GO
 SET XACT_ABORT ON;
 GO
@@ -47,21 +27,21 @@ BEGIN
 END;
 GO
 
-IF OBJECT_ID(N'dbo.tblDentalSpecialties',N'U') IS NULL
+IF OBJECT_ID(N'dbo.tblSpecialties',N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.tblDentalSpecialties(
-        SpecialtyID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblDentalSpecialties PRIMARY KEY,
+    CREATE TABLE dbo.tblSpecialties(
+        SpecialtyID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblSpecialties PRIMARY KEY,
         SpecialtyName NVARCHAR(150) NOT NULL,
-        IsActive BIT NOT NULL CONSTRAINT DF_tblDentalSpecialties_IsActive DEFAULT(1),
-        CONSTRAINT UQ_tblDentalSpecialties_SpecialtyName UNIQUE(SpecialtyName)
+        IsActive BIT NOT NULL CONSTRAINT DF_tblSpecialties_IsActive DEFAULT(1),
+        CONSTRAINT UQ_tblSpecialties_SpecialtyName UNIQUE(SpecialtyName)
     );
 END;
 GO
 
-/* Base dental specialties from the verified ReSiRai reference data.
+/* Base teeth specialties from the verified ReSiRai reference data.
    Existing rows are preserved; only missing specialties are inserted. */
-DECLARE @DentalSpecialties TABLE(SpecialtyName NVARCHAR(150), IsActive BIT);
-INSERT INTO @DentalSpecialties VALUES
+DECLARE @Specialties TABLE(SpecialtyName NVARCHAR(150), IsActive BIT);
+INSERT INTO @Specialties VALUES
 (N'دندانپزشک عمومی',1),
 (N'ارتودنسی',1),
 (N'اندودانتیکس (درمان ریشه)',1),
@@ -71,11 +51,11 @@ INSERT INTO @DentalSpecialties VALUES
 (N'جراحی دهان، فک و صورت',1),
 (N'بیماری‌های دهان، فک و صورت',1),
 (N'رادیولوژی دهان، فک و صورت',1);
-INSERT INTO dbo.tblDentalSpecialties(SpecialtyName,IsActive)
+INSERT INTO dbo.tblSpecialties(SpecialtyName,IsActive)
 SELECT d.SpecialtyName,d.IsActive
-FROM @DentalSpecialties d
+FROM @Specialties d
 WHERE NOT EXISTS (
-    SELECT 1 FROM dbo.tblDentalSpecialties s
+    SELECT 1 FROM dbo.tblSpecialties s
     WHERE s.SpecialtyName=d.SpecialtyName
 );
 GO
@@ -128,16 +108,16 @@ BEGIN
 END;
 GO
 
-IF OBJECT_ID(N'dbo.tblUserDentists',N'U') IS NULL
+IF OBJECT_ID(N'dbo.tblUserDoctors',N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.tblUserDentists(
+    CREATE TABLE dbo.tblUserDoctors(
         UserID INT NOT NULL,
         ClinicID INT NOT NULL,
-        DentistStaffID INT NOT NULL,
-        CONSTRAINT PK_tblUserDentists PRIMARY KEY(UserID,ClinicID,DentistStaffID),
-        CONSTRAINT FK_tblUserDentists_User FOREIGN KEY(UserID) REFERENCES dbo.tblUsers(UserID),
-        CONSTRAINT FK_tblUserDentists_Clinic FOREIGN KEY(ClinicID) REFERENCES dbo.tblClinics(ClinicID),
-        CONSTRAINT FK_tblUserDentists_Dentist FOREIGN KEY(DentistStaffID) REFERENCES dbo.tblStaff(StaffID)
+        DoctorStaffID INT NOT NULL,
+        CONSTRAINT PK_tblUserDoctors PRIMARY KEY(UserID,ClinicID,DoctorStaffID),
+        CONSTRAINT FK_tblUserDoctors_User FOREIGN KEY(UserID) REFERENCES dbo.tblUsers(UserID),
+        CONSTRAINT FK_tblUserDoctors_Clinic FOREIGN KEY(ClinicID) REFERENCES dbo.tblClinics(ClinicID),
+        CONSTRAINT FK_tblUserDoctors_Doctor FOREIGN KEY(DoctorStaffID) REFERENCES dbo.tblStaff(StaffID)
     );
 END;
 GO
@@ -217,7 +197,7 @@ BEGIN
         CreatedDate DATETIME2(0) NOT NULL,
         ModifiedDate DATETIME2(0) NULL,
         ClinicID INT NULL,
-        DentistStaffID INT NULL,
+        DoctorStaffID INT NULL,
         StudyTypeID INT NOT NULL
     );
 END;
@@ -252,8 +232,8 @@ GO
 IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'ClinicID') IS NULL
     ALTER TABLE dbo.tblRadiologyStudies ADD ClinicID INT NULL;
 GO
-IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'DentistStaffID') IS NULL
-    ALTER TABLE dbo.tblRadiologyStudies ADD DentistStaffID INT NULL;
+IF COL_LENGTH(N'dbo.tblRadiologyStudies',N'DoctorStaffID') IS NULL
+    ALTER TABLE dbo.tblRadiologyStudies ADD DoctorStaffID INT NULL;
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_tblPatients')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_tblPatients FOREIGN KEY(PatientID) REFERENCES dbo.tblPatients(PatientID);
@@ -261,16 +241,16 @@ GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_Clinic')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_Clinic FOREIGN KEY(ClinicID) REFERENCES dbo.tblClinics(ClinicID);
 GO
-IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_Dentist')
-    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_Dentist FOREIGN KEY(DentistStaffID) REFERENCES dbo.tblStaff(StaffID);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_Doctor')
+    ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_Doctor FOREIGN KEY(DoctorStaffID) REFERENCES dbo.tblStaff(StaffID);
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_tblRadiologyStudies_StudyType')
     ALTER TABLE dbo.tblRadiologyStudies ADD CONSTRAINT FK_tblRadiologyStudies_StudyType FOREIGN KEY(StudyTypeID) REFERENCES dbo.tblStudyTypes(StudyTypeID);
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_ClinicID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
     CREATE INDEX IX_tblRadiologyStudies_ClinicID ON dbo.tblRadiologyStudies(ClinicID);
-IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_DentistStaffID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
-    CREATE INDEX IX_tblRadiologyStudies_DentistStaffID ON dbo.tblRadiologyStudies(DentistStaffID);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_DoctorStaffID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
+    CREATE INDEX IX_tblRadiologyStudies_DoctorStaffID ON dbo.tblRadiologyStudies(DoctorStaffID);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_PatientID' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))
     CREATE INDEX IX_tblRadiologyStudies_PatientID ON dbo.tblRadiologyStudies(PatientID);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'IX_tblRadiologyStudies_StudyDate' AND object_id=OBJECT_ID(N'dbo.tblRadiologyStudies'))

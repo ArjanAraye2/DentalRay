@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ReSiRai.Api.Controllers;
 
-// Analysis of one dental radiology image. The result is stored once per image, so the
+// Analysis of one teeth radiology image. The result is stored once per image, so the
 // picture leaves the clinic only on the first analysis and later views are instant.
 [ApiController]
 [Route("api/ai/images")]
@@ -110,7 +110,7 @@ public sealed class AiRadiologyImageAnalysisController : ControllerBase
         string prompt="""
 You are a clinical assistant reviewing one medical image for a licensed practitioner.
 The image may be a radiograph, a CT or MRI slice, an ultrasound, a clinical photograph,
-or a non-medical picture; the clinic is not necessarily dental.
+or a non-medical picture; the clinic is not necessarily teeth.
 
 Work through the image systematically and report in detail:
 1. modality: what kind of image it is. anatomy: the body part or region in view.
@@ -125,7 +125,7 @@ Never claim certainty, never give a definitive diagnosis, never prescribe treatm
 and never invent findings. If the image is not medical, say plainly what it is and
 return an empty findings array.
 Return ONLY valid JSON with this shape:
-{"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
+{"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"doctorReview":["..."],"confidence":"low|medium|high"}]}
 EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
         if (note.Length > 0)
@@ -308,7 +308,7 @@ EVERY string must be written in Persian (Farsi) - never answer in English.
 You are a clinical assistant reviewing a set of related medical images that belong to one
 case, handed to you together so findings can be connected across them.
 The images may be radiographs, CT or MRI slices, ultrasounds, clinical photographs,
-or non-medical pictures; the clinic is not necessarily dental.
+or non-medical pictures; the clinic is not necessarily teeth.
 
 Work through the whole set systematically and report in detail:
 1. modality: what kind of image it is (name it per image when they differ).
@@ -326,7 +326,7 @@ Never claim certainty, never give a definitive diagnosis, never prescribe treatm
 and never invent findings. If the images are not medical, say plainly what they are
 and return an empty findings array.
 Return ONLY valid JSON with this shape:
-{"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"dentistReview":["..."],"confidence":"low|medium|high"}]}
+{"modality":"string","anatomy":"string","generalFindings":"string","findings":[{"region":"string","observation":"string","suggestion":"string","confidence":"low|medium|high"}],"problemTeeth":[{"toothNumber":16,"findings":["..."],"previousWork":["..."],"doctorReview":["..."],"confidence":"low|medium|high"}]}
 EVERY string must be written in Persian (Farsi) - never answer in English.
 """;
         if (note.Length > 0)

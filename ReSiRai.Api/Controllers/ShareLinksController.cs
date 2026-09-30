@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ReSiRai.Api.Controllers
 {
     // Creates a "view these images" link and texts it to the patient or to the
-    // referring dentist.
+    // referring doctor.
     //
     // Creating and sending require a login; opening the link does not (that is
     // the whole point - the patient is at home without an account). The public

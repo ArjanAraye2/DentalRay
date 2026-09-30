@@ -1,6 +1,6 @@
 /* ReSiRai natural jaw - the "فک طبیعی" view.
-   A real dental arch with the two jaws facing each other, which can be spun in its
-   plane and tilted. The teeth are painted in dental-graphic.css, which every view
+   A real teeth arch with the two jaws facing each other, which can be spun in its
+   plane and tilted. The teeth are painted in teeth-graphic.css, which every view
    shares. */
 
 .natural-odontogram {
@@ -75,10 +75,10 @@
 .natural-hint { color: var(--muted, #64748b); font-size: var(--fs-xs, 12px); }
 
 /* Visibility per view. */
-.dental-integrated-natural { display: none; }
-.dental-view-natural .dental-integrated-natural { display: block; }
-.dental-view-natural .dental-integrated-arch,
-.dental-view-natural .dental-chart-body > .dental-chart-group { display: none; }
+.teeth-integrated-natural { display: none; }
+.teeth-view-natural .teeth-integrated-natural { display: block; }
+.teeth-view-natural .teeth-integrated-arch,
+.teeth-view-natural .teeth-chart-body > .teeth-chart-group { display: none; }
 
 @media (max-width: 700px) {
     .natural-odontogram { padding: 4px; }

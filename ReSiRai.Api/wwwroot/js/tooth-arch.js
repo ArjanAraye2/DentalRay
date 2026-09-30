@@ -1,8 +1,8 @@
-// ReSiRai dental arch geometry, shared by the views that draw a real jaw.
+// ReSiRai teeth arch geometry, shared by the views that draw a real jaw.
 //
 // The arch is a horseshoe that is deeper than it is wide: the incisors sit at the
 // front, the molars curve away at the sides. The curve is flattened at the front
-// (FRONT_FLAT) so it reads as a dental arch rather than an ellipse.
+// (FRONT_FLAT) so it reads as a teeth arch rather than an ellipse.
 //
 // Everything is in a local space centred on the middle of the mouth, y growing
 // downward, so a view can place it anywhere and rotate it without clipping.

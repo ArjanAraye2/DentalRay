@@ -57,7 +57,7 @@ namespace ReSiRai.Api.Controllers
             {
                 var staffID = await _db.RadiologyStudies.AsNoTracking()
                     .Where(x => x.StudyID == studyID.Value)
-                    .Select(x => x.DentistStaffID)
+                    .Select(x => x.DoctorStaffID)
                     .FirstOrDefaultAsync();
                 specialtyID = await _db.Staff.AsNoTracking()
                     .Where(x => x.StaffID == staffID)
@@ -68,7 +68,7 @@ namespace ReSiRai.Api.Controllers
             {
                 // Phase 1 starts from internal medicine; a doctor without a specialty
                 // therefore sees the internal-medicine factor set.
-                specialtyID = await _db.DentalSpecialties.AsNoTracking()
+                specialtyID = await _db.Specialties.AsNoTracking()
                     .Where(x => x.SpecialtyName == "بیماری‌های داخلی")
                     .Select(x => x.SpecialtyID)
                     .FirstOrDefaultAsync();
@@ -169,7 +169,7 @@ namespace ReSiRai.Api.Controllers
             {
                 var staffID = await _db.RadiologyStudies.AsNoTracking()
                     .Where(x => x.StudyID == request.StudyID.Value)
-                    .Select(x => x.DentistStaffID)
+                    .Select(x => x.DoctorStaffID)
                     .FirstOrDefaultAsync(cancellationToken);
                 specialtyID = (await _db.Staff.AsNoTracking()
                     .Where(x => x.StaffID == staffID)
@@ -178,7 +178,7 @@ namespace ReSiRai.Api.Controllers
             }
             if (specialtyID == 0)
             {
-                specialtyID = await _db.DentalSpecialties.AsNoTracking()
+                specialtyID = await _db.Specialties.AsNoTracking()
                     .Where(x => x.SpecialtyName == "بیماری‌های داخلی")
                     .Select(x => x.SpecialtyID)
                     .FirstOrDefaultAsync(cancellationToken);

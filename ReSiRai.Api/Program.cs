@@ -74,7 +74,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 // Security is the default for every controller/action. An endpoint is public only
 // when it explicitly declares [AllowAnonymous] (for example api/auth/login).
-// This prevents a newly added API from accidentally being exposed on the clinic LAN.
+// This prevents a newly added API from acciteethly being exposed on the clinic LAN.
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()

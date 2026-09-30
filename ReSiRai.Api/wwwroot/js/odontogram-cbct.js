@@ -1,7 +1,7 @@
 // ReSiRai CBCT view - the "CBCT" view.
 //
 // A CBCT study is read on a dark screen, so this view is deliberately dark like the
-// imaging software a dentist already knows rather than the light clinical UI.
+// imaging software a doctor already knows rather than the light clinical UI.
 //
 // Three schemes, chosen with a small toolbar:
 //   pano     a full panoramic radiograph (OPG): the mandible as one silhouette with
@@ -545,7 +545,7 @@
         const on = g.classList.contains("selected");
         g.setAttribute("aria-pressed", on ? "true" : "false");
         const n = Number(g.dataset.tooth);
-        const root = container.closest(".dental-chart");
+        const root = container.closest(".teeth-chart");
         const original = root && root.querySelector('.tooth-button[data-tooth="' + n + '"]');
         if (original) {
           original.classList.toggle("selected", on);
@@ -597,7 +597,7 @@
   // The teeth currently chosen, read from the linear buttons so a scheme switch keeps
   // the selection.
   function currentSelection(container) {
-    const root = container.closest(".dental-chart");
+    const root = container.closest(".teeth-chart");
     if (!root) return [];
     return Array.from(root.querySelectorAll(".tooth-button.selected")).map(b => Number(b.dataset.tooth));
   }

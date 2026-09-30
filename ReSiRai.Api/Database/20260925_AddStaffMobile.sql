@@ -1,7 +1,7 @@
 /*
- ReSiRai - mobile number for staff and dentists.
+ ReSiRai - mobile number for staff and doctors.
 
- The share feature texts the referring dentist too, and until now tblStaff had
+ The share feature texts the referring doctor too, and until now tblStaff had
  no phone column at all, so there was nowhere to keep that number.
 
  Safe to run more than once.

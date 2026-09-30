@@ -1,5 +1,5 @@
 // ============================================================
-// ReSiRai Frontend - Study Delete + Dental Chart integration
+// ReSiRai Frontend - Study Delete + Teeth Chart integration
 // ============================================================
 //
 // The Study rows are now built by app.js as collapsible ".study-scroll-card"
@@ -37,14 +37,14 @@
     async function chooseStudyOnlyImages(images){if(!images||!images.length)return[];const names=images.map(x=>`${x.imageID}: ${x.fileName}`).join("\n");const answer=window.prompt("این تصاویر فقط به همین Study متصل هستند:\n\n"+names+"\n\nبرای نگهداری همه، کادر را خالی بگذارید.\nبرای حذف همه، all را وارد کنید.\nبرای حذف انتخابی، ImageIDها را با کاما جدا کنید.");if(answer===null||answer.trim()==="")return[];if(answer.trim().toLowerCase()==="all")return images.map(x=>x.imageID);const allowed=new Set(images.map(x=>Number(x.imageID)));return[...new Set(answer.split(",").map(x=>Number(x.trim())).filter(x=>Number.isInteger(x)&&allowed.has(x)))];}
     async function deleteStudyFromFrontend(studyID){try{const preview=await getDeletePreview(studyID),studyOnly=preview.studyOnlyImages||[];let message="آیا از حذف این Study مطمئن هستید؟";if(preview.sharedImages?.length)message+=`\n\n${preview.sharedImages.length} تصویر مشترک برای Studyهای دیگر باقی می‌ماند.`;const confirmed=await askConfirmation({title:"حذف Study",message,confirmText:"ادامه حذف",danger:true});if(!confirmed)return;const deleteIDs=await chooseStudyOnlyImages(studyOnly),query=deleteIDs.map(id=>`deleteImageIDs=${encodeURIComponent(id)}`).join("&");const response=await fetch(`/api/radiologystudies/${studyID}${query?`?${query}`:""}`,{method:"DELETE"}),result=await response.json();if(!response.ok||!result.success)throw new Error(getApiError(result,"حذف Study انجام نشد."));showToast("Study با موفقیت حذف شد.","success");if(selectedPatientID)await openPatient(selectedPatientID);}catch(error){console.error(error);showToast(error.message||"حذف Study انجام نشد.","error");}}
 
-    function installStudyDentalStyles(){if(document.getElementById("studyDentalStylesheet"))return;const link=document.createElement("link");link.id="studyDentalStylesheet";link.rel="stylesheet";link.href="/css/study-dental.css";document.head.appendChild(link);}
+    function installStudyTeethStyles(){if(document.getElementById("studyTeethStylesheet"))return;const link=document.createElement("link");link.id="studyTeethStylesheet";link.rel="stylesheet";link.href="/css/study-teeth.css";document.head.appendChild(link);}
 
-    // The tooth picker for a new Study. app.js reads "newStudyDentalChart" when it
+    // The tooth picker for a new Study. app.js reads "newStudyTeethChart" when it
     // builds the request (studyPayload), so the field only has to exist in the form.
-    function createDentalChartField(containerId){const panel=document.createElement("div");panel.className="study-dental-panel";const chart=document.createElement("div");chart.id=containerId;const hint=document.createElement("small");hint.className="field-hint";hint.textContent="دندان‌های مربوط به این Study را انتخاب کنید.";panel.append(chart,hint);return panel;}
-    function injectDentalCharts(){if(!window.ReSiRaiDentalChart)return;const newGrid=document.querySelector("#newStudyForm .form-grid");if(newGrid&&!document.getElementById("newStudyDentalChart")){const f=createDentalChartField("newStudyDentalChart");newGrid.appendChild(f);window.ReSiRaiDentalChart.render(f.querySelector("#newStudyDentalChart"),[]);}}
+    function createTeethChartField(containerId){const panel=document.createElement("div");panel.className="study-teeth-panel";const chart=document.createElement("div");chart.id=containerId;const hint=document.createElement("small");hint.className="field-hint";hint.textContent="دندان‌های مربوط به این Study را انتخاب کنید.";panel.append(chart,hint);return panel;}
+    function injectTeethCharts(){if(!window.ReSiRaiTeethChart)return;const newGrid=document.querySelector("#newStudyForm .form-grid");if(newGrid&&!document.getElementById("newStudyTeethChart")){const f=createTeethChartField("newStudyTeethChart");newGrid.appendChild(f);window.ReSiRaiTeethChart.render(f.querySelector("#newStudyTeethChart"),[]);}}
 
-    function loadDentalChart(){installStudyDentalStyles();const ready=()=>{injectDentalCharts();};if(window.ReSiRaiDentalChart){ready();return;}const script=document.createElement("script");script.src="/js/dental-chart.js?v=20260926.1";script.onload=ready;script.onerror=()=>console.error("ReSiRai: dental-chart.js could not be loaded.");document.body.appendChild(script);}
+    function loadTeethChart(){installStudyTeethStyles();const ready=()=>{injectTeethCharts();};if(window.ReSiRaiTeethChart){ready();return;}const script=document.createElement("script");script.src="/js/teeth-chart.js?v=20260926.1";script.onload=ready;script.onerror=()=>console.error("ReSiRai: teeth-chart.js could not be loaded.");document.body.appendChild(script);}
 
     const container=document.getElementById("studiesContainer");
     if(container){
@@ -52,5 +52,5 @@
         new MutationObserver(addDeleteButtonsToStudyCards).observe(container,{childList:true,subtree:true});
         addDeleteButtonsToStudyCards();
     }
-    loadDentalChart();
+    loadTeethChart();
 })();

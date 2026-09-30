@@ -53,7 +53,7 @@ public sealed class AiStudyCardController : ControllerBase
         }
 
         string prompt = """
-This image is a photographed legacy dental patient record card, possibly handwritten in Persian.
+This image is a photographed legacy teeth patient record card, possibly handwritten in Persian.
 Transcribe only what is visible. Never guess missing characters or values, and never invent findings.
 Extract everything needed to register a new visit: the date, the reason for visit, the body part,
 the description, the report, tooth numbers when they are written, and any other note such as

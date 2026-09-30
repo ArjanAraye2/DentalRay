@@ -6,7 +6,7 @@ namespace ReSiRai.Api.Models
     // ============================================================
     // StudyShareLink
     // ============================================================
-    // A single "view these images" link handed to a patient or a dentist.
+    // A single "view these images" link handed to a patient or a doctor.
     //
     // The token is a random secret stored here; it is never derived from the
     // patient data, so a link cannot be guessed or walked. The message that

@@ -42,13 +42,13 @@ namespace ReSiRai.Api.Controllers
             return Ok(new { success = true, count = staff.Count, staff });
         }
 
-        // Lookup used by the Staff form. Only active specialties can be assigned to a dentist.
+        // Lookup used by the Staff form. Only active specialties can be assigned to a doctor.
         // Read-only lookup is available to authenticated operational forms.
         // Creating/editing/deactivating specialty definitions remains a SuperAdmin responsibility.
         [HttpGet("specialties")]
         public async Task<IActionResult> GetActiveSpecialties()
         {
-            var specialties = await _context.DentalSpecialties
+            var specialties = await _context.Specialties
                 .AsNoTracking()
                 .Where(s => s.IsActive)
                 .OrderBy(s => s.SpecialtyName)
@@ -62,25 +62,25 @@ namespace ReSiRai.Api.Controllers
             return Ok(new { success = true, count = specialties.Count, specialties });
         }
 
-        // Dentists with their specialty, used by the study form to suggest the right
-        // waiting stage (a radiology dentist waits for an image, a prosthodontics
-        // dentist waits for a prosthesis).
-        [HttpGet("dentists")]
-        public async Task<IActionResult> GetDentists()
+        // Doctors with their specialty, used by the study form to suggest the right
+        // waiting stage (a radiology doctor waits for an image, a prosthodontics
+        // doctor waits for a prosthesis).
+        [HttpGet("doctors")]
+        public async Task<IActionResult> GetDoctors()
         {
-            var dentists = await _context.Staff.AsNoTracking()
+            var doctors = await _context.Staff.AsNoTracking()
                 .Where(s => s.StaffType == 2 && (s.EndDate == null || s.EndDate >= DateTime.Today))
                 .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
                 .Select(s => new
                 {
                     s.StaffID, s.FirstName, s.LastName, s.SpecialtyID,
-                    SpecialtyName = _context.DentalSpecialties.AsNoTracking()
+                    SpecialtyName = _context.Specialties.AsNoTracking()
                         .Where(d => d.SpecialtyID == s.SpecialtyID)
                         .Select(d => d.SpecialtyName).FirstOrDefault()
                 })
                 .ToListAsync();
 
-            return Ok(new { success = true, count = dentists.Count, dentists });
+            return Ok(new { success = true, count = doctors.Count, doctors });
         }
 
         [HttpGet("{staffID:int}")]
@@ -177,7 +177,7 @@ namespace ReSiRai.Api.Controllers
                 {
                     success = false,
                     message = "نوع شخص معتبر نیست.",
-                    messageEn = "StaffType must be 1 (Employee) or 2 (Dentist)."
+                    messageEn = "StaffType must be 1 (Employee) or 2 (Doctor)."
                 });
 
             if (request.EndDate.HasValue && request.EndDate.Value.Date < request.StartDate.Date)
@@ -188,7 +188,7 @@ namespace ReSiRai.Api.Controllers
                     messageEn = "EndDate cannot be earlier than StartDate."
                 });
 
-            // A dentist must have a valid, active dental specialty.
+            // A doctor must have a valid, active teeth specialty.
             if (request.StaffType == 2)
             {
                 if (!request.SpecialtyID.HasValue)
@@ -196,10 +196,10 @@ namespace ReSiRai.Api.Controllers
                     {
                         success = false,
                         message = "انتخاب تخصص برای دندانپزشک الزامی است.",
-                        messageEn = "A specialty is required for a dentist."
+                        messageEn = "A specialty is required for a doctor."
                     });
 
-                bool specialtyExists = await _context.DentalSpecialties.AsNoTracking()
+                bool specialtyExists = await _context.Specialties.AsNoTracking()
                     .AnyAsync(s => s.SpecialtyID == request.SpecialtyID.Value && s.IsActive);
 
                 if (!specialtyExists)
@@ -207,7 +207,7 @@ namespace ReSiRai.Api.Controllers
                     {
                         success = false,
                         message = "تخصص انتخاب‌شده معتبر یا فعال نیست.",
-                        messageEn = "The selected dental specialty is invalid or inactive."
+                        messageEn = "The selected teeth specialty is invalid or inactive."
                     });
             }
             else if (request.SpecialtyID.HasValue)
@@ -216,7 +216,7 @@ namespace ReSiRai.Api.Controllers
                 {
                     success = false,
                     message = "تخصص دندانپزشکی فقط برای دندانپزشک قابل ثبت است.",
-                    messageEn = "Dental specialty can only be assigned to a dentist."
+                    messageEn = "Teeth specialty can only be assigned to a doctor."
                 });
             }
 

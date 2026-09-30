@@ -1,6 +1,6 @@
 /* ReSiRai - arch odontogram.
    The arch geometry (gum, palate, mouth and tooth placement) is the original layout.
-   The teeth themselves are painted in dental-graphic.css, which every view shares. */
+   The teeth themselves are painted in teeth-graphic.css, which every view shares. */
 
 .real-odontogram {
     max-width: 900px;
@@ -57,11 +57,11 @@
 .arch-tooth.selected .arch-tooth-number { fill: #0069cf; }
 
 /* The grouped rows are hidden while the arch is showing. */
-.dental-view-arch .dental-chart-body > .dental-chart-group { display: none; }
-.dental-integrated-arch { display: none; }
-.dental-view-arch .dental-integrated-arch { display: block; }
-.dental-view-linear .dental-integrated-arch,
-.dental-view-anatomical .dental-integrated-arch { display: none; }
+.teeth-view-arch .teeth-chart-body > .teeth-chart-group { display: none; }
+.teeth-integrated-arch { display: none; }
+.teeth-view-arch .teeth-integrated-arch { display: block; }
+.teeth-view-linear .teeth-integrated-arch,
+.teeth-view-anatomical .teeth-integrated-arch { display: none; }
 
 @media (max-width: 700px) {
     .real-odontogram { padding: 4px; overflow: auto; }

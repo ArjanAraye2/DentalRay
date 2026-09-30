@@ -7,7 +7,7 @@
  const esc=value=>{const d=document.createElement("div");d.textContent=value??"";return d.innerHTML;};
  const text=value=>value===null||value===undefined||value===""?"—":String(value);
  const row=(label,value)=>`<div class="card-extraction-field"><span>${esc(label)}</span><strong>${esc(text(value))}</strong></div>`;
- const dentalType=name=>/(cbct|opg|پانور|پری[‌ -]?اپیکال|بایت|اکلوز|سفال|داخل دهان|دندان)/i.test(String(name||""));
+ const teethType=name=>/(cbct|opg|پانور|پری[‌ -]?اپیکال|بایت|اکلوز|سفال|داخل دهان|دندان)/i.test(String(name||""));
  function close(){document.getElementById("cardExtractionModal")?.remove();}
 
  // حریم خصوصی: تصویرِ بیمار بدونِ تأییدِ صریحِ کاربر به سرویسِ خارجی نمی‌رود.
@@ -102,7 +102,7 @@
   const regions=Array.isArray(data.findings)?data.findings:[];
   const regionsSection=regions.length?`<section><h4>بررسیِ منطقه‌به‌منطقه</h4>${regions.map(f=>`<div class="radiology-finding"><strong>${esc(f.region||"—")}</strong><p>یافته: ${esc(f.observation||"—")}</p>${f.suggestion?`<p>برای بررسی: ${esc(f.suggestion)}</p>`:""}<small>اطمینان: ${esc(f.confidence||"نامشخص")}</small></div>`).join("")}</section>`:"";
   const what=[data.modality?`نوع تصویر: ${data.modality}`:"",data.anatomy?`ناحیه: ${data.anatomy}`:""].filter(Boolean).join(" · ");
-  body.innerHTML=`${noteLine(data,meta)}${sourceLine(meta)}<p class="card-extraction-warning">این تحلیل جایگزینِ تشخیصِ بالینی نیست.</p>${what?`<p style="margin:6px 0;font-size:13px;color:#0f5165"><strong>${esc(what)}</strong></p>`:""}${general?`<section><h4>یافته‌های کلی</h4><pre>${esc(general)}</pre></section>`:""}${regionsSection}${teeth.length?`<section><h4>دندان‌های نیازمند بررسی</h4>${teeth.map(t=>`<div class="radiology-finding"><strong>دندان ${esc(t.toothNumber??"؟")}</strong>${(t.findings||[]).map(x=>`<p>یافته: ${esc(x)}</p>`).join("")}${(t.previousWork||[]).map(x=>`<p>درمان قبلی: ${esc(x)}</p>`).join("")}${(t.dentistReview||[]).map(x=>`<p>بررسی دندانپزشک: ${esc(x)}</p>`).join("")}<small>اطمینان: ${esc(t.confidence||"نامشخص")}</small></div>`).join("")}</section>`:""}`;
+  body.innerHTML=`${noteLine(data,meta)}${sourceLine(meta)}<p class="card-extraction-warning">این تحلیل جایگزینِ تشخیصِ بالینی نیست.</p>${what?`<p style="margin:6px 0;font-size:13px;color:#0f5165"><strong>${esc(what)}</strong></p>`:""}${general?`<section><h4>یافته‌های کلی</h4><pre>${esc(general)}</pre></section>`:""}${regionsSection}${teeth.length?`<section><h4>دندان‌های نیازمند بررسی</h4>${teeth.map(t=>`<div class="radiology-finding"><strong>دندان ${esc(t.toothNumber??"؟")}</strong>${(t.findings||[]).map(x=>`<p>یافته: ${esc(x)}</p>`).join("")}${(t.previousWork||[]).map(x=>`<p>درمان قبلی: ${esc(x)}</p>`).join("")}${(t.doctorReview||[]).map(x=>`<p>بررسی دندانپزشک: ${esc(x)}</p>`).join("")}<small>اطمینان: ${esc(t.confidence||"نامشخص")}</small></div>`).join("")}</section>`:""}`;
   const copy=body.closest(".card-extraction-dialog")?.querySelector(".card-extraction-copy");
    if(copy)copy.onclick=async()=>navigator.clipboard.writeText(body.innerText);
  }
@@ -256,7 +256,7 @@
   }
 
   // تحلیلِ چند تصویرِ انتخاب‌شده یا همهٔ تصاویرِ مراجعه با هم؛ true یعنی نتیجه نمایش داده شد.
-  window.ReSiRaiImageAI={open,analyze,analyzeMany,isDentalType:dentalType,askConsent};
+  window.ReSiRaiImageAI={open,analyze,analyzeMany,isTeethType:teethType,askConsent};
  window.ReSiRaiCardExtraction={open};
  // تأییدِ حریم خصوصی، مشترک بینِ همهٔ دکمه‌های AI همین صفحه
  window.ReSiRaiAIConsent={ask:askConsent};

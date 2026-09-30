@@ -14,9 +14,9 @@ namespace ReSiRai.Api.Models
         public int PatientID { get; set; }
 
         // These two fields are nullable only for legacy Studies created before
-        // Clinic/Dentist support was introduced. New Studies will later require them.
+        // Clinic/Doctor support was introduced. New Studies will later require them.
         public int? ClinicID { get; set; }
-        public int? DentistStaffID { get; set; }
+        public int? DoctorStaffID { get; set; }
 
         public DateTime StudyDate { get; set; }
 

@@ -83,7 +83,7 @@ public sealed class ReportsController : ControllerBase
         // ---- مراجعات ---------------------------------------------------------
         var studyRows = await _db.RadiologyStudies.AsNoTracking()
             .Where(s => s.StudyDate >= fromDate && s.StudyDate < toExclusive)
-            .Select(s => new { s.PatientID, s.StudyTypeID, s.DentistStaffID })
+            .Select(s => new { s.PatientID, s.StudyTypeID, s.DoctorStaffID })
             .ToListAsync(cancellationToken);
 
         var typeNames = await _db.StudyTypes.AsNoTracking()
@@ -96,8 +96,8 @@ public sealed class ReportsController : ControllerBase
             .OrderByDescending(x => x.count)
             .ToList();
 
-        var byDentist = studyRows.Where(x => x.DentistStaffID.HasValue)
-            .GroupBy(x => x.DentistStaffID!.Value)
+        var byDoctor = studyRows.Where(x => x.DoctorStaffID.HasValue)
+            .GroupBy(x => x.DoctorStaffID!.Value)
             .Select(g => new { name = staffNames.TryGetValue(g.Key, out var n) && n.Length > 0 ? n : $"پرسنل {g.Key}", count = g.Count() })
             .OrderByDescending(x => x.count)
             .ToList();
@@ -191,7 +191,7 @@ public sealed class ReportsController : ControllerBase
                 patientCount = studyRows.Select(x => x.PatientID).Distinct().Count(),
                 newPatients,
                 byStudyType,
-                byDentist
+                byDoctor
             },
             images = new
             {
