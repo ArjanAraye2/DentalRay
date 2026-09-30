@@ -95,7 +95,16 @@
         if (x.model) meta.appendChild(el("span", null, `مدل: ${x.model}`));
         body.appendChild(meta);
 
-        if (c.notEnoughData) {
+        if (c.rawText) {
+            // The model answered but not in a readable structure: show its own
+            // words rather than hiding the answer behind an error.
+            const rawWarn = el("div", "consult-warning",
+                "پاسخِ مدل ساختاریافته نبود؛ متنِ کاملِ پاسخ در پایین آمده است.");
+            body.appendChild(rawWarn);
+            body.appendChild(el("pre", "consult-raw", String(c.rawText)));
+        }
+
+        if (c.notEnoughData && !c.rawText) {
             const warn = el("div", "consult-warning",
                 "داده‌ها برای نظر کافی نیست" + (c.missingFactors && c.missingFactors.length
                     ? "؛ فاکتورهای ثبت‌نشده: " + c.missingFactors.join("، ") : "."));

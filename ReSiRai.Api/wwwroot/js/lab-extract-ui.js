@@ -233,7 +233,24 @@
             tr.appendChild(tdOf(include));
 
             tr.appendChild(el("td", null, item.name || ""));
-            tr.appendChild(el("td", null, item.value ?? ""));
+            // The value cell is editable: when OCR mangles a row the doctor fixes
+            // the number here and presses confirm again - no more dead ends.
+            const valueCell = el("td");
+            const valueInput = document.createElement("input");
+            valueInput.type = "text";
+            valueInput.className = "lab-extract-value";
+            valueInput.value = item.value ?? "";
+            valueInput.addEventListener("input", () => {
+                tr.dataset.value = valueInput.value;
+                tr.classList.remove("is-skipped");
+                tr.title = "";
+                // Edited rows are saved again on the next confirm; untouched
+                // saved rows are not duplicated.
+                delete tr.dataset.picked;
+                tr.classList.remove("is-saved");
+            });
+            valueCell.appendChild(valueInput);
+            tr.appendChild(valueCell);
             tr.appendChild(el("td", null, item.unit || ""));
             tr.appendChild(el("td", null, item.refText || ""));
 
@@ -277,13 +294,14 @@
 
     // The count of saved and unsaved data with the reason for every unsaved row
     // - shown after saving and kept until the doctor closes the dialog.
-    function showSummary(body, savedCount, totalTicked, addedCount, skipped) {
+    function showSummary(body, savedCount, totalTicked, addedCount, skipped, alreadySaved) {
         body.querySelector(".lab-extract-summary")?.remove();
         const box = el("div", "lab-extract-summary");
         box.appendChild(el("div", savedCount > 0 ? "sum-ok" : "sum-warn",
             savedCount > 0
                 ? `✓ ${savedCount} مقدار ثبت شد${totalTicked > savedCount ? ` از ${totalTicked} ردیف تأییدشده` : ""}.`
                 : "هیچ مقداری ثبت نشد."));
+        if (alreadySaved) box.appendChild(el("div", "sum-ok", `↩ ${alreadySaved} مورد پیش‌تر ثبت شده بود و دوباره ثبت نشد.`));
         if (addedCount) box.appendChild(el("div", "sum-ok", `➕ ${addedCount} تست جدید به دیکشنری افزوده شد.`));
         if (skipped.length) {
             box.appendChild(el("div", "sum-warn", `⚠️ ${skipped.length} مورد ثبت نشد:`));
@@ -377,6 +395,7 @@
         const items = [];
         const skipped = [];
         const added = [];
+        let alreadySaved = 0;
         // Each unsaved row is tagged in the table itself, so the eye finds it.
         const mark = (tr, reason) => {
             skipped.push(reason);
@@ -385,6 +404,8 @@
         for (const tr of body.querySelectorAll(".lab-extract-table tbody tr")) {
             const include = tr.querySelector('input[type="checkbox"]');
             if (!include || !include.checked) continue;
+            // Already saved and untouched since? Never write it a second time.
+            if (tr.dataset.picked === "1") { alreadySaved++; continue; }
             const printedName = (tr.cells[1]?.textContent || "").trim();
             let factorID = Number(tr.dataset.factorId || 0);
             const select = tr.querySelector("select");
@@ -466,7 +487,7 @@
             // did not, and why. The doctor must not depend on a vanishing toast.
             for (const tr of body.querySelectorAll(".lab-extract-table tbody tr"))
                 if (tr.dataset.picked === "1") tr.classList.add("is-saved");
-            showSummary(body, savedCount, items.length + skipped.length, added.length, skipped);
+            showSummary(body, savedCount, items.length + skipped.length, added.length, skipped, alreadySaved);
         } catch (e) {
             setStatus(overlay, e.message || "ثبت مقادیر ناموفق بود.", true);
         } finally {

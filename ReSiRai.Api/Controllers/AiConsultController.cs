@@ -174,9 +174,28 @@ public sealed class AiConsultController : ControllerBase
         }
         catch (JsonException)
         {
+            // The model wrapped or cut its answer: show the text itself instead of
+            // throwing the doctor out of the consultation.
             await _events.LogAsync("ai.consult", "bad-json", $"study={request.StudyID}",
                 (int)stopwatch.ElapsedMilliseconds, GetCurrentUserID(), User.Identity?.Name);
-            return StatusCode(502, new { success = false, message = "پاسخ مدل قابل خواندن نبود." });
+            return Ok(new
+            {
+                success = true,
+                studyID = request.StudyID,
+                draft,
+                model = (string?)null,
+                coverage,
+                requiredMissing,
+                consultation = JsonSerializer.SerializeToElement(new
+                {
+                    notEnoughData = true,
+                    missingFactors = Array.Empty<string>(),
+                    differential = Array.Empty<object>(),
+                    redFlags = Array.Empty<string>(),
+                    suggestedWorkup = Array.Empty<string>(),
+                    rawText = raw
+                })
+            });
         }
 
         await _events.LogAsync("ai.consult", "ok",

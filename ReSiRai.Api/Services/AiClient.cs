@@ -106,6 +106,55 @@ public sealed class AiClient
         return null;
     }
 
+    // مدل‌های ضعیف گاهی JSON را در متن یا توضیح می‌پیچند؛ اولین شیءٔ متوازن
+    // را بیرون می‌کشیم تا پاسخِ قابلِ استفاده هدر نرود.
+    private static string ExtractFirstJson(string text)
+    {
+        int start = text.IndexOf('{');
+        if (start < 0) return string.Empty;
+        int depth = 0;
+        bool inString = false, escaped = false;
+        for (int i = start; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (inString)
+            {
+                if (escaped) escaped = false;
+                else if (c == '\\') escaped = true;
+                else if (c == '"') inString = false;
+                continue;
+            }
+            if (c == '"') inString = true;
+            else if (c == '{') depth++;
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0) return text.Substring(start, i - start + 1);
+            }
+        }
+        return string.Empty;
+    }
+
+    private static bool IsValidJson(string text)
+    {
+        if (text.Length == 0) return false;
+        try { using var _ = JsonDocument.Parse(text); return true; }
+        catch (JsonException) { return false; }
+    }
+
+    // پاسخ را فقط وقتی تحویل می‌دهیم که واقعاً JSON معتبر باشد؛ وگرنه متنِ خام
+    // را از دلش بیرون می‌کشیم.
+    private static string AcceptJson(string raw, string text)
+    {
+        string normalized = NormalizeJson(text);
+        if (normalized.Length > 0 && (normalized[0] == '{' || normalized[0] == '[') && IsValidJson(normalized))
+            return normalized;
+        string extracted = ExtractFirstJson(text);
+        if (extracted.Length > 0 && IsValidJson(extracted)) return extracted;
+        extracted = ExtractFirstJson(raw);
+        return extracted.Length > 0 && IsValidJson(extracted) ? extracted : string.Empty;
+    }
+
     // پرامپت + تصویرها را می‌فرستد و **متنِ JSON آمادهٔ پارس** برمی‌گرداند.
     public async Task<string> CompleteJsonAsync(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images,
         CancellationToken cancellationToken, bool compactImages = false)
@@ -138,8 +187,8 @@ public sealed class AiClient
             {
                 string raw = await SendCoreAsync(prompt, prepared, model, cancellationToken);
                 string text = ExtractText(raw) ?? string.Empty;
-                string normalized = NormalizeJson(text);
-                if (normalized.Length > 0 && (normalized[0] == '{' || normalized[0] == '['))
+                string normalized = AcceptJson(raw, text);
+                if (normalized.Length > 0)
                 {
                     // کدام مدل جواب داد و چقدر طول کشید؟ برای انتخابِ پایدارترین سرویس لازم است.
                     Console.WriteLine($"[ReSiRai AI] ok via {model ?? "default"} in {watch.ElapsedMilliseconds}ms");
@@ -480,8 +529,8 @@ public sealed class AiClient
                 string raw = await response.Content.ReadAsStringAsync(cancellationToken);
                 if (!response.IsSuccessStatusCode) throw Translate(response.StatusCode, raw);
                 string text = ExtractText(raw) ?? string.Empty;
-                string normalized = NormalizeJson(text);
-                if (normalized.Length > 0 && (normalized[0] == '{' || normalized[0] == '['))
+                string normalized = AcceptJson(raw, text);
+                if (normalized.Length > 0)
                 {
                     Console.WriteLine($"[ReSiRai AI] ok via keyless {model} in {url}");
                     return normalized;
