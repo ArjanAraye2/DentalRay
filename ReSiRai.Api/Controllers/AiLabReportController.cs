@@ -479,6 +479,9 @@ Return ONLY valid JSON with this exact shape:
         if (rows is null || row < 0 || row >= rows.Count) return NotFound();
 
         byte[] image = await System.IO.File.ReadAllBytesAsync(batch.ImagePath, cancellationToken);
+        // مختصاتِ ردیف‌ها روی تصویرِ راست‌شده است؛ اول همان نسخه ساخته می‌شود
+        // وگرنه برش جایِ دیگری از برگه را نشان می‌دهد.
+        image = await _ai.UprightAsync(image, cancellationToken);
         byte[]? jpeg = CropRows(image, new List<(LabSheetParser.Row Row, int Index)> { (rows[row], row) });
         return jpeg is null ? NotFound() : File(jpeg, "image/jpeg");
     }
@@ -511,6 +514,8 @@ Return ONLY valid JSON with this exact shape:
         var original = rows[request.Row];
 
         byte[] image = await System.IO.File.ReadAllBytesAsync(batch.ImagePath, cancellationToken);
+        // مختصاتِ ردیف‌ها روی تصویرِ راست‌شده است؛ برش باید از همان نسخه باشد.
+        image = await _ai.UprightAsync(image, cancellationToken);
         byte[] crop = CropRows(image, new List<(LabSheetParser.Row Row, int Index)> { (original, request.Row) }) ?? image;
 
         // OCR قطعی روی خودِ همان تکه.

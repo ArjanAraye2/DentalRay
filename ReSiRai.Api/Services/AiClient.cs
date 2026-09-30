@@ -412,6 +412,35 @@ public sealed class AiClient
     public async Task<(string Text, byte[] Image)> OcrDataAsync(byte[] bytes, CancellationToken cancellationToken)
         => await OcrRunAsync(bytes, "tsv", false, cancellationToken);
 
+    /// <summary>
+    /// تصویر همان‌طور که OCR دید (راست‌چین): مختصاتِ ردیف‌های استخراج‌شده فقط
+    /// با این نسخه می‌خواند. برایِ نمایشِ تکهٔ برگه و بازخوانیِ نقطه‌ای لازم است.
+    /// </summary>
+    public async Task<byte[]> UprightAsync(byte[] bytes, CancellationToken cancellationToken)
+    {
+        string exe = TesseractExe;
+        if (exe.Length == 0 || !OperatingSystem.IsWindows()) return bytes;
+        string temp = Path.Combine(Path.GetTempPath(), "resirai-upright-" + Guid.NewGuid().ToString("N") + ".jpg");
+        try
+        {
+            await File.WriteAllBytesAsync(temp, bytes, cancellationToken);
+            string osd = string.Empty;
+            try
+            {
+                osd = await RunTesseractAsync(exe, temp, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
+            }
+            catch (AiException) { return bytes; }
+            var match = System.Text.RegularExpressions.Regex.Match(osd, @"Rotate:\s*(\d+)");
+            if (!match.Success) return bytes;
+            RotateToUpright(temp, int.Parse(match.Groups[1].Value) % 360);
+            return await File.ReadAllBytesAsync(temp, cancellationToken);
+        }
+        finally
+        {
+            try { File.Delete(temp); } catch { }
+        }
+    }
+
     private async Task<(string Text, byte[] Image)> OcrRunAsync(byte[] bytes, string outputMode, bool persianFirst,
         CancellationToken cancellationToken)
     {
@@ -424,8 +453,14 @@ public sealed class AiClient
         {
             await File.WriteAllBytesAsync(temp, bytes, cancellationToken);
             // تشخیصِ جهت باید روی خودِ تصویرِ کامل باشد؛ نسخهٔ کوچک OSD را به
-            // اشتباه می‌اندازد (برگه وارونه خوانده می‌شد).
-            string osd = await RunTesseractAsync(exe, temp, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
+            // اشتباه می‌اندازد (برگه وارونه خوانده می‌شد). شکستِ OSD هم مهلک
+            // نیست: تکه‌های کوچک اغلب OSD ندارند و همان‌طور که هستند خوانده می‌شوند.
+            string osd = string.Empty;
+            try
+            {
+                osd = await RunTesseractAsync(exe, temp, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
+            }
+            catch (AiException) { /* بدونِ چرخش ادامه می‌دهیم */ }
             var match = System.Text.RegularExpressions.Regex.Match(osd, @"Rotate:\s*(\d+)");
             if (match.Success && OperatingSystem.IsWindows())
             {
