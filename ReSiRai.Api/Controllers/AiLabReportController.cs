@@ -460,6 +460,30 @@ Return ONLY valid JSON with this exact shape:
     }
 
     /// <summary>
+    /// The paper snippet behind one extracted row. Trust in AI comes from being
+    /// able to verify it: one click shows the exact band of the sheet the number
+    /// was read from, beside the number itself.
+    /// </summary>
+    [HttpGet("crop")]
+    public async Task<IActionResult> Crop([FromQuery] long extractionID, [FromQuery] int row,
+        CancellationToken cancellationToken)
+    {
+        var batch = await _db.LabReportExtractions.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ExtractionID == extractionID, cancellationToken);
+        if (batch is null || string.IsNullOrWhiteSpace(batch.ImagePath) || !System.IO.File.Exists(batch.ImagePath))
+            return NotFound();
+
+        List<LabSheetParser.Row>? rows = null;
+        try { rows = JsonSerializer.Deserialize<List<LabSheetParser.Row>>(batch.RawJson ?? "[]"); }
+        catch (JsonException) { }
+        if (rows is null || row < 0 || row >= rows.Count) return NotFound();
+
+        byte[] image = await System.IO.File.ReadAllBytesAsync(batch.ImagePath, cancellationToken);
+        byte[]? jpeg = CropRows(image, new List<(LabSheetParser.Row Row, int Index)> { (rows[row], row) });
+        return jpeg is null ? NotFound() : File(jpeg, "image/jpeg");
+    }
+
+    /// <summary>
     /// نوارِ ردیف‌های گم‌شده که روی هم چیده شده‌اند: مدل باید عدد را درشت و
     /// خوانا ببیند، نه اینکه در عکسِ بزرگِ کلِ صفحه دنبالش بگردد.
     /// </summary>

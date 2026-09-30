@@ -223,7 +223,7 @@
         table.appendChild(thead);
 
         const tbody = el("tbody");
-        for (const item of (x.items || [])) {
+        for (const [rowIndex, item] of (x.items || []).entries()) {
             const tr = el("tr");
             const include = document.createElement("input");
             include.type = "checkbox";
@@ -232,7 +232,18 @@
             include.checked = String(item.value ?? "").trim() !== "";
             tr.appendChild(tdOf(include));
 
-            tr.appendChild(el("td", null, item.name || ""));
+            const nameCell = el("td", null, item.name || "");
+            // Trust in AI comes from verification: one click shows the exact
+            // snippet of the paper this row was read from.
+            const peek = document.createElement("button");
+            peek.type = "button";
+            peek.className = "lab-extract-peek";
+            peek.textContent = "🔍";
+            peek.title = "تکهٔ برگه پشتِ این ردیف را ببینید و با عدد مقایسه کنید";
+            peek.addEventListener("click", () =>
+                window.open(`/api/ai/images/crop?extractionID=${encodeURIComponent(x.extractionID ?? "")}&row=${rowIndex}`, "_blank"));
+            nameCell.appendChild(peek);
+            tr.appendChild(nameCell);
             // The value cell is editable: when OCR mangles a row the doctor fixes
             // the number here and presses confirm again - no more dead ends.
             const valueCell = el("td");

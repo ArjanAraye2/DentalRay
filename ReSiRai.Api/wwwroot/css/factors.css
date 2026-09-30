@@ -246,6 +246,17 @@
     content: "🤖";
     margin-right: 4px;
 }
+.lab-extract-peek {
+    margin-right: 6px;
+    border: 1px solid #d7e0e6;
+    background: #f6f8fa;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 1px 5px;
+    opacity: 0.65;
+}
+.lab-extract-peek:hover { opacity: 1; background: #dff4f8; }
 .lab-extract-value {
     width: 100%;
     box-sizing: border-box;
