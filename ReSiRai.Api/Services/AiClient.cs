@@ -595,8 +595,9 @@ public sealed class AiClient
 
         (string Url, string Model)[] attempts =
         {
-            ("https://text.pollinations.ai/openai", "openai-fast"),
-            ("https://api.llm7.io/v1/chat/completions", "DeepSeek-V4-Flash-0731")
+            // مدل‌ها روزانه عوض می‌شوند؛ این‌ها با تستِ زنده تأیید شده‌اند.
+            ("https://api.llm7.io/v1/chat/completions", "gpt-oss-120b:free"),
+            ("https://text.pollinations.ai/openai", "openai-fast")
         };
         AiException? last = null;
         foreach (var (url, model) in attempts)
