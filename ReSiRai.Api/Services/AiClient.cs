@@ -351,7 +351,7 @@ public sealed class AiClient
     }
 
     // OCR محلی: اول جهتِ صفحه (عکسِ موبایل اغلب ۹۰ درجه چرخیده است)، بعد خواندن.
-    private async Task<string> OcrAsync(byte[] bytes, CancellationToken cancellationToken)
+    public async Task<string> OcrTextAsync(byte[] bytes, CancellationToken cancellationToken)
     {
         string exe = TesseractExe;
         if (exe.Length == 0) return await OcrSpaceAsync(bytes, cancellationToken);
@@ -456,7 +456,7 @@ public sealed class AiClient
             sb.Append(prompt);
             sb.Append("\n\nThe printed content of the photographed page(s) was read with OCR and may contain noise:\n---\n");
             foreach (var (mime, bytes) in images)
-                if (bytes is { Length: > 0 }) sb.AppendLine(await OcrAsync(bytes, cancellationToken));
+                if (bytes is { Length: > 0 }) sb.AppendLine(await OcrTextAsync(bytes, cancellationToken));
             sb.Append("---\nStructure the result from the text above. Fix obvious OCR noise (for example a missing decimal point) using the printed reference ranges and context. Never invent rows.");
             finalPrompt = sb.ToString();
         }

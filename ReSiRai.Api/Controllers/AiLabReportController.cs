@@ -149,6 +149,18 @@ public sealed class AiLabReportController : ControllerBase
     private async Task<IActionResult> ExtractCoreAsync(List<(string Mime, byte[] Bytes)> parts,
         string firstRelativePath, string fileLabel, int? studyID, CancellationToken cancellationToken)
     {
+        // The deterministic path first: a printed table is read from the OCR text
+        // exactly as printed - no model, no network, and above all no invented
+        // rows. The AI path below stays only for sheets this parser cannot read.
+        var parsed = new List<LabSheetParser.Row>();
+        foreach (var (mime, bytes) in parts)
+        {
+            try { parsed.AddRange(LabSheetParser.Parse(await _ai.OcrTextAsync(bytes, cancellationToken))); }
+            catch (AiException) { /* no OCR on this machine - the AI path decides */ }
+        }
+        if (parsed.Count >= 3)
+            return await BuildParsedResultAsync(parsed, firstRelativePath, fileLabel, studyID, cancellationToken);
+
         string? configError = _ai.ConfigurationError();
         if (configError is not null)
             return StatusCode(503, new { success = false, message = configError });
@@ -218,7 +230,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
 
             var factors = await _db.ClinicalFactors.AsNoTracking()
                 .Where(x => x.IsActive)
-                .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM))
+                .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh))
                 .ToListAsync(cancellationToken);
 
             var items = new List<object>();
@@ -266,8 +278,80 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
         }
     }
 
-    private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM);
-    private sealed record MatchResult(int FactorID, string FactorCode, string NameFa, string? ShortCode, string? UnitUCUM, int Confidence);
+    /// <summary>
+    /// The parsed table becomes the review draft: the rows are exactly what the
+    /// sheet printed (decimal point restored from the reference range), each one
+    /// matched against the factor dictionary.
+    /// </summary>
+    private async Task<IActionResult> BuildParsedResultAsync(List<LabSheetParser.Row> rows,
+        string firstRelativePath, string fileLabel, int? studyID, CancellationToken cancellationToken)
+    {
+        var batch = new LabReportExtraction
+        {
+            StudyID = studyID ?? 0,
+            FileName = fileLabel,
+            ImagePath = firstRelativePath.Length == 0 ? "" : _storage.GetPhysicalPath(firstRelativePath),
+            LabName = null,
+            SampleDate = null,
+            RawJson = JsonSerializer.Serialize(rows),
+            Status = 1,
+            CreatedDate = DateTime.Now
+        };
+        _db.LabReportExtractions.Add(batch);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var factors = await _db.ClinicalFactors.AsNoTracking()
+            .Where(x => x.IsActive)
+            .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh))
+            .ToListAsync(cancellationToken);
+
+        var items = new List<object>();
+        int unmatched = 0;
+        foreach (var row in rows)
+        {
+            var best = MatchFactor(row.Name, factors);
+            if (best is null) unmatched++;
+            // The dictionary's own range is the better ruler for the scale fix.
+            bool useDict = best?.RefLow is not null || best?.RefHigh is not null;
+            string value = row.Value.Length == 0
+                ? ""
+                : LabSheetParser.FitScale(row.Value,
+                    useDict ? best!.RefLow : row.RefLow, useDict ? best!.RefHigh : row.RefHigh);
+            items.Add(new
+            {
+                name = row.Name,
+                nameFa = (string?)null,
+                value,
+                unit = row.Unit,
+                refText = row.RefText,
+                refLow = row.RefLow,
+                refHigh = row.RefHigh,
+                flag = (string?)null,
+                factorID = best?.FactorID,
+                factorCode = best?.FactorCode,
+                factorNameFa = best?.NameFa,
+                factorShortCode = best?.ShortCode,
+                factorUnit = best?.UnitUCUM,
+                matchConfidence = best?.Confidence ?? 0,
+                matchStatus = best is null ? "unmatched" : (best.Confidence >= 95 ? "matched" : "review")
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            imageID = (long?)null,
+            extractionID = batch.ExtractionID,
+            labName = (string?)null,
+            sampleDateRaw = (string?)null,
+            sampleDate = (DateTime?)null,
+            unmatchedCount = unmatched,
+            items
+        });
+    }
+
+    private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM, decimal? RefLow, decimal? RefHigh);
+    private sealed record MatchResult(int FactorID, string FactorCode, string NameFa, string? ShortCode, string? UnitUCUM, int Confidence, decimal? RefLow, decimal? RefHigh);
 
     /// <summary>
     /// Name matching between what the lab printed and our dictionary. Confidence
@@ -296,7 +380,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             }
 
             if (score >= 80 && (best is null || score > best.Confidence))
-                best = new MatchResult(f.FactorID, f.FactorCode, f.NameFa, f.ShortCode, f.UnitUCUM, score);
+                best = new MatchResult(f.FactorID, f.FactorCode, f.NameFa, f.ShortCode, f.UnitUCUM, score, f.RefLow, f.RefHigh);
         }
         return best;
     }
