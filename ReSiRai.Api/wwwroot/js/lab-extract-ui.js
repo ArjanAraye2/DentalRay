@@ -296,6 +296,12 @@
             tr.dataset.refHigh = item.refHigh ?? "";
             tr.dataset.refText = item.refText || "";
             tr.dataset.confidence = String(item.matchConfidence || 0);
+            if (item.suggested) {
+                // پیشنهادِ هوش مصنوعی برای سلولی که OCR گم کرده بود؛ تا تأییدِ
+                // پزشک فقط پیشنهاد است و رنگش فرق دارد.
+                tr.classList.add("is-suggested");
+                tr.title = "پیشنهادِ هوش مصنوعی — قبل از ثبت تأیید یا اصلاح کنید";
+            }
             tbody.appendChild(tr);
         }
         table.appendChild(tbody);

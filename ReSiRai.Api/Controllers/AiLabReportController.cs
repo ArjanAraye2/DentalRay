@@ -181,6 +181,11 @@ public sealed class AiLabReportController : ControllerBase
                         var rows2 = LabSheetParser.ParseTsv(turned);
                         if (rows2.Count > rows.Count) rows = rows2;
                     }
+                    if (rows.Count >= 3)
+                        // سلول‌هایی که OCR گم کرده (فونتِ موربِ برگه‌ها) را فقط
+                        // مدلِ بینایی می‌بیند؛ پیشنهادش علامت‌دار است و با تأییدِ
+                        // پزشک ثبت می‌شود.
+                        await SuggestMissingAsync(part.Bytes, rows, ct);
                     lock (gate) parsed.AddRange(rows);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -359,6 +364,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 refLow = row.RefLow,
                 refHigh = row.RefHigh,
                 flag = (string?)null,
+                suggested = row.Suggested,
                 factorID = best?.FactorID,
                 factorCode = best?.FactorCode,
                 factorNameFa = best?.NameFa,
@@ -384,6 +390,70 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
 
     private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM, decimal? RefLow, decimal? RefHigh, byte DataType);
     private sealed record MatchResult(int FactorID, string FactorCode, string NameFa, string? ShortCode, string? UnitUCUM, int Confidence, decimal? RefLow, decimal? RefHigh);
+
+    /// <summary>
+    /// Tesseract loses some printed values (the sheets' oblique font), while a
+    /// vision model reads them fine. Only the cells the OCR lost are asked for,
+    /// only clearly legible answers are taken, and every AI-filled cell is marked
+    /// as a suggestion: nothing enters the record without the doctor's
+    /// confirmation on the review screen.
+    /// </summary>
+    private async Task SuggestMissingAsync(byte[] image, List<LabSheetParser.Row> rows, CancellationToken ct)
+    {
+        var missing = rows
+            .Select((r, i) => (Row: r, Index: i))
+            .Where(x => x.Row.Value.Length == 0 || x.Row.RefText.Length == 0)
+            .ToList();
+        if (missing.Count == 0 || _ai.ConfigurationError() is not null) return;
+
+        string need = string.Join("\n", missing.Select((x, n) =>
+            $"{n + 1}. {x.Row.Name} - value: {(x.Row.Value.Length > 0 ? x.Row.Value : "MISSING")}, reference: {(x.Row.RefText.Length > 0 ? x.Row.RefText : "MISSING")}"));
+        string prompt = $$"""
+This image is one page of a printed laboratory report. The rows below are already located on it; some cells could not be read. Look at the image and read ONLY the missing cells, exactly as printed. Never guess: if a cell is not clearly legible, return null for it.
+{{need}}
+Return ONLY valid JSON with this exact shape:
+{"rows":[{"i":1,"value":"string|null","refText":"string|null"}]}
+- i: the row number from the list above
+- value: the result exactly as printed (number or short text), without the unit
+- refText: the reference interval exactly as printed
+""";
+        try
+        {
+            string raw = await _ai.CompleteJsonAsync(prompt,
+                new List<(string Mime, byte[] Bytes)> { ("image/jpeg", image) }, ct);
+            using var doc = JsonDocument.Parse(raw);
+            if (!doc.RootElement.TryGetProperty("rows", out var answer)) return;
+            foreach (var el in answer.EnumerateArray())
+            {
+                if (!el.TryGetProperty("i", out var iEl) || !iEl.TryGetInt32(out int i)) continue;
+                int idx = i - 1;
+                if (idx < 0 || idx >= missing.Count) continue;
+                var (row, rowIndex) = missing[idx];
+
+                string? v = GetString(el, "value");
+                if (row.Value.Length == 0 && !string.IsNullOrWhiteSpace(v))
+                {
+                    v = v.Trim();
+                    if (v.Length is > 0 and <= 24) row = row with { Value = v, Suggested = true };
+                }
+                string? rt = GetString(el, "refText");
+                if (row.RefText.Length == 0 && !string.IsNullOrWhiteSpace(rt))
+                {
+                    rt = rt.Trim();
+                    if (rt.Length is > 0 and <= 60)
+                    {
+                        var (lo, hi) = LabSheetParser.ParseRef(rt);
+                        row = row with { RefText = rt, RefLow = lo, RefHigh = hi, Suggested = true };
+                    }
+                }
+                rows[rowIndex] = row;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // پیشنهادِ AI اختیاری است؛ خطا یعنی همان سلول‌ها خالی می‌مانند.
+        }
+    }
 
     /// <summary>A printed result that is words, not a number ("Trace", "Negative").</summary>
     private static bool LooksQualitative(string? value)

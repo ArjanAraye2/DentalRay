@@ -17,7 +17,7 @@ namespace ReSiRai.Api.Services;
 public static class LabSheetParser
 {
     public sealed record Row(string Name, string Value, string Unit, string RefText,
-        decimal? RefLow, decimal? RefHigh);
+        decimal? RefLow, decimal? RefHigh, bool Suggested = false);
 
     // "name value unit ref..." - the shape of a printed result row.
     private static readonly Regex RowRegex = new(
@@ -380,7 +380,7 @@ public static class LabSheetParser
         return value;
     }
 
-    private static (decimal?, decimal?) ParseRef(string refText)
+    public static (decimal?, decimal?) ParseRef(string refText)
     {
         var range = RangeRegex.Match(refText);
         if (range.Success &&

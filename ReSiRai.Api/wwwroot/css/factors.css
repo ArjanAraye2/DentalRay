@@ -238,6 +238,14 @@
 .lab-extract-table tr.is-skipped { background: #fdecea; }
 .lab-extract-table tr.is-skipped td { color: #b3261e; }
 .lab-extract-table tr.is-saved { background: #eaf7ee; }
+.lab-extract-table tr.is-suggested .lab-extract-value {
+    background: #fff3d6;
+    border-color: #e0b34d;
+}
+.lab-extract-table tr.is-suggested td:first-child::after {
+    content: "🤖";
+    margin-right: 4px;
+}
 .lab-extract-value {
     width: 100%;
     box-sizing: border-box;
