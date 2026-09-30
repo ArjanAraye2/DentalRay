@@ -111,6 +111,30 @@
             body.appendChild(warn);
         }
 
+        // Contradictions between values - including suspected lab or clerical
+        // errors - each with the test to repeat and the reason for repeating it.
+        const issues = [];
+        for (const f of (x.consistency || []))
+            issues.push({ factors: f.factors, text: f.messageFa || f.MessageFa, retest: f.retestFa || f.RetestFa });
+        for (const i of (c.inconsistencies || []))
+            issues.push({
+                factors: i.factors,
+                text: [i.issue, i.whyItMatters ? " — " + i.whyItMatters : ""].join(""),
+                retest: i.suggestedCheck
+            });
+        if (issues.length) {
+            const box = el("div", "consult-inconsistency");
+            box.appendChild(el("h4", null, "تناقض‌ها و احتمال خطای آزمایشگاهی"));
+            const ul = el("ul");
+            for (const it of issues) {
+                const li = el("li", null, (it.factors?.length ? `[${it.factors.join("، ")}] ` : "") + it.text);
+                if (it.retest) li.appendChild(el("div", "retest", "🔁 توصیه به تکرار: " + it.retest));
+                ul.appendChild(li);
+            }
+            box.appendChild(ul);
+            body.appendChild(box);
+        }
+
         if (c.redFlags && c.redFlags.length) {
             const box = el("div", "consult-redflags");
             box.appendChild(el("h4", null, "هشدارهای مهم"));

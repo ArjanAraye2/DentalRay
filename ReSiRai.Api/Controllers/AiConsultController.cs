@@ -148,7 +148,7 @@ public sealed class AiConsultController : ControllerBase
             }).ToList();
         }
 
-        var prompt = BuildPrompt(patient, reason, notes, defs, values, out int recorded, out int requiredMissing);
+        var prompt = BuildPrompt(patient, reason, notes, defs, values, out int recorded, out int requiredMissing, out var findings);
         int coverage = defs.Count == 0 ? 100 : recorded * 100 / defs.Count;
 
         var stopwatch = Stopwatch.StartNew();
@@ -186,6 +186,7 @@ public sealed class AiConsultController : ControllerBase
                 model = (string?)null,
                 coverage,
                 requiredMissing,
+                consistency = findings,
                 consultation = JsonSerializer.SerializeToElement(new
                 {
                     notEnoughData = true,
@@ -212,6 +213,7 @@ public sealed class AiConsultController : ControllerBase
                 model = _ai.Model,
                 coverage,
                 requiredMissing,
+                consistency = findings,
                 consultation = doc.RootElement.Clone()
             });
         }
@@ -225,7 +227,8 @@ public sealed class AiConsultController : ControllerBase
     /// normal - the rule that keeps the answer honest.
     /// </summary>
     private static string BuildPrompt(Patient? patient, string? reason, string? notes,
-        List<ConsultFactor> defs, List<StudyFactorValue> values, out int recorded, out int requiredMissing)
+        List<ConsultFactor> defs, List<StudyFactorValue> values,
+        out int recorded, out int requiredMissing, out List<ConsistencyFinding> findings)
     {
         recorded = 0;
         requiredMissing = 0;
@@ -239,6 +242,19 @@ public sealed class AiConsultController : ControllerBase
             if (!byFactor.TryGetValue(v.FactorID, out var list)) byFactor[v.FactorID] = list = new();
             list.Add(v);
         }
+
+        // The deterministic cross-check runs before the model: numbers that
+        // cannot both be true are found even when the model is unavailable or
+        // careless, and the model is then asked to verify and extend them.
+        var obs = new List<LabObs>();
+        foreach (var def in defs)
+            if (byFactor.TryGetValue(def.FactorID, out var list) && list.Count > 0)
+            {
+                var top = list.OrderByDescending(x => x.ObservedAt).First();
+                obs.Add(new LabObs(def.FactorCode, null, def.NameEn,
+                    top.ValueNumber, top.UnitText ?? def.UnitUCUM, def.RefLow, def.RefHigh));
+            }
+        findings = LabConsistencyChecker.Check(obs, age, sex);
 
         var lines = new List<string>();
         var missing = new List<string>();
@@ -292,12 +308,32 @@ notRecorded:
 Rules:
 - This is decision support for a physician; never present a diagnosis as certain.
 - Base every probability only on the given values and say which values drove it.
+- Judge every value in the context of the WHOLE panel, never one by one and never
+  by reference ranges alone: ranges differ per lab, age and sex, and every number
+  must fit the others (physiology ties them together).
+- Actively look for contradictions between values - for example HDL above total
+  cholesterol, LDL not matching Friedewald (TC - HDL - TG/5), hematocrit vs 3xHb,
+  RBC x MCV vs hematocrit, total protein vs albumin+globulin, direct vs total
+  bilirubin, differential counts summing to about 100%, eGFR vs
+  creatinine/age/sex. Two values that cannot both true are usually a lab, unit,
+  analyzer or clerical error - the lab can always be wrong; treat it that way.
+- For every inconsistency say which value is more plausible and why, and
+  recommend which test to REPEAT and the REASON for repeating it.
 - If the data is not enough, set notEnoughData to true and explain what is missing.
 - Suggest workup that would change the decision, not a full textbook list.
 - Flag urgent red flags separately.
+
+System-computed consistency findings (verify each one, explain the most plausible
+cause - lab error, unit, transcription, timing - and add any contradiction you
+can see yourself):
+{{(findings.Count > 0 ? string.Join("\n", findings.Select(f => $"- [{f.Rule}] {f.MessageEn}")) : "(none computed)")}}
+
 Return ONLY valid JSON with this exact shape:
-{"notEnoughData":false,"missingFactors":["string"],"differential":[{"diagnosis":"string","probability":0,"reasons":["string"]}],"redFlags":["string"],"suggestedWorkup":["string"]}
-All human-readable text must be Persian.
+{"notEnoughData":false,"missingFactors":["string"],"differential":[{"diagnosis":"string","probability":0,"reasons":["string"]}],"redFlags":["string"],"suggestedWorkup":["string"],"inconsistencies":[{"factors":["string"],"issue":"string","whyItMatters":"string","suggestedCheck":"string"}]}
+"inconsistencies" lists every contradiction between the values or with the
+clinical picture, including suspected lab or clerical errors; "suggestedCheck"
+must name the test to repeat and the reason for it. Empty list when there are
+none. All human-readable text must be Persian.
 """;
     }
 

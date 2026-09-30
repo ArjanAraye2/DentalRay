@@ -295,6 +295,29 @@
 
 .consult-redflags li { font-size: 12.5px; color: #7a2b25; margin: 3px 0; }
 
+/* Contradictions between values / suspected lab errors: amber, because the
+   data itself needs a second look before any diagnosis is built on it. */
+.consult-inconsistency {
+    background: #fff6e5;
+    border: 1px solid #f0cf94;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.consult-inconsistency h4 { margin: 0 0 6px; font-size: 13px; color: #8a5a00; }
+.consult-inconsistency ul { margin: 0; padding-right: 18px; }
+.consult-inconsistency li { font-size: 12.5px; color: #6e4a00; margin: 6px 0; }
+.consult-inconsistency .retest {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: #1d7a3f;
+    background: #eaf7ee;
+    border-radius: 6px;
+    padding: 3px 8px;
+    display: inline-block;
+}
+
 .consult-table {
     width: 100%;
     border-collapse: collapse;
