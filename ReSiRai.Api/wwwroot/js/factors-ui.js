@@ -14,6 +14,9 @@
     "use strict";
 
     const TEST_KEY = "reSiRaiTestSpecialty";
+    // The action button's face: the doctor reads it as "get BMI and the right
+    // weight range", which is exactly what happens after the values are saved.
+    const SAVE_LABEL = "محاسبه BMI و وزن مناسب";
 
     const CATEGORY_LABELS = {
         Vitals: "علائم حیاتی",
@@ -255,6 +258,9 @@
             }
 
             let group = null;
+            let weightRow = null;
+            let heightRow = null;
+            let bmiRow = null;
             for (const f of factors) {
                 if (!group || group.dataset.category !== f.category) {
                     group = document.createElement("div");
@@ -270,6 +276,9 @@
                 const row = document.createElement("div");
                 row.className = "factor-row";
                 row.dataset.factorId = String(f.factorID);
+                if (f.factorCode === "ANTH.HEIGHT") heightRow = row;
+                if (f.factorCode === "ANTH.WEIGHT") weightRow = row;
+                if (f.factorCode === "ANTH.BMI") bmiRow = row;
 
                 const label = document.createElement("label");
                 label.textContent = f.nameFa + " ";
@@ -323,12 +332,45 @@
                 group.appendChild(row);
             }
 
+            // Under BMI: the patient's suitable weight range for their height,
+            // plus the sex-specific ideal weight (Devine) when sex is known.
+            if (bmiRow) {
+                const note = document.createElement("div");
+                note.className = "factor-weight-range";
+                bmiRow.parentNode.insertBefore(note, bmiRow.nextSibling);
+                const refreshNote = () => {
+                    const hInput = heightRow ? heightRow.querySelector("input, select") : null;
+                    const h = Number(hInput && hInput.value);
+                    const gender = Number(window.selectedPatient?.gender) || 0;
+                    if (!(h > 50 && h < 260)) {
+                        note.textContent = "برای نمایش دامنه وزن مناسب، قد را وارد کنید.";
+                        return;
+                    }
+                    const m = h / 100;
+                    const lo = 18.5 * m * m, hi = 24.9 * m * m;
+                    let text = `وزن مناسب برای قد ${Math.round(h)}` +
+                        (gender ? ` (${gender === 2 ? "زن" : "مرد"})` : "") +
+                        `: ${lo.toFixed(0)} تا ${hi.toFixed(0)} کیلو — BMI طبیعی ۱۸.۵ تا ۲۴.۹ (WHO)`;
+                    if (gender && h >= 152) {
+                        const ideal = (gender === 2 ? 45.5 : 50) + 2.3 * (h / 2.54 - 60);
+                        text += ` · وزن ایده‌آل (Devine): ${ideal.toFixed(0)} کیلو`;
+                    }
+                    note.textContent = text;
+                };
+                const hInput = heightRow ? heightRow.querySelector("input, select") : null;
+                if (hInput) {
+                    hInput.addEventListener("input", refreshNote);
+                    hInput.addEventListener("change", refreshNote);
+                }
+                refreshNote();
+            }
+
             const footer = document.createElement("div");
             footer.className = "factors-footer";
             const saveBtn = document.createElement("button");
             saveBtn.type = "button";
             saveBtn.className = "primary-button";
-            saveBtn.textContent = studyID ? "ثبت مقادیر" : "آماده‌سازی مقادیر";
+            saveBtn.textContent = SAVE_LABEL;
             saveBtn.addEventListener("click", () => save(host, saveBtn));
             const extractBtn = document.createElement("button");
             extractBtn.type = "button";
@@ -356,9 +398,11 @@
             const status = document.createElement("span");
             status.className = "factors-status";
             footer.append(saveBtn, extractBtn, consultBtn, status);
-            // Above the factor groups: the actions must be reachable without
-            // scrolling past fifty rows first.
-            content.insertBefore(footer, content.firstChild);
+            // Right under height and weight: the doctor fills those first and
+            // must not scroll through fifty rows to reach the actions.
+            const weightGroup = weightRow ? weightRow.closest(".factors-group") : null;
+            if (weightGroup && weightGroup.parentNode === content) content.insertBefore(footer, weightGroup.nextSibling);
+            else content.insertBefore(footer, content.firstChild);
 
             window.ReSiRaiJalali?.enhanceAll(content);
         } catch (e) {
@@ -418,7 +462,7 @@
         } finally {
             saving = false;
             button.disabled = false;
-            button.textContent = "ثبت مقادیر";
+            button.textContent = SAVE_LABEL;
         }
     }
 
