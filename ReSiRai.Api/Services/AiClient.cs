@@ -415,10 +415,19 @@ public sealed class AiClient
         if (exe.Length == 0)
             return outputMode.Length == 0 ? await OcrSpaceAsync(bytes, cancellationToken) : string.Empty;
         string temp = Path.Combine(Path.GetTempPath(), "resirai-ocr-" + Guid.NewGuid().ToString("N") + ".jpg");
+        string? osdCopy = null;
         try
         {
             await File.WriteAllBytesAsync(temp, bytes, cancellationToken);
-            string osd = await RunTesseractAsync(exe, temp, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
+            // تشخیصِ جهت روی نسخهٔ کوچک انجام می‌شود: OSD به وضوحِ بالا نیاز
+            // ندارد و روی عکسِ بزرگِ موبایل چند ثانیه وقت می‌گیرد.
+            string osdTarget = temp;
+            if (OperatingSystem.IsWindows())
+            {
+                osdCopy = DownscaleForOsd(temp);
+                osdTarget = osdCopy;
+            }
+            string osd = await RunTesseractAsync(exe, osdTarget, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
             var match = System.Text.RegularExpressions.Regex.Match(osd, @"Rotate:\s*(\d+)");
             if (match.Success && OperatingSystem.IsWindows())
                 RotateToUpright(temp, int.Parse(match.Groups[1].Value) % 360);
@@ -437,7 +446,24 @@ public sealed class AiClient
         finally
         {
             try { File.Delete(temp); } catch { }
+            if (osdCopy is not null) { try { File.Delete(osdCopy); } catch { } }
         }
+    }
+
+    // فقط ویندوز (System.Drawing)؛ نسخهٔ کوچکِ ۱۰۰۰ پیکسلی برایِ تشخیصِ جهت.
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static string DownscaleForOsd(string path)
+    {
+        string small = path + "-osd.jpg";
+        using var img = System.Drawing.Image.FromFile(path);
+        double scale = 1000.0 / Math.Max(img.Width, img.Height);
+        if (scale >= 1) { img.Save(small, System.Drawing.Imaging.ImageFormat.Jpeg); return small; }
+        int w = (int)(img.Width * scale), h = (int)(img.Height * scale);
+        using var bmp = new System.Drawing.Bitmap(w, h);
+        using (var g = System.Drawing.Graphics.FromImage(bmp))
+            g.DrawImage(img, 0, 0, w, h);
+        bmp.Save(small, System.Drawing.Imaging.ImageFormat.Jpeg);
+        return small;
     }
 
     // فقط ویندوز (System.Drawing)؛ مانندِ PrepareForAi صریح می‌گوییم.

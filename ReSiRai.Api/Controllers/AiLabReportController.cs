@@ -153,20 +153,30 @@ public sealed class AiLabReportController : ControllerBase
         // exactly as printed - no model, no network, and above all no invented
         // rows. The AI path below stays only for sheets this parser cannot read.
         var parsed = new List<LabSheetParser.Row>();
-        foreach (var (mime, bytes) in parts)
-        {
-            try
+        var gate = new object();
+        // Pages are read in parallel: a phone photo of a sheet takes seconds of
+        // OCR each and doctors upload several at once.
+        await Parallel.ForEachAsync(parts,
+            new ParallelOptions
             {
-                // مسیرِ قطعی: اول بازسازیِ جدول از TSV (مختصاتِ کلمات) که در
-                // برگه‌های متراکم ردیف‌ها را قاطی نمی‌کند؛ متنِ ساده فقط پشتیبان است.
-                string tsv = await _ai.OcrTsvAsync(bytes, cancellationToken);
-                var rows = LabSheetParser.ParseTsv(tsv);
-                if (rows.Count == 0)
-                    rows = LabSheetParser.Parse(await _ai.OcrTextAsync(bytes, cancellationToken));
-                parsed.AddRange(rows);
-            }
-            catch (AiException) { /* no OCR on this machine - the AI path decides */ }
-        }
+                MaxDegreeOfParallelism = Math.Clamp(parts.Count, 1, 3),
+                CancellationToken = cancellationToken
+            },
+            async (part, ct) =>
+            {
+                try
+                {
+                    // مسیرِ قطعی: بازسازیِ جدول از TSV (مختصاتِ کلمات) که در
+                    // برگه‌های متراکم ردیف‌ها را قاطی نمی‌کند؛ متنِ پشتیبان از
+                    // همان TSV ساخته می‌شود، نه اجرای دوبارهٔ OCR.
+                    string tsv = await _ai.OcrTsvAsync(part.Bytes, ct);
+                    var rows = LabSheetParser.ParseTsv(tsv);
+                    if (rows.Count == 0)
+                        rows = LabSheetParser.Parse(LabSheetParser.TsvToText(tsv));
+                    lock (gate) parsed.AddRange(rows);
+                }
+                catch (AiException) { /* no OCR on this machine - the AI path decides */ }
+            });
         if (parsed.Count >= 3)
             return await BuildParsedResultAsync(parsed, firstRelativePath, fileLabel, studyID, cancellationToken);
 

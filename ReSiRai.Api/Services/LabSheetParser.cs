@@ -110,6 +110,32 @@ public static class LabSheetParser
     /// </summary>
     public static List<Row> ParseTsv(string? tsv)
     {
+        var words = ReadWords(tsv);
+        if (words.Count < 4) return new();
+
+        // شکافِ بینِ سلول‌ها با اندازهٔ صفحه می‌آید (حدودِ ۴٫۵٪ عرضِ صفحه)، نه
+        // با اندازهٔ کلمه: فاصلهٔ کلماتِ یک نام کوتاه است، فاصلهٔ ستون‌ها بزرگ.
+        double pageWidth = words.Max(w => w.Left + w.Width);
+        double cellGap = Math.Clamp(pageWidth * 0.045, 100, 200);
+
+        var rows = new List<Row>();
+        foreach (var line in words.GroupBy(w => w.Line).Select(g => g.OrderBy(w => w.Left).ToList()))
+            foreach (var segment in SegmentLine(line, cellGap))
+                AppendRow(rows, segment);
+        return rows;
+    }
+
+    /// <summary>
+    /// متنِ پشتیبان از همان TSV ساخته می‌شود؛ اجرای دوبارهٔ Tesseract برایِ
+    /// هر صفحه دقیقه‌ها طول می‌کشید.
+    /// </summary>
+    public static string TsvToText(string? tsv)
+        => string.Join("\n", ReadWords(tsv)
+            .GroupBy(w => w.Line)
+            .Select(g => string.Join(" ", g.OrderBy(w => w.Left).Select(w => w.Text))));
+
+    private static List<TsvWord> ReadWords(string? tsv)
+    {
         var words = new List<TsvWord>();
         foreach (var raw in (tsv ?? string.Empty).Split('\n'))
         {
@@ -127,18 +153,7 @@ public static class LabSheetParser
             if (!(pureNumber ? conf >= 30 : conf >= 40)) continue;
             words.Add(new TsvWord(text, left, top, width, height, conf, $"{parts[1]}/{parts[2]}/{parts[3]}/{parts[4]}"));
         }
-        if (words.Count < 4) return new();
-
-        // شکافِ بینِ سلول‌ها با اندازهٔ صفحه می‌آید (حدودِ ۴٫۵٪ عرضِ صفحه)، نه
-        // با اندازهٔ کلمه: فاصلهٔ کلماتِ یک نام کوتاه است، فاصلهٔ ستون‌ها بزرگ.
-        double pageWidth = words.Max(w => w.Left + w.Width);
-        double cellGap = Math.Clamp(pageWidth * 0.045, 100, 200);
-
-        var rows = new List<Row>();
-        foreach (var line in words.GroupBy(w => w.Line).Select(g => g.OrderBy(w => w.Left).ToList()))
-            foreach (var segment in SegmentLine(line, cellGap))
-                AppendRow(rows, segment);
-        return rows;
+        return words;
     }
 
     // شکافِ بزرگِ بینِ کلمات = مرزِ سلول. شکافِ خیلی بزرگ = دو جدولِ کنارِ هم در
