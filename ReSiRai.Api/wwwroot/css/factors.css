@@ -258,6 +258,14 @@
 }
 .lab-extract-peek:hover { opacity: 1; background: #dff4f8; }
 .lab-extract-table tr.is-reread { box-shadow: inset 3px 0 0 #2a7da8; }
+.lab-extract-table tr.crop-row td { background: #f6f8fa; text-align: center; }
+.crop-img {
+    max-width: 100%;
+    max-height: 220px;
+    border: 1px solid #d7e0e6;
+    border-radius: 8px;
+    margin: 6px 0;
+}
 .lab-extract-value {
     width: 100%;
     box-sizing: border-box;

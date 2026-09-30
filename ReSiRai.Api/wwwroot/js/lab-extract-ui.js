@@ -240,8 +240,27 @@
             peek.className = "lab-extract-peek";
             peek.textContent = "🔍";
             peek.title = "تکهٔ برگه پشتِ این ردیف را ببینید و با عدد مقایسه کنید";
-            peek.addEventListener("click", () =>
-                window.open(`/api/ai/images/crop?extractionID=${encodeURIComponent(x.extractionID ?? "")}&row=${rowIndex}`, "_blank"));
+            peek.addEventListener("click", () => {
+                // نمایشِ درون‌خطی: نه تبِ جدا، نه صفحهٔ خالی — همان تکه زیرِ ردیف.
+                let slot = tr.nextElementSibling;
+                if (slot && slot.classList.contains("crop-row")) {
+                    slot.remove();
+                    return;
+                }
+                const cropRow = el("tr", "crop-row");
+                const cropTd = el("td");
+                cropTd.colSpan = 7;
+                const img = document.createElement("img");
+                img.className = "crop-img";
+                img.alt = "تکهٔ برگه";
+                img.src = `/api/ai/images/crop?extractionID=${encodeURIComponent(x.extractionID ?? "")}&row=${rowIndex}`;
+                img.addEventListener("error", () => {
+                    cropTd.textContent = "تصویرِ این ناحیه پیدا نشد — برنامه را دوباره بسازید/ری‌استارت کنید.";
+                });
+                cropTd.appendChild(img);
+                cropRow.appendChild(cropTd);
+                tr.after(cropRow);
+            });
             nameCell.appendChild(peek);
             // اگر تکهٔ برگه با عدد نمی‌خواند، فقط همان ناحیه دوباره خوانده
             // می‌شود؛ نه کلِ برگه.
@@ -261,7 +280,9 @@
                         body: JSON.stringify({ extractionID: x.extractionID, row: rowIndex })
                     });
                     const y = await readJson(r);
-                    if (!r.ok || !y.success) throw new Error(y.message || "بازخوانی ناموفق بود.");
+                    if (r.status === 404)
+                        throw new Error("این قابلیت روی سرورِ در حالِ اجرا نیست — برنامه را در Visual Studio دوباره بسازید و ری‌استارت کنید.");
+                    if (!r.ok || !y.success) throw new Error(y.message || `بازخوانی ناموفق بود (${r.status}).`);
                     valueInput.value = y.value ?? "";
                     refInput.value = y.refText ?? "";
                     unitCell.textContent = y.unit ?? "";
