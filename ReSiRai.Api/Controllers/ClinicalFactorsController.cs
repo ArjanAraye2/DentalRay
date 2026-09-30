@@ -355,7 +355,7 @@ namespace ReSiRai.Api.Controllers
                 row.ExtractionID = item.ExtractionID;
                 row.Confidence = item.Confidence;
                 // What the paper printed outranks the dictionary's default range.
-                row.RefText = string.IsNullOrWhiteSpace(item.RefText) ? null : Clamp(item.RefText, 500);
+                row.RefText = CleanMax(item.RefText, 500);
                 row.UnitText = Clean(item.UnitText);
             }
 
@@ -500,5 +500,12 @@ namespace ReSiRai.Api.Controllers
         }
 
         private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        /// <summary>Cleaned and cut to the column's width; no silent truncation errors.</summary>
+        private static string? CleanMax(string? value, int max)
+        {
+            string? clean = Clean(value);
+            return clean == null || clean.Length <= max ? clean : clean[..max];
+        }
     }
 }
