@@ -356,7 +356,9 @@
             const status = document.createElement("span");
             status.className = "factors-status";
             footer.append(saveBtn, extractBtn, consultBtn, status);
-            content.appendChild(footer);
+            // Above the factor groups: the actions must be reachable without
+            // scrolling past fifty rows first.
+            content.insertBefore(footer, content.firstChild);
 
             window.ReSiRaiJalali?.enhanceAll(content);
         } catch (e) {
