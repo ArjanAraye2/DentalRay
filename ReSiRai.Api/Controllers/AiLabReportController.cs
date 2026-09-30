@@ -211,7 +211,7 @@ public sealed class AiLabReportController : ControllerBase
                 }
             });
         if (parsed.Count >= 3)
-            return await BuildParsedResultAsync(parsed, firstRelativePath, fileLabel, studyID, cancellationToken);
+            return await BuildParsedResultAsync(parsed, pagesRelative, fileLabel, studyID, cancellationToken);
 
         string? configError = _ai.ConfigurationError();
         if (configError is not null)
@@ -339,13 +339,14 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
     /// matched against the factor dictionary.
     /// </summary>
     private async Task<IActionResult> BuildParsedResultAsync(List<LabSheetParser.Row> rows,
-        string firstRelativePath, string fileLabel, int? studyID, CancellationToken cancellationToken)
+        string pagesRelative, string fileLabel, int? studyID, CancellationToken cancellationToken)
     {
         var batch = new LabReportExtraction
         {
             StudyID = studyID ?? 0,
             FileName = fileLabel,
-            ImagePath = firstRelativePath.Length == 0 ? "" : _storage.GetPhysicalPath(firstRelativePath),
+            ImagePath = pagesRelative.Length == 0 ? ""
+                : string.Join("|", pagesRelative.Split('|', StringSplitOptions.RemoveEmptyEntries).Select(_storage.GetPhysicalPath)),
             LabName = null,
             SampleDate = null,
             RawJson = JsonSerializer.Serialize(rows),
