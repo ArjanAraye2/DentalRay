@@ -44,6 +44,24 @@ public static class LabSheetParser
     private static readonly Regex PureNumberRegex = new(
         @"^[<>]?\s*-?\d+(?:[.,]\d+)?\s*%?$", RegexOptions.Compiled);
 
+    // «10-12» یا «2-3»: شکلِ نتیجهٔ شمارشی در برگه‌های آنالیز ادرار.
+    private static readonly Regex BareRangeRegex = new(
+        @"^\s*\d+(?:[.,]\d+)?\s*-\s*\d+(?:[.,]\d+)?\s*$", RegexOptions.Compiled);
+
+    // سطرهایِ توضیحِ بازه، نه تست: «Adults :»، «Moderate risk :»، «Highrisk >6».
+    private static readonly string[] ContinuationWords =
+        { "adult", "children", "risk", "normal", "average", "borderline", "high", "low",
+          "moderate", "desirable", "deficient", "insufficient", "sufficient",
+          "intoxication", "impaired", "diabetic", "female", "male" };
+
+    private static bool IsContinuation(string name)
+    {
+        if (name.Length == 0 || !char.IsLetter(name[0])) return true;
+        if (name.EndsWith(':')) return true;
+        string n = name.Trim().ToLowerInvariant();
+        return ContinuationWords.Any(w => n.StartsWith(w, StringComparison.Ordinal));
+    }
+
     private sealed record TsvWord(string Text, int Left, int Top, int Width, int Height,
         double Conf, string Line);
 
@@ -243,7 +261,31 @@ public static class LabSheetParser
             refCell = (refCell + " " + text).Trim();
         }
 
-        if (Letters(name) < 1 || !char.IsLetter(name[0])) return;
+        if (Letters(name) < 1 && name.Length > 0) return;
+
+        // (الف) نتیجه در ستونِ بازه: برگه‌های آنالیز ادرار نتیجه را بدونِ واحد
+        // چاپ می‌کنند («RBC.» کنارِ «10-12») — این عدد نتیجه است، نه بازه.
+        if (!valueSet && unit.Length == 0 && BareRangeRegex.IsMatch(refCell))
+        {
+            value = refCell.Trim();
+            valueSet = true;
+            refCell = string.Empty;
+        }
+
+        // (ب) سطرِ توضیحِ بازه («Adults : 2.6-4.5»، «100-126 Impaired ...») به
+        // بازهٔ ردیفِ بالا می‌پیوندد؛ اطلاعاتِ برگه گم نمی‌شود ولی ردیفِ جعلی
+        // هم ساخته نمی‌شود.
+        if (!valueSet && unit.Length == 0 && rows.Count > 0
+            && NumberRegex.IsMatch(refCell) && IsContinuation(name))
+        {
+            var prev = rows[^1];
+            string joined = (prev.RefText + " / " + name + " " + refCell).Trim(' ', '/');
+            if (joined.Length <= 500) rows[^1] = prev with { RefText = joined };
+            return;
+        }
+
+        if (name.Length == 0) return;
+        if (!char.IsLetter(name[0])) return;
         if (Letters(name) < 2 && value.Length == 0 && unit.Length == 0) return;
         if (Headers.Any(h => name.StartsWith(h, StringComparison.OrdinalIgnoreCase))) return;
         // مقدارِ کیفیِ ردیفی که بازهٔ عددی دارد، مشکوک است (اغلب نامِ جدولِ کناری
