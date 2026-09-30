@@ -14,9 +14,6 @@
     "use strict";
 
     const TEST_KEY = "reSiRaiTestSpecialty";
-    // The action button's face: the doctor reads it as "get BMI and the right
-    // weight range", which is exactly what happens after the values are saved.
-    const SAVE_LABEL = "محاسبه BMI و وزن مناسب";
 
     const CATEGORY_LABELS = {
         Vitals: "علائم حیاتی",
@@ -357,12 +354,38 @@
                     }
                     note.textContent = text;
                 };
+                // BMI fills itself as height and weight are typed - the doctor
+                // asked for no button at all.
+                const refreshBmi = () => {
+                    const hEl = heightRow ? heightRow.querySelector("input, select") : null;
+                    const wEl = weightRow ? weightRow.querySelector("input, select") : null;
+                    const input = bmiRow.querySelector("input, select");
+                    if (!input) return;
+                    const h = Number(hEl && hEl.value), w = Number(wEl && wEl.value);
+                    if (!(h > 50 && h < 260) || !(w > 10 && w < 400)) return;
+                    const m = h / 100;
+                    const bmi = Math.round((w / (m * m)) * 10) / 10;
+                    if (input.value !== String(bmi)) {
+                        input.value = String(bmi);
+                        // Marked as derived, so it is stored with source = computed
+                        // and never mistaken for a number the doctor typed.
+                        input.dataset.auto = "1";
+                        input.dispatchEvent(new Event("input"));
+                    }
+                };
+                const bmiInput = bmiRow.querySelector("input, select");
+                if (bmiInput) bmiInput.addEventListener("input", e => {
+                    if (e.isTrusted) delete bmiInput.dataset.auto;
+                });
                 const hInput = heightRow ? heightRow.querySelector("input, select") : null;
-                if (hInput) {
-                    hInput.addEventListener("input", refreshNote);
-                    hInput.addEventListener("change", refreshNote);
+                const wInput = weightRow ? weightRow.querySelector("input, select") : null;
+                for (const el of [hInput, wInput]) {
+                    if (!el) continue;
+                    el.addEventListener("input", () => { refreshNote(); refreshBmi(); });
+                    el.addEventListener("change", () => { refreshNote(); refreshBmi(); });
                 }
                 refreshNote();
+                refreshBmi();
             }
 
             const footer = document.createElement("div");
@@ -370,7 +393,7 @@
             const saveBtn = document.createElement("button");
             saveBtn.type = "button";
             saveBtn.className = "primary-button";
-            saveBtn.textContent = SAVE_LABEL;
+            saveBtn.textContent = studyID ? "ثبت مقادیر" : "آماده‌سازی مقادیر";
             saveBtn.addEventListener("click", () => save(host, saveBtn));
             const extractBtn = document.createElement("button");
             extractBtn.type = "button";
@@ -398,11 +421,9 @@
             const status = document.createElement("span");
             status.className = "factors-status";
             footer.append(saveBtn, extractBtn, consultBtn, status);
-            // Right under height and weight: the doctor fills those first and
-            // must not scroll through fifty rows to reach the actions.
-            const weightGroup = weightRow ? weightRow.closest(".factors-group") : null;
-            if (weightGroup && weightGroup.parentNode === content) content.insertBefore(footer, weightGroup.nextSibling);
-            else content.insertBefore(footer, content.firstChild);
+            // The three actions live on top of the panel - reachable without
+            // scrolling past fifty rows first.
+            content.insertBefore(footer, content.firstChild);
 
             window.ReSiRaiJalali?.enhanceAll(content);
         } catch (e) {
@@ -425,7 +446,7 @@
             if (!input) continue;
             const value = readValue(f, input);
             if (!value) continue;
-            items.push(Object.assign({ factorID: f.factorID, source: 1 }, value));
+            items.push(Object.assign({ factorID: f.factorID, source: input.dataset.auto === "1" ? 4 : 1 }, value));
         }
         return items;
     }
