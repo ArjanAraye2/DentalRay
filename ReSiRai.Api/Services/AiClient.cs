@@ -400,20 +400,25 @@ public sealed class AiClient
     }
 
     // OCR محلی: اول جهتِ صفحه (عکسِ موبایل اغلب ۹۰ درجه چرخیده است)، بعد خواندن.
-    public Task<string> OcrTextAsync(byte[] bytes, CancellationToken cancellationToken)
-        => OcrRunAsync(bytes, string.Empty, true, cancellationToken);
+    public async Task<string> OcrTextAsync(byte[] bytes, CancellationToken cancellationToken)
+        => (await OcrRunAsync(bytes, string.Empty, true, cancellationToken)).Text;
 
     // همان OCR، اما خروجیِ TSV با مختصاتِ هر کلمه؛ برایِ بازسازیِ جدول‌های متراکم
     // که در متنِ ساده ردیف‌ها را به هم می‌ریزند.
-    public Task<string> OcrTsvAsync(byte[] bytes, CancellationToken cancellationToken)
-        => OcrRunAsync(bytes, "tsv", false, cancellationToken);
+    public async Task<string> OcrTsvAsync(byte[] bytes, CancellationToken cancellationToken)
+        => (await OcrRunAsync(bytes, "tsv", false, cancellationToken)).Text;
 
-    private async Task<string> OcrRunAsync(byte[] bytes, string outputMode, bool persianFirst,
+    /// <summary>TSV plus the upright (rotated) image the coordinates refer to.</summary>
+    public async Task<(string Text, byte[] Image)> OcrDataAsync(byte[] bytes, CancellationToken cancellationToken)
+        => await OcrRunAsync(bytes, "tsv", false, cancellationToken);
+
+    private async Task<(string Text, byte[] Image)> OcrRunAsync(byte[] bytes, string outputMode, bool persianFirst,
         CancellationToken cancellationToken)
     {
+        byte[] upright = bytes;
         string exe = TesseractExe;
         if (exe.Length == 0)
-            return outputMode.Length == 0 ? await OcrSpaceAsync(bytes, cancellationToken) : string.Empty;
+            return (outputMode.Length == 0 ? await OcrSpaceAsync(bytes, cancellationToken) : string.Empty, upright);
         string temp = Path.Combine(Path.GetTempPath(), "resirai-ocr-" + Guid.NewGuid().ToString("N") + ".jpg");
         try
         {
@@ -423,17 +428,20 @@ public sealed class AiClient
             string osd = await RunTesseractAsync(exe, temp, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
             var match = System.Text.RegularExpressions.Regex.Match(osd, @"Rotate:\s*(\d+)");
             if (match.Success && OperatingSystem.IsWindows())
+            {
                 RotateToUpright(temp, int.Parse(match.Groups[1].Value) % 360);
+                upright = await File.ReadAllBytesAsync(temp, cancellationToken);
+            }
             if (!persianFirst)
-                return await RunTesseractAsync(exe, temp, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty;
+                return (await RunTesseractAsync(exe, temp, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty, upright);
             try
             {
-                return await RunTesseractAsync(exe, temp, $"--psm 6 -l fas+eng {outputMode}", cancellationToken) ?? string.Empty;
+                return (await RunTesseractAsync(exe, temp, $"--psm 6 -l fas+eng {outputMode}", cancellationToken) ?? string.Empty, upright);
             }
             catch (AiException)
             {
                 // اگر دادهٔ زبانِ فارسی نصب نبود، همان انگلیسی بهتر از هیچ است.
-                return await RunTesseractAsync(exe, temp, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty;
+                return (await RunTesseractAsync(exe, temp, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty, upright);
             }
         }
         finally

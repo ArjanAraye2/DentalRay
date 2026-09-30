@@ -17,7 +17,8 @@ namespace ReSiRai.Api.Services;
 public static class LabSheetParser
 {
     public sealed record Row(string Name, string Value, string Unit, string RefText,
-        decimal? RefLow, decimal? RefHigh, bool Suggested = false);
+        decimal? RefLow, decimal? RefHigh, bool Suggested = false,
+        int PixelTop = -1, int PixelHeight = -1);
 
     // "name value unit ref..." - the shape of a printed result row.
     private static readonly Regex RowRegex = new(
@@ -299,7 +300,11 @@ public static class LabSheetParser
         if (value.Length == 0 && unit.Length == 0 && refCell.Length == 0) return;
 
         var (lo, hi) = ParseRef(refCell);
-        rows.Add(new Row(name, value, unit, Clamp(refCell, 500), lo, hi));
+        // جایِ ردیف روی تصویر تا بعداً بتوان همان ناحیه را برایِ خواندنِ مدل برید.
+        int pixTop = cells.SelectMany(c => c).Min(w => w.Top);
+        int pixBottom = cells.SelectMany(c => c).Max(w => w.Top + w.Height);
+        rows.Add(new Row(name, value, unit, Clamp(refCell, 500), lo, hi,
+            PixelTop: pixTop, PixelHeight: pixBottom - pixTop));
     }
 
     private static bool IsUnit(string s)
