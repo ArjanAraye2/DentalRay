@@ -14,6 +14,10 @@
 
     async function readJson(r) { try { return await r.json(); } catch { return { success: false }; } }
 
+    // آیکون‌های SVG: ایموجی‌ها روی سیستم‌های مختلف ناجور رندر می‌شوند.
+    const ICON_EYE = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>';
+
     function el(tag, cls, text) {
         const node = document.createElement(tag);
         if (cls) node.className = cls;
@@ -234,11 +238,12 @@
 
             const nameCell = el("td", null, item.name || "");
             // Trust in AI comes from verification: one click shows the exact
-            // snippet of the paper this row was read from.
+            // snippet of the paper this row was read from. Plain SVG + a Persian
+            // label - emoji glyphs render inconsistently across machines.
             const peek = document.createElement("button");
             peek.type = "button";
-            peek.className = "lab-extract-peek";
-            peek.textContent = "🔍";
+            peek.className = "lab-extract-act act-peek";
+            peek.innerHTML = ICON_EYE + "<span>تکهٔ برگه</span>";
             peek.title = "تکهٔ برگه پشتِ این ردیف را ببینید و با عدد مقایسه کنید";
             peek.addEventListener("click", () => {
                 // نمایشِ درون‌خطی: نه تبِ جدا، نه صفحهٔ خالی — همان تکه زیرِ ردیف.
@@ -266,8 +271,8 @@
             // می‌شود؛ نه کلِ برگه.
             const redo = document.createElement("button");
             redo.type = "button";
-            redo.className = "lab-extract-peek";
-            redo.textContent = "↻";
+            redo.className = "lab-extract-act act-redo";
+            redo.innerHTML = ICON_REFRESH + "<span>بازخوانی</span>";
             redo.title = "همین ناحیه را دوباره بخوان (بدونِ خواندنِ کلِ برگه)";
             redo.addEventListener("click", async () => {
                 if (busy) return;
