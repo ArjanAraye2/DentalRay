@@ -18,7 +18,7 @@ public static class LabSheetParser
 {
     public sealed record Row(string Name, string Value, string Unit, string RefText,
         decimal? RefLow, decimal? RefHigh, bool Suggested = false,
-        int PixelTop = -1, int PixelHeight = -1);
+        int PixelTop = -1, int PixelHeight = -1, int Page = 0);
 
     // "name value unit ref..." - the shape of a printed result row.
     private static readonly Regex RowRegex = new(

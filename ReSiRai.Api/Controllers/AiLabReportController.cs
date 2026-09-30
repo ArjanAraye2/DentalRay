@@ -70,7 +70,7 @@ public sealed class AiLabReportController : ControllerBase
             return BadRequest(new { success = false, message = "حداکثر ۱۰ صفحه در هر استخراج قابل انتخاب است." });
 
         var parts = new List<(string Mime, byte[] Bytes)>();
-        string firstRelative = "";
+        var relPaths = new List<string>();
         string label = "";
         int page = 0;
         foreach (var id in ids)
@@ -81,11 +81,12 @@ public sealed class AiLabReportController : ControllerBase
             var image = loaded.image!;
             string path = _storage.GetPhysicalPath(image.RelativePath);
             page++;
-            if (page == 1) { firstRelative = image.RelativePath; label = image.RelativePath; }
+            if (page == 1) label = image.RelativePath;
+            relPaths.Add(image.RelativePath);
             parts.Add((image.ContentType, await System.IO.File.ReadAllBytesAsync(path, cancellationToken)));
         }
         if (parts.Count > 1) label = $"{label} (+{parts.Count - 1} صفحه دیگر)";
-        return await ExtractCoreAsync(parts, firstRelative, label, request.StudyID, cancellationToken);
+        return await ExtractCoreAsync(parts, string.Join("|", relPaths), label, request.StudyID, cancellationToken);
     }
 
     /// <summary>
@@ -103,7 +104,9 @@ public sealed class AiLabReportController : ControllerBase
             return BadRequest(new { success = false, message = "حداکثر ۱۰ صفحه در هر استخراج قابل انتخاب است." });
 
         var parts = new List<(string Mime, byte[] Bytes)>();
+        var relPaths = new List<string>();
         string label = "";
+        string folder = Path.Combine("_extractions", Guid.NewGuid().ToString("N"));
         foreach (var f in files)
         {
             if (f.Length == 0) continue;
@@ -112,13 +115,24 @@ public sealed class AiLabReportController : ControllerBase
                 return BadRequest(new { success = false, message = "برای استخراج، فایل‌ها باید تصویر (JPG/PNG) باشند." });
             await using var ms = new MemoryStream();
             await f.CopyToAsync(ms, cancellationToken);
+            byte[] bytes = ms.ToArray();
             if (label.Length == 0) label = f.FileName;
-            parts.Add((f.ContentType, ms.ToArray()));
+            parts.Add((f.ContentType, bytes));
+
+            // صفحه‌ها ذخیره می‌شوند تا «تکهٔ برگه» و بازخوانیِ نقطه‌ای پشتِ هر
+            // عدد قابلِ نمایش باشد؛ وابسته به همان دستهٔ استخراج‌اند.
+            string ext = Path.GetExtension(f.FileName);
+            if (ext.Length == 0 || ext.Length > 5) ext = ".jpg";
+            string rel = Path.Combine(folder, $"page{parts.Count:00}{ext.ToLowerInvariant()}");
+            string physical = _storage.GetPhysicalPath(rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(physical)!);
+            await System.IO.File.WriteAllBytesAsync(physical, bytes, cancellationToken);
+            relPaths.Add(rel);
         }
         if (parts.Count == 0)
             return BadRequest(new { success = false, message = "فایل تصویری معتبر انتخاب نشده است." });
         if (parts.Count > 1) label = $"{label} (+{parts.Count - 1} صفحه دیگر)";
-        return await ExtractCoreAsync(parts, "", label, studyID, cancellationToken);
+        return await ExtractCoreAsync(parts, string.Join("|", relPaths), label, studyID, cancellationToken);
     }
 
     /// <summary>Loads one image and checks access, existence and file kind.</summary>
@@ -147,7 +161,7 @@ public sealed class AiLabReportController : ControllerBase
 
     /// <summary>The shared extraction: one AI call over the pages, one batch row.</summary>
     private async Task<IActionResult> ExtractCoreAsync(List<(string Mime, byte[] Bytes)> parts,
-        string firstRelativePath, string fileLabel, int? studyID, CancellationToken cancellationToken)
+        string pagesRelative, string fileLabel, int? studyID, CancellationToken cancellationToken)
     {
         // The deterministic path first: a printed table is read from the OCR text
         // exactly as printed - no model, no network, and above all no invented
@@ -156,20 +170,20 @@ public sealed class AiLabReportController : ControllerBase
         var gate = new object();
         // Pages are read in parallel: a phone photo of a sheet takes seconds of
         // OCR each and doctors upload several at once.
-        await Parallel.ForEachAsync(parts,
+        await Parallel.ForEachAsync(parts.Select((p, i) => (Part: p, Index: i)),
             new ParallelOptions
             {
                 MaxDegreeOfParallelism = Math.Clamp(parts.Count, 1, 3),
                 CancellationToken = cancellationToken
             },
-            async (part, ct) =>
+            async (x, ct) =>
             {
                 try
                 {
                     // مسیرِ قطعی: بازسازیِ جدول از TSV (مختصاتِ کلمات) که در
                     // برگه‌های متراکم ردیف‌ها را قاطی نمی‌کند؛ متنِ پشتیبان از
                     // همان TSV ساخته می‌شود، نه اجرای دوبارهٔ OCR.
-                    var (tsv, upright) = await _ai.OcrDataAsync(part.Bytes, ct);
+                    var (tsv, upright) = await _ai.OcrDataAsync(x.Part.Bytes, ct);
                     var rows = LabSheetParser.ParseTsv(tsv);
                     if (rows.Count == 0)
                         rows = LabSheetParser.Parse(LabSheetParser.TsvToText(tsv));
@@ -177,7 +191,7 @@ public sealed class AiLabReportController : ControllerBase
                     {
                         // برگه وارونه؟ یک‌بار دیگر با چرخشِ ۱۸۰ و نگه‌داشتنِ
                         // نتیجهٔ بهتر؛ چیزی به خاطرِ جهتِ عکس گم نمی‌شود.
-                        string turned = await _ai.OcrTsvTurnedAsync(part.Bytes, ct);
+                        string turned = await _ai.OcrTsvTurnedAsync(x.Part.Bytes, ct);
                         var rows2 = LabSheetParser.ParseTsv(turned);
                         if (rows2.Count > rows.Count) rows = rows2;
                     }
@@ -186,6 +200,9 @@ public sealed class AiLabReportController : ControllerBase
                         // مدلِ بینایی می‌بیند؛ پیشنهادش علامت‌دار است و با تأییدِ
                         // پزشک ثبت می‌شود.
                         await SuggestMissingAsync(upright, rows, ct);
+                    // هر ردیف بداند از کدام صفحه آمده تا «تکهٔ برگه» از همان
+                    // صفحه بریده شود، نه از صفحهٔ اول.
+                    for (int r = 0; r < rows.Count; r++) rows[r] = rows[r] with { Page = x.Index };
                     lock (gate) parsed.AddRange(rows);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -253,7 +270,8 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             {
                 StudyID = studyID ?? 0,
                 FileName = fileLabel,
-                ImagePath = firstRelativePath.Length == 0 ? "" : _storage.GetPhysicalPath(firstRelativePath),
+                ImagePath = pagesRelative.Length == 0 ? ""
+                    : string.Join("|", pagesRelative.Split('|', StringSplitOptions.RemoveEmptyEntries).Select(_storage.GetPhysicalPath)),
                 LabName = GetString(root, "labName"),
                 SampleDate = ParseDate(GetString(root, "sampleDate")),
                 RawJson = raw,
@@ -470,15 +488,16 @@ Return ONLY valid JSON with this exact shape:
     {
         var batch = await _db.LabReportExtractions.AsNoTracking()
             .FirstOrDefaultAsync(x => x.ExtractionID == extractionID, cancellationToken);
-        if (batch is null || string.IsNullOrWhiteSpace(batch.ImagePath) || !System.IO.File.Exists(batch.ImagePath))
-            return NotFound();
+        if (batch is null) return NotFound();
 
         List<LabSheetParser.Row>? rows = null;
         try { rows = JsonSerializer.Deserialize<List<LabSheetParser.Row>>(batch.RawJson ?? "[]"); }
         catch (JsonException) { }
         if (rows is null || row < 0 || row >= rows.Count) return NotFound();
 
-        byte[] image = await System.IO.File.ReadAllBytesAsync(batch.ImagePath, cancellationToken);
+        string? imagePath = PageImagePath(batch, rows[row]);
+        if (imagePath is null) return NotFound();
+        byte[] image = await System.IO.File.ReadAllBytesAsync(imagePath, cancellationToken);
         // مختصاتِ ردیف‌ها روی تصویرِ راست‌شده است؛ اول همان نسخه ساخته می‌شود
         // وگرنه برش جایِ دیگری از برگه را نشان می‌دهد.
         image = await _ai.UprightAsync(image, cancellationToken);
@@ -503,8 +522,7 @@ Return ONLY valid JSON with this exact shape:
     {
         var batch = await _db.LabReportExtractions.AsNoTracking()
             .FirstOrDefaultAsync(x => x.ExtractionID == request.ExtractionID, cancellationToken);
-        if (batch is null || string.IsNullOrWhiteSpace(batch.ImagePath) || !System.IO.File.Exists(batch.ImagePath))
-            return NotFound(new { success = false, message = "برگه پیدا نشد." });
+        if (batch is null) return NotFound(new { success = false, message = "برگه پیدا نشد." });
 
         List<LabSheetParser.Row>? rows = null;
         try { rows = JsonSerializer.Deserialize<List<LabSheetParser.Row>>(batch.RawJson ?? "[]"); }
@@ -513,7 +531,9 @@ Return ONLY valid JSON with this exact shape:
             return NotFound(new { success = false, message = "ردیف پیدا نشد." });
         var original = rows[request.Row];
 
-        byte[] image = await System.IO.File.ReadAllBytesAsync(batch.ImagePath, cancellationToken);
+        string? imagePath = PageImagePath(batch, original);
+        if (imagePath is null) return NotFound(new { success = false, message = "تصویرِ این صفحه ذخیره نشده است." });
+        byte[] image = await System.IO.File.ReadAllBytesAsync(imagePath, cancellationToken);
         // مختصاتِ ردیف‌ها روی تصویرِ راست‌شده است؛ برش باید از همان نسخه باشد.
         image = await _ai.UprightAsync(image, cancellationToken);
         byte[] crop = CropRows(image, new List<(LabSheetParser.Row Row, int Index)> { (original, request.Row) }) ?? image;
@@ -555,6 +575,18 @@ Return ONLY valid JSON with this exact shape:
             refText = pick.RefText,
             suggested = pick.Suggested
         });
+    }
+
+    /// <summary>
+    /// فایلِ صفحه‌ای که این ردیف از آن خوانده شده: استخراج می‌تواند چند صفحه
+    /// باشد و مختصاتِ هر ردیف فقط با صفحهٔ خودش می‌خواند.
+    /// </summary>
+    private string? PageImagePath(LabReportExtraction batch, LabSheetParser.Row row)
+    {
+        var paths = (batch.ImagePath ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries);
+        if (paths.Length == 0) return null;
+        string path = row.Page >= 0 && row.Page < paths.Length ? paths[row.Page] : paths[0];
+        return System.IO.File.Exists(path) ? path : null;
     }
 
     /// <summary>
