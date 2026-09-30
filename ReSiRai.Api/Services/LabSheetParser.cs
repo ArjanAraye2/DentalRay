@@ -366,21 +366,38 @@ public static class LabSheetParser
     }
 
     /// <summary>
-    /// Printed rows lose decimal points in OCR ("118" for 1.18). The reference
+    /// Printed rows lose decimal points in OCR ("145" for 14.5). The reference
     /// range restores the scale: the true value sits near it. Digits are never
-    /// invented - at most the decimal point moves, and only when the range
-    /// demands it.
+    /// invented - at most the decimal point moves, and only when the number is
+    /// so far outside the range that a missing decimal is the likely cause: a
+    /// genuinely extreme value (WBC 45) is never touched.
     /// </summary>
     public static string FitScale(string value, decimal? lo, decimal? hi)
     {
-        if (value.Contains('.') || value.Contains(',')) return value;
-        if (!decimal.TryParse(value, out decimal v)) return value;
+        string core = value.Trim();
+        string prefix = string.Empty, suffix = string.Empty;
+        while (core.Length > 0 && "<>≤≥=".Contains(core[0]))
+        {
+            prefix += core[0];
+            core = core[1..].TrimStart();
+        }
+        if (core.EndsWith('%'))
+        {
+            suffix = "%";
+            core = core[..^1].TrimEnd();
+        }
+        if (core.Contains('.') || core.Contains(',')) return value;
+        if (!decimal.TryParse(core, out decimal v) || v <= 0) return value;
         if (lo is null && hi is null) return value;
-        foreach (decimal d in new[] { 1m, 10m, 100m })
+
+        decimal ruler = hi ?? lo!.Value;
+        if (ruler <= 0 || v < ruler * 8m) return value;
+
+        foreach (decimal d in new[] { 10m, 100m, 1000m })
         {
             decimal c = v / d;
             bool inside = (lo is null || c >= lo.Value * 0.5m) && (hi is null || c <= hi.Value * 1.6m);
-            if (inside) return c.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (inside) return prefix + c.ToString(System.Globalization.CultureInfo.InvariantCulture) + suffix;
         }
         return value;
     }
