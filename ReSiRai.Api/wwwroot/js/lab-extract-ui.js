@@ -431,7 +431,13 @@
             const f = byId.get(factorID);
             const raw = (tr.dataset.value || "").trim();
             if (raw === "") { mark(tr, `${printedName}: مقدار خالی`); continue; }
-            const item = { factorID, source: 2, extractionID, confidence: Number(tr.dataset.confidence || 0) };
+            const item = {
+                factorID, source: 2, extractionID, confidence: Number(tr.dataset.confidence || 0),
+                // What the paper printed: stored with the value and used by the
+                // panel and the AI instead of the dictionary's default range.
+                refText: tr.dataset.refText || null,
+                unitText: tr.dataset.unit || null
+            };
             if (f && f.dataType === 1) {
                 const n = parsePrintedNumber(raw);
                 if (n === null) { mark(tr, `${printedName}: مقدار عددی خوانده نشد`); continue; }

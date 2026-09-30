@@ -34,6 +34,10 @@ namespace ReSiRai.Api.Controllers
             public byte Source { get; set; } = 1;
             public long? ExtractionID { get; set; }
             public decimal? Confidence { get; set; }
+            /// <summary>Reference range printed on the lab sheet, exactly as printed.</summary>
+            public string? RefText { get; set; }
+            /// <summary>Unit printed on the lab sheet.</summary>
+            public string? UnitText { get; set; }
         }
 
         public sealed class SaveValuesRequest
@@ -275,7 +279,10 @@ namespace ReSiRai.Api.Controllers
                     v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate,
                     v.ObservedAt, v.Source, v.ExtractionID, v.Confidence,
                     f.FactorCode, f.NameFa, f.NameEn, f.DataType, f.UnitUCUM,
-                    f.RefLow, f.RefHigh, f.RefText, f.AbnormalDirection, f.Category
+                    f.RefLow, f.RefHigh, f.RefText, f.AbnormalDirection, f.Category,
+                    // The printed range/unit of this observation - the dictionary's
+                    // values above are only the fallback.
+                    ValueRefText = v.RefText, ValueUnitText = v.UnitText
                 }).ToListAsync();
 
             // Earlier values of the same factors from this patient's other visits,
@@ -347,6 +354,9 @@ namespace ReSiRai.Api.Controllers
                 row.Source = item.Source;
                 row.ExtractionID = item.ExtractionID;
                 row.Confidence = item.Confidence;
+                // What the paper printed outranks the dictionary's default range.
+                row.RefText = string.IsNullOrWhiteSpace(item.RefText) ? null : Clamp(item.RefText, 500);
+                row.UnitText = Clean(item.UnitText);
             }
 
             await _db.SaveChangesAsync();

@@ -26,6 +26,17 @@ public class StudyFactorValue
     /// <summary>When the measurement was taken (may differ from the recording time).</summary>
     public DateTime ObservedAt { get; set; }
 
+    /// <summary>
+    /// The reference range printed on the patient's lab sheet, exactly as printed.
+    /// It belongs to this observation and outranks the dictionary's default range.
+    /// </summary>
+    [MaxLength(500)]
+    public string? RefText { get; set; }
+
+    /// <summary>The unit printed on the lab sheet (may differ from the dictionary).</summary>
+    [MaxLength(100)]
+    public string? UnitText { get; set; }
+
     /// <summary>1 = manual, 2 = lab-report extraction, 3 = device, 4 = computed.</summary>
     public byte Source { get; set; }
 

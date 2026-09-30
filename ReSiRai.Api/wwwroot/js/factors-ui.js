@@ -63,6 +63,18 @@
         return map;
     }
 
+    // "80-306", "<200" or ">40" as printed on the sheet becomes the numeric
+    // bounds the abnormality check needs.
+    function parsePrintedRange(text) {
+        const nums = (String(text).match(/\d+(?:[.,]\d+)?/g) || [])
+            .map(x => Number(x.replace(",", ".")))
+            .filter(x => Number.isFinite(x));
+        if (nums.length >= 2) return { low: nums[0], high: nums[1] };
+        if (nums.length === 1)
+            return String(text).includes(">") ? { low: nums[0], high: null } : { low: null, high: nums[0] };
+        return null;
+    }
+
     function refHint(f) {
         if (f.refText) return f.refText;
         if (f.refLow !== null && f.refLow !== undefined && f.refHigh !== null && f.refHigh !== undefined)
@@ -237,6 +249,17 @@
 
             factors = defRes.factors || [];
             const latest = latestByFactor(valRes.values);
+            // The range and unit printed on the patient's own sheet outrank the
+            // dictionary's default: ranges differ per lab, age and sex. The
+            // abnormal flag is judged against what the paper printed.
+            for (const f of factors) {
+                const v = latest.get(f.factorID);
+                if (!v || !v.valueRefText) continue;
+                f.refText = v.valueRefText;
+                const r = parsePrintedRange(v.valueRefText);
+                if (r) { f.refLow = r.low; f.refHigh = r.high; }
+                if (v.valueUnitText) f.unitUCUM = v.valueUnitText;
+            }
             // Earlier visits' values of the same factors, oldest first - the
             // little trend beside each row.
             const history = new Map();

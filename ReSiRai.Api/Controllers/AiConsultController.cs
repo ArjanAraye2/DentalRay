@@ -257,12 +257,19 @@ public sealed class AiConsultController : ControllerBase
             string trend = ordered.Count > 1
                 ? "; previous: " + string.Join(", ", ordered.Skip(1).Select(FormatValue))
                 : "";
-            string reference = def.RefText != null
-                ? def.RefText
-                : (def.RefLow != null || def.RefHigh != null
-                    ? $"reference {def.RefLow?.ToString() ?? "-"} to {def.RefHigh?.ToString() ?? "-"}"
-                    : "no reference");
-            lines.Add($"- {def.NameEn} ({def.FactorCode}) = {current}{trend} [{reference}, unit {def.UnitUCUM ?? "-"}]");
+            // The range printed on the patient's own sheet outranks the dictionary
+            // default: ranges differ per lab, age and sex. Provenance is stated so
+            // the model knows which range it is judging against.
+            string? printedRef = ordered[0].RefText;
+            string reference = printedRef != null
+                ? $"{printedRef} (as printed on the patient's lab sheet)"
+                : (def.RefText != null
+                    ? def.RefText
+                    : (def.RefLow != null || def.RefHigh != null
+                        ? $"reference {def.RefLow?.ToString() ?? "-"} to {def.RefHigh?.ToString() ?? "-"} (dictionary default)"
+                        : "no reference"));
+            string unit = ordered[0].UnitText ?? def.UnitUCUM ?? "-";
+            lines.Add($"- {def.NameEn} ({def.FactorCode}) = {current}{trend} [{reference}, unit {unit}]");
         }
 
         return $$"""
