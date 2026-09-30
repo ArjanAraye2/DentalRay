@@ -25,6 +25,11 @@
 .factor-row label .factor-required { color: #c0392b; }
 .factor-row label .factor-short { color: #14879b; font-weight: 600; }
 .factor-trend { font-size: 10.5px; color: #7b8b96; white-space: nowrap; }
+.factor-row .factor-derived {
+    background: #eef3f6;
+    color: #456;
+    cursor: not-allowed;
+}
 .factor-weight-range {
     margin: 2px 0 8px;
     font-size: 11px;

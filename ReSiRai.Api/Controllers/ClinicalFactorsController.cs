@@ -331,7 +331,7 @@ namespace ReSiRai.Api.Controllers
             }
 
             await _db.SaveChangesAsync();
-            int computed = await ComputeDerivedAsync(request.StudyID);
+            bool computed = await ComputeDerivedAsync(request.StudyID);
             return Ok(new { success = true, saved = request.Items.Count, computed });
         }
 
@@ -341,11 +341,11 @@ namespace ReSiRai.Api.Controllers
         /// are stored with Source = 4 (computed) so the panel, the chart and the
         /// AI always carry them. A number a human typed by hand is never touched.
         /// </summary>
-        private async Task<int> ComputeDerivedAsync(int studyID)
+        private async Task<bool> ComputeDerivedAsync(int studyID)
         {
             var study = await _db.RadiologyStudies.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.StudyID == studyID);
-            if (study is null) return 0;
+            if (study is null) return false;
             var patient = await _db.Patients.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.PatientID == study.PatientID);
 
@@ -369,27 +369,22 @@ namespace ReSiRai.Api.Controllers
                 ).FirstOrDefault();
             }
 
-            bool HumanRecorded(int factorID) => factorID != 0 && _db.StudyFactorValues.Any(x =>
-                x.StudyID == studyID && x.FactorID == factorID && x.Source != 4);
-
-            int done = 0;
+            bool done = false;
             var now = DateTime.Now;
 
             decimal? heightCm = Latest("ANTH.HEIGHT");
             decimal? weightKg = Latest("ANTH.WEIGHT");
-            if (heightCm is > 50m and < 260m && weightKg is > 10m and < 400m
-                && Fid("ANTH.BMI") != 0 && !HumanRecorded(Fid("ANTH.BMI")))
+            if (heightCm is > 50m and < 260m && weightKg is > 10m and < 400m && Fid("ANTH.BMI") != 0)
             {
                 decimal h = heightCm.Value / 100m;
                 if (await UpsertComputedAsync(studyID, Fid("ANTH.BMI"),
-                    Math.Round(weightKg.Value / (h * h), 1), now)) done++;
+                    Math.Round(weightKg.Value / (h * h), 1), now)) done = true;
             }
 
             // CKD-EPI 2021 (race-free): 142 x (Scr/k)^a x (Scr/k)^-1.2 x 0.9938^age
             // x 1.012 if female; k = 0.7/0.9, a = -0.241/-0.302. Scr in mg/dL.
             decimal? creat = Latest("LAB.CREAT");
-            if (creat is > 0.1m and < 15m && patient?.BirthDate != null
-                && Fid("LAB.EGFR") != 0 && !HumanRecorded(Fid("LAB.EGFR")))
+            if (creat is > 0.1m and < 15m && patient?.BirthDate != null && Fid("LAB.EGFR") != 0)
             {
                 double age = Math.Floor((DateTime.Now - patient!.BirthDate!.Value).TotalDays / 365.25);
                 bool female = patient.Gender == 2;
@@ -402,10 +397,10 @@ namespace ReSiRai.Api.Controllers
                     * Math.Pow(0.9938, age)
                     * (female ? 1.012 : 1.0);
                 if (egfr > 0 && egfr < 300 && await UpsertComputedAsync(studyID, Fid("LAB.EGFR"),
-                    Math.Round((decimal)egfr, 1), now)) done++;
+                    Math.Round((decimal)egfr, 1), now)) done = true;
             }
 
-            if (done > 0) await _db.SaveChangesAsync();
+            if (done) await _db.SaveChangesAsync();
             return done;
         }
 

@@ -258,6 +258,8 @@
             let weightRow = null;
             let heightRow = null;
             let bmiRow = null;
+            let egfrRow = null;
+            let creatRow = null;
             for (const f of factors) {
                 if (!group || group.dataset.category !== f.category) {
                     group = document.createElement("div");
@@ -276,6 +278,8 @@
                 if (f.factorCode === "ANTH.HEIGHT") heightRow = row;
                 if (f.factorCode === "ANTH.WEIGHT") weightRow = row;
                 if (f.factorCode === "ANTH.BMI") bmiRow = row;
+                if (f.factorCode === "LAB.EGFR") egfrRow = row;
+                if (f.factorCode === "LAB.CREAT") creatRow = row;
 
                 const label = document.createElement("label");
                 label.textContent = f.nameFa + " ";
@@ -354,38 +358,62 @@
                     }
                     note.textContent = text;
                 };
-                // BMI fills itself as height and weight are typed - the doctor
-                // asked for no button at all.
-                const refreshBmi = () => {
-                    const hEl = heightRow ? heightRow.querySelector("input, select") : null;
-                    const wEl = weightRow ? weightRow.querySelector("input, select") : null;
-                    const input = bmiRow.querySelector("input, select");
+                // BMI and eGFR are facts of arithmetic: their fields are locked
+                // and fill themselves as the measurements arrive. There is no
+                // honest way to type them by hand.
+                const lock = (input, why) => {
                     if (!input) return;
-                    const h = Number(hEl && hEl.value), w = Number(wEl && wEl.value);
-                    if (!(h > 50 && h < 260) || !(w > 10 && w < 400)) return;
-                    const m = h / 100;
-                    const bmi = Math.round((w / (m * m)) * 10) / 10;
-                    if (input.value !== String(bmi)) {
-                        input.value = String(bmi);
-                        // Marked as derived, so it is stored with source = computed
-                        // and never mistaken for a number the doctor typed.
-                        input.dataset.auto = "1";
-                        input.dispatchEvent(new Event("input"));
-                    }
+                    input.readOnly = true;
+                    input.classList.add("factor-derived");
+                    input.title = why;
                 };
                 const bmiInput = bmiRow.querySelector("input, select");
-                if (bmiInput) bmiInput.addEventListener("input", e => {
-                    if (e.isTrusted) delete bmiInput.dataset.auto;
-                });
+                lock(bmiInput, "محاسبه‌شده از قد و وزن - قابل ورود دستی نیست");
+                const egfrInput = egfrRow ? egfrRow.querySelector("input, select") : null;
+                lock(egfrInput, "محاسبه‌شده از کراتینین، سن و جنسیت - قابل ورود دستی نیست");
+                const refreshDerived = () => {
+                    const hEl = heightRow ? heightRow.querySelector("input, select") : null;
+                    const wEl = weightRow ? weightRow.querySelector("input, select") : null;
+                    const h = Number(hEl && hEl.value), w = Number(wEl && wEl.value);
+                    if (bmiInput && h > 50 && h < 260 && w > 10 && w < 400) {
+                        const m = h / 100;
+                        const bmi = Math.round((w / (m * m)) * 10) / 10;
+                        if (bmiInput.value !== String(bmi)) {
+                            bmiInput.value = String(bmi);
+                            bmiInput.dispatchEvent(new Event("input"));
+                        }
+                    }
+                    if (egfrInput) {
+                        const cEl = creatRow ? creatRow.querySelector("input, select") : null;
+                        const cr = Number(cEl && cEl.value);
+                        const birth = window.selectedPatient?.birthDate ? new Date(window.selectedPatient.birthDate) : null;
+                        const gender = Number(window.selectedPatient?.gender) || 0;
+                        if (cr > 0.1 && cr < 15 && birth && !isNaN(birth.getTime())) {
+                            const age = Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 3600 * 1000));
+                            const female = gender === 2;
+                            const k = female ? 0.7 : 0.9;
+                            const a = female ? -0.241 : -0.302;
+                            // CKD-EPI 2021 (race-free).
+                            const egfr = 142 * Math.pow(Math.min(cr / k, 1), a) * Math.pow(Math.max(cr / k, 1), -1.2)
+                                * Math.pow(0.9938, age) * (female ? 1.012 : 1);
+                            const v = String(Math.round(egfr * 10) / 10);
+                            if (egfr > 0 && egfr < 300 && egfrInput.value !== v) {
+                                egfrInput.value = v;
+                                egfrInput.dispatchEvent(new Event("input"));
+                            }
+                        }
+                    }
+                };
                 const hInput = heightRow ? heightRow.querySelector("input, select") : null;
                 const wInput = weightRow ? weightRow.querySelector("input, select") : null;
-                for (const el of [hInput, wInput]) {
+                const cInput = creatRow ? creatRow.querySelector("input, select") : null;
+                for (const el of [hInput, wInput, cInput]) {
                     if (!el) continue;
-                    el.addEventListener("input", () => { refreshNote(); refreshBmi(); });
-                    el.addEventListener("change", () => { refreshNote(); refreshBmi(); });
+                    el.addEventListener("input", () => { refreshNote(); refreshDerived(); });
+                    el.addEventListener("change", () => { refreshNote(); refreshDerived(); });
                 }
                 refreshNote();
-                refreshBmi();
+                refreshDerived();
             }
 
             const footer = document.createElement("div");
@@ -444,9 +472,12 @@
             if (!row) continue;
             const input = row.querySelector("input, select");
             if (!input) continue;
+            // BMI and eGFR never travel as typed values: the server derives
+            // them from the measurements (source = computed).
+            if (f.factorCode === "ANTH.BMI" || f.factorCode === "LAB.EGFR") continue;
             const value = readValue(f, input);
             if (!value) continue;
-            items.push(Object.assign({ factorID: f.factorID, source: input.dataset.auto === "1" ? 4 : 1 }, value));
+            items.push(Object.assign({ factorID: f.factorID, source: 1 }, value));
         }
         return items;
     }
