@@ -487,7 +487,10 @@ public sealed class AiClient
         var info = new System.Diagnostics.ProcessStartInfo
         {
             FileName = exe,
-            Arguments = $"{args} \"{imagePath}\" stdout",
+            // Tesseract: image and output first, then options and config files.
+            // Putting the "tsv" config before the image made Tesseract read the
+            // config name as the image path and return nothing.
+            Arguments = $"\"{imagePath}\" stdout {args}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,

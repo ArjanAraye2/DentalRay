@@ -175,7 +175,10 @@ public sealed class AiLabReportController : ControllerBase
                         rows = LabSheetParser.Parse(LabSheetParser.TsvToText(tsv));
                     lock (gate) parsed.AddRange(rows);
                 }
-                catch (AiException) { /* no OCR on this machine - the AI path decides */ }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // One unreadable page must never sink the whole extraction.
+                }
             });
         if (parsed.Count >= 3)
             return await BuildParsedResultAsync(parsed, firstRelativePath, fileLabel, studyID, cancellationToken);
