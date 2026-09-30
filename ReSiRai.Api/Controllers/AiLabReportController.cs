@@ -251,7 +251,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 // A lab sheet only ever maps to lab factors - never to exam or
                 // history observations that happen to share a word.
                 .Where(x => x.IsActive && x.FactorCode.StartsWith("LAB."))
-                .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh))
+                .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh, x.DataType))
                 .ToListAsync(cancellationToken);
 
             var items = new List<object>();
@@ -261,7 +261,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 foreach (var t in tests.EnumerateArray())
                 {
                     string name = GetString(t, "name") ?? string.Empty;
-                    var best = MatchFactor(name, factors);
+                    var best = MatchFactor(name, factors, LooksQualitative(GetString(t, "value")));
                     if (best is null) unmatched++;
 
                     items.Add(new
@@ -323,14 +323,14 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
 
         var factors = await _db.ClinicalFactors.AsNoTracking()
             .Where(x => x.IsActive && x.FactorCode.StartsWith("LAB."))
-            .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh))
+            .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh, x.DataType))
             .ToListAsync(cancellationToken);
 
         var items = new List<object>();
         int unmatched = 0;
         foreach (var row in rows)
         {
-            var best = MatchFactor(row.Name, factors);
+            var best = MatchFactor(row.Name, factors, LooksQualitative(row.Value));
             if (best is null) unmatched++;
             // The dictionary's own range is the better ruler for the scale fix.
             bool useDict = best?.RefLow is not null || best?.RefHigh is not null;
@@ -371,15 +371,24 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
         });
     }
 
-    private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM, decimal? RefLow, decimal? RefHigh);
+    private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM, decimal? RefLow, decimal? RefHigh, byte DataType);
     private sealed record MatchResult(int FactorID, string FactorCode, string NameFa, string? ShortCode, string? UnitUCUM, int Confidence, decimal? RefLow, decimal? RefHigh);
+
+    /// <summary>A printed result that is words, not a number ("Trace", "Negative").</summary>
+    private static bool LooksQualitative(string? value)
+    {
+        string v = (value ?? string.Empty).Trim();
+        return v.Length > 0 && !char.IsDigit(v[0]) && v[0] != '<' && v[0] != '>' && v[0] != '-';
+    }
 
     /// <summary>
     /// Name matching between what the lab printed and our dictionary. Confidence
     /// drops from an exact name/alias hit to a partial one; below the threshold the
-    /// row is returned unmatched so a human maps it by hand.
+    /// row is returned unmatched so a human maps it by hand. A qualitative result
+    /// never maps to a numeric factor: "Trace" for urine protein is not the serum
+    /// total protein number.
     /// </summary>
-    private static MatchResult? MatchFactor(string printedName, List<FactorInfo> factors)
+    private static MatchResult? MatchFactor(string printedName, List<FactorInfo> factors, bool qualitative = false)
     {
         string n = Norm(printedName);
         if (n.Length == 0) return null;
@@ -387,6 +396,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
         MatchResult? best = null;
         foreach (var f in factors)
         {
+            if (qualitative && f.DataType == 1) continue;
             int score;
             int dot = f.FactorCode.LastIndexOf('.');
             string codeTail = Norm(dot >= 0 ? f.FactorCode[(dot + 1)..] : f.FactorCode);

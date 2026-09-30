@@ -444,9 +444,42 @@
             }
             if (!factorID) { mark(tr, `${printedName}: فاکتور انتخاب نشده`); continue; }
 
-            const f = byId.get(factorID);
+            let f = byId.get(factorID);
             const raw = (tr.dataset.value || "").trim();
             if (raw === "") { mark(tr, `${printedName}: مقدار خالی`); continue; }
+            // مقدار با نوعِ فاکتور نمی‌خواند؟ (مثلاً «Trace» برایِ پروتئینِ ادرار
+            // که با پروتئینِ سرمِ عددی قاطی شده، یا «57.5» برایِ فاکتورِ گزینه‌ای)
+            // — به‌جایِ خطا، فاکتورِ جدا با نوعِ درست ساخته می‌شود تا چیزی
+            // بی‌صدا گم نشود و مقدارِ اشتباه هم ثبت نشود.
+            const fitsFactor = () => {
+                if (!f) return true;
+                const num = parsePrintedNumber(raw);
+                if (f.dataType === 1) return num !== null;
+                if (f.dataType === 2) {
+                    let options = [];
+                    try { options = JSON.parse(f.optionsJson || "[]"); } catch { }
+                    return options.some(o =>
+                        normalizeDigits(o.t).trim().toLowerCase() === normalizeDigits(raw).trim().toLowerCase());
+                }
+                return true;
+            };
+            if (!fitsFactor()) {
+                try {
+                    const created = await createFactorFor(tr, studyID);
+                    const newID = Number(created.factorID || 0);
+                    if (!newID) throw new Error("ساختِ فاکتور ناموفق بود");
+                    factorID = newID;
+                    byId.set(newID, created);
+                    f = created;
+                    added.push(printedName);
+                    tr.dataset.factorId = String(newID);
+                    const select = tr.querySelector("select");
+                    if (select) select.value = String(newID);
+                } catch (e) {
+                    mark(tr, `${printedName}: ${e.message || "افزودن به دیکشنری ناموفق بود"}`);
+                    continue;
+                }
+            }
             const item = {
                 factorID, source: 2, extractionID, confidence: Number(tr.dataset.confidence || 0),
                 // What the paper printed: stored with the value and used by the
@@ -477,9 +510,10 @@
         }
 
         if (items.length === 0) {
-            setStatus(overlay, skipped.length
-                ? `هیچ موردی ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`
-                : "هیچ ردیفی برای ثبت انتخاب نشده است.", true);
+            const notes = [];
+            if (alreadySaved) notes.push(`${alreadySaved} مورد پیش‌تر ثبت شده بود و دوباره ثبت نشد.`);
+            if (skipped.length) notes.push(`${skipped.length} مورد ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`);
+            setStatus(overlay, notes.length ? notes.join(" ") : "هیچ ردیفی برای ثبت انتخاب نشده است.", skipped.length > 0);
             return;
         }
 
