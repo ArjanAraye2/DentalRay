@@ -238,7 +238,9 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             await _db.SaveChangesAsync(cancellationToken);
 
             var factors = await _db.ClinicalFactors.AsNoTracking()
-                .Where(x => x.IsActive)
+                // A lab sheet only ever maps to lab factors - never to exam or
+                // history observations that happen to share a word.
+                .Where(x => x.IsActive && x.FactorCode.StartsWith("LAB."))
                 .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh))
                 .ToListAsync(cancellationToken);
 
@@ -310,7 +312,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
         await _db.SaveChangesAsync(cancellationToken);
 
         var factors = await _db.ClinicalFactors.AsNoTracking()
-            .Where(x => x.IsActive)
+            .Where(x => x.IsActive && x.FactorCode.StartsWith("LAB."))
             .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh))
             .ToListAsync(cancellationToken);
 
@@ -384,8 +386,13 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             else if (!string.IsNullOrEmpty(f.LoincCode) && n == Norm(f.LoincCode)) score = 100;
             else
             {
+                // Containment only for near-length names: "NEU" inside
+                // "Neurologic exam" is not a match - a lab sheet never maps to an
+                // examination factor.
                 string en = Norm(f.NameEn);
-                score = en.Length >= 3 && (n.Contains(en) || en.Contains(n)) ? 80 : 0;
+                int min = Math.Min(en.Length, n.Length);
+                int max = Math.Max(en.Length, n.Length);
+                score = min >= 5 && min * 2 >= max && (n.Contains(en) || en.Contains(n)) ? 80 : 0;
             }
 
             if (score >= 80 && (best is null || score > best.Confidence))

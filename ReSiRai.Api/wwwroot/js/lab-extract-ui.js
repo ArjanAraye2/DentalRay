@@ -252,7 +252,23 @@
             valueCell.appendChild(valueInput);
             tr.appendChild(valueCell);
             tr.appendChild(el("td", null, item.unit || ""));
-            tr.appendChild(el("td", null, item.refText || ""));
+            // The printed range is editable too: when OCR drops or garbles it,
+            // the doctor types what the paper says and it saves with the value.
+            const refCell = el("td");
+            const refInput = document.createElement("input");
+            refInput.type = "text";
+            refInput.className = "lab-extract-value lab-extract-ref";
+            refInput.value = item.refText || "";
+            refInput.placeholder = "بازه چاپ‌شده";
+            refInput.addEventListener("input", () => {
+                tr.dataset.refText = refInput.value;
+                tr.classList.remove("is-skipped");
+                tr.title = "";
+                delete tr.dataset.picked;
+                tr.classList.remove("is-saved");
+            });
+            refCell.appendChild(refInput);
+            tr.appendChild(refCell);
 
             const mapCell = el("td");
             if (item.factorID) {
