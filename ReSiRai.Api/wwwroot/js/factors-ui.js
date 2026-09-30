@@ -260,6 +260,8 @@
             let bmiRow = null;
             let egfrRow = null;
             let creatRow = null;
+            let pregRow = null;
+            let waistRow = null;
             for (const f of factors) {
                 if (!group || group.dataset.category !== f.category) {
                     group = document.createElement("div");
@@ -280,6 +282,8 @@
                 if (f.factorCode === "ANTH.BMI") bmiRow = row;
                 if (f.factorCode === "LAB.EGFR") egfrRow = row;
                 if (f.factorCode === "LAB.CREAT") creatRow = row;
+                if (f.factorCode === "HIST.PREG") pregRow = row;
+                if (f.factorCode === "ANTH.WC") waistRow = row;
 
                 const label = document.createElement("label");
                 label.textContent = f.nameFa + " ";
@@ -339,24 +343,57 @@
                 const note = document.createElement("div");
                 note.className = "factor-weight-range";
                 bmiRow.parentNode.insertBefore(note, bmiRow.nextSibling);
+                // Personal weight guide: the base range plus the adjustments a
+                // real clinic makes (age, sex, pregnancy, waist), each with its
+                // source - and the cautions no formula can see.
                 const refreshNote = () => {
-                    const hInput = heightRow ? heightRow.querySelector("input, select") : null;
-                    const h = Number(hInput && hInput.value);
+                    const hEl = heightRow ? heightRow.querySelector("input, select") : null;
+                    const h = Number(hEl && hEl.value);
                     const gender = Number(window.selectedPatient?.gender) || 0;
+                    note.replaceChildren();
+                    const line = (text, warn) => {
+                        const d = document.createElement("div");
+                        if (warn) d.className = "factor-weight-warn";
+                        d.textContent = text;
+                        note.appendChild(d);
+                    };
                     if (!(h > 50 && h < 260)) {
-                        note.textContent = "برای نمایش دامنه وزن مناسب، قد را وارد کنید.";
+                        line("برای نمایش راهنمای وزن، قد را وارد کنید.");
                         return;
                     }
                     const m = h / 100;
-                    const lo = 18.5 * m * m, hi = 24.9 * m * m;
-                    let text = `وزن مناسب برای قد ${Math.round(h)}` +
-                        (gender ? ` (${gender === 2 ? "زن" : "مرد"})` : "") +
-                        `: ${lo.toFixed(0)} تا ${hi.toFixed(0)} کیلو — BMI طبیعی ۱۸.۵ تا ۲۴.۹ (WHO)`;
+                    const band = (loBmi, hiBmi) =>
+                        `${(loBmi * m * m).toFixed(0)} تا ${(hiBmi * m * m).toFixed(0)} کیلو`;
+                    line(`بازه وزن سالم برای قد ${Math.round(h)}${gender ? ` (${gender === 2 ? "زن" : "مرد"})` : ""}: ${band(18.5, 24.9)} — BMI ۱۸.۵ تا ۲۴.۹ (WHO)`);
+                    const birth = window.selectedPatient?.birthDate ? new Date(window.selectedPatient.birthDate) : null;
+                    const age = birth && !isNaN(birth.getTime())
+                        ? Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 3600 * 1000)) : 0;
+                    if (age >= 65)
+                        line(`سن ${age}: در سالمندی هدف BMI حدود ۲۲ تا ۲۷ بهتر است → ${band(22, 27)} (پیشگیری از لاغری و شکستگی).`);
                     if (gender && h >= 152) {
                         const ideal = (gender === 2 ? 45.5 : 50) + 2.3 * (h / 2.54 - 60);
-                        text += ` · وزن ایده‌آل (Devine): ${ideal.toFixed(0)} کیلو`;
+                        line(`وزن ایده‌آل (Devine، ${gender === 2 ? "زن" : "مرد"}): ${ideal.toFixed(0)} کیلو.`);
                     }
-                    note.textContent = text;
+                    const pregEl = pregRow ? pregRow.querySelector("input, select") : null;
+                    const preg = Number(pregEl && pregEl.value);
+                    if (preg === 1)
+                        line("بارداری: هدف، افزایش وزن توصیه‌شده (IOM) بر پایه BMI پیش از بارداری است؛ محدودیت سخت کالری توصیه نمی‌شود.", true);
+                    else if (preg === 2)
+                        line("شیردهی: محدودیت سخت کالری توصیه نمی‌شود؛ کاهش وزن باید آرام و تدریجی باشد.", true);
+                    const waistEl = waistRow ? waistRow.querySelector("input, select") : null;
+                    const waist = Number(waistEl && waistEl.value);
+                    const waistLimit = gender === 2 ? 88 : 102;
+                    if (waist > 0) {
+                        if (waist >= waistLimit)
+                            line(`دور کمر ${Math.round(waist)}: چاقی مرکزی (آستانه زن ۸۸ / مرد ۱۰۲ — NHLBI)؛ ریسک متابولیک مستقل از BMI بالاست.`, true);
+                        else
+                            line(`دور کمر ${Math.round(waist)}: زیر آستانه چاقی مرکزی (زن ۸۸ / مرد ۱۰۲).`);
+                    }
+                    line("توجه: برای افراد عضلانی/ورزشکار، ادم یا آسیت، و بیماری مزمن (دیابت، COPD، نارسایی قلب/کلیه) هدف وزنی فردی است.", true);
+                    const wEl = weightRow ? weightRow.querySelector("input, select") : null;
+                    const w = Number(wEl && wEl.value);
+                    if (w > 10 && w >= 24.9 * m * m)
+                        line(`هدف واقع‌بینانه کاهش وزن: ۵ تا ۱۰ درصد وزن فعلی (${(w * 0.05).toFixed(0)} تا ${(w * 0.10).toFixed(0)} کیلو).`);
                 };
                 // BMI and eGFR are facts of arithmetic: their fields are locked
                 // and fill themselves as the measurements arrive. There is no
@@ -407,7 +444,9 @@
                 const hInput = heightRow ? heightRow.querySelector("input, select") : null;
                 const wInput = weightRow ? weightRow.querySelector("input, select") : null;
                 const cInput = creatRow ? creatRow.querySelector("input, select") : null;
-                for (const el of [hInput, wInput, cInput]) {
+                const waInput = waistRow ? waistRow.querySelector("input, select") : null;
+                const pInput = pregRow ? pregRow.querySelector("input, select") : null;
+                for (const el of [hInput, wInput, cInput, waInput, pInput]) {
                     if (!el) continue;
                     el.addEventListener("input", () => { refreshNote(); refreshDerived(); });
                     el.addEventListener("change", () => { refreshNote(); refreshDerived(); });

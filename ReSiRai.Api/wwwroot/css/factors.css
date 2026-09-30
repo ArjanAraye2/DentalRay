@@ -40,6 +40,7 @@
     padding: 6px 10px;
     line-height: 1.9;
 }
+.factor-weight-range .factor-weight-warn { color: #8a5a00; }
 
 .factor-row input,
 .factor-row select {
