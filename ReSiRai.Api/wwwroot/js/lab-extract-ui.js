@@ -275,6 +275,25 @@
         foot.insertBefore(confirmBtn, foot.firstChild);
     }
 
+    // The count of saved and unsaved data with the reason for every unsaved row
+    // - shown after saving and kept until the doctor closes the dialog.
+    function showSummary(body, savedCount, totalTicked, addedCount, skipped) {
+        body.querySelector(".lab-extract-summary")?.remove();
+        const box = el("div", "lab-extract-summary");
+        box.appendChild(el("div", savedCount > 0 ? "sum-ok" : "sum-warn",
+            savedCount > 0
+                ? `✓ ${savedCount} مقدار ثبت شد${totalTicked > savedCount ? ` از ${totalTicked} ردیف تأییدشده` : ""}.`
+                : "هیچ مقداری ثبت نشد."));
+        if (addedCount) box.appendChild(el("div", "sum-ok", `➕ ${addedCount} تست جدید به دیکشنری افزوده شد.`));
+        if (skipped.length) {
+            box.appendChild(el("div", "sum-warn", `⚠️ ${skipped.length} مورد ثبت نشد:`));
+            for (const s of skipped) box.appendChild(el("div", "sum-item", "• " + s));
+            box.appendChild(el("div", "sum-hint", "ردیف‌های قرمز را اصلاح کنید و دوباره «ثبت موارد تأییدشده» را بزنید."));
+        }
+        body.insertBefore(box, body.firstChild);
+        box.scrollIntoView({ block: "nearest" });
+    }
+
     function tdOf(child) {
         const td = el("td");
         td.appendChild(child);
@@ -358,6 +377,11 @@
         const items = [];
         const skipped = [];
         const added = [];
+        // Each unsaved row is tagged in the table itself, so the eye finds it.
+        const mark = (tr, reason) => {
+            skipped.push(reason);
+            if (tr && tr.classList) { tr.classList.add("is-skipped"); tr.title = reason; }
+        };
         for (const tr of body.querySelectorAll(".lab-extract-table tbody tr")) {
             const include = tr.querySelector('input[type="checkbox"]');
             if (!include || !include.checked) continue;
@@ -377,19 +401,19 @@
                         added.push(created.nameFa + (created.shortCode ? ` (${created.shortCode})` : ""));
                     }
                 } catch (e) {
-                    skipped.push(`${printedName}: ${e.message || "افزودن به دیکشنری ناموفق بود"}`);
+                    mark(tr, `${printedName}: ${e.message || "افزودن به دیکشنری ناموفق بود"}`);
                     continue;
                 }
             }
-            if (!factorID) { skipped.push(`${printedName}: فاکتور انتخاب نشده`); continue; }
+            if (!factorID) { mark(tr, `${printedName}: فاکتور انتخاب نشده`); continue; }
 
             const f = byId.get(factorID);
             const raw = (tr.dataset.value || "").trim();
-            if (raw === "") { skipped.push(`${printedName}: مقدار خالی`); continue; }
+            if (raw === "") { mark(tr, `${printedName}: مقدار خالی`); continue; }
             const item = { factorID, source: 2, extractionID, confidence: Number(tr.dataset.confidence || 0) };
             if (f && f.dataType === 1) {
                 const n = parsePrintedNumber(raw);
-                if (n === null) { skipped.push(`${printedName}: مقدار عددی خوانده نشد`); continue; }
+                if (n === null) { mark(tr, `${printedName}: مقدار عددی خوانده نشد`); continue; }
                 item.valueNumber = n;
             } else if (f && f.dataType === 3) {
                 item.valueBit = /^(yes|بله|positive|pos|1)/i.test(normalizeDigits(raw));
@@ -398,7 +422,7 @@
                 try { options = JSON.parse(f.optionsJson || "[]"); } catch { }
                 const rawN = normalizeDigits(raw).trim().toLowerCase();
                 const hit = options.find(o => normalizeDigits(o.t).trim().toLowerCase() === rawN);
-                if (!hit) { skipped.push(`${printedName}: گزینهٔ مناسب پیدا نشد`); continue; }
+                if (!hit) { mark(tr, `${printedName}: گزینهٔ مناسب پیدا نشد`); continue; }
                 item.valueNumber = Number(hit.v);
             } else if (f && f.dataType === 5) {
                 item.valueDate = raw;
@@ -406,6 +430,7 @@
                 item.valueText = raw;
             }
             items.push(item);
+            tr.dataset.picked = "1";
         }
 
         if (items.length === 0) {
@@ -420,12 +445,12 @@
             button.disabled = true;
             button.textContent = "در حال ثبت...";
             setStatus(overlay, "", false);
-            let msg;
+            let savedCount = 0;
             if (!studyID) {
                 // New-visit form: the values are held in the panel and saved the
                 // moment the visit row is created.
                 window.ReSiRaiFactors?.addPending(items);
-                msg = `${items.length} مقدار آماده شد؛ با ثبتِ مراجعه ذخیره می‌شوند.`;
+                savedCount = items.length;
             } else {
                 const r = await fetch("/api/factors/values", {
                     method: "POST",
@@ -434,15 +459,14 @@
                 });
                 const x = await readJson(r);
                 if (!r.ok || !x.success) throw new Error(x.message || "ثبت مقادیر ناموفق بود.");
-                msg = `${x.saved} مقدار از برگه آزمایش ثبت شد.`;
+                savedCount = Number(x.saved) || items.length;
                 window.ReSiRaiFactors?.render({ studyID });
             }
-            if (added.length) msg += ` ${added.length} تست جدید به دیکشنری افزوده شد.`;
-            if (skipped.length) {
-                msg += ` ${skipped.length} مورد ثبت نشد: ${skipped.slice(0, 3).join("؛ ")}${skipped.length > 3 ? "؛ ..." : ""}`;
-            }
-            setStatus(overlay, msg, skipped.length > 0);
-            setTimeout(close, 900);
+            // A summary that stays on the screen: how many rows made it, how many
+            // did not, and why. The doctor must not depend on a vanishing toast.
+            for (const tr of body.querySelectorAll(".lab-extract-table tbody tr"))
+                if (tr.dataset.picked === "1") tr.classList.add("is-saved");
+            showSummary(body, savedCount, items.length + skipped.length, added.length, skipped);
         } catch (e) {
             setStatus(overlay, e.message || "ثبت مقادیر ناموفق بود.", true);
         } finally {

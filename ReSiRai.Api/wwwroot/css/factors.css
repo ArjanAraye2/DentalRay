@@ -222,6 +222,22 @@
     cursor: pointer;
 }
 .lab-extract-add:hover { background: #dff4f8; }
+.lab-extract-summary {
+    margin-bottom: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #f2f9f4;
+    border: 1px solid #bfe3cb;
+    font-size: 12px;
+    line-height: 2;
+}
+.lab-extract-summary .sum-warn { color: #8a5a00; }
+.lab-extract-summary .sum-ok { color: #1d7a3f; font-weight: 700; }
+.lab-extract-summary .sum-item { color: #8a5a00; font-size: 11.5px; }
+.lab-extract-summary .sum-hint { color: #7b8b96; font-size: 11px; }
+.lab-extract-table tr.is-skipped { background: #fdecea; }
+.lab-extract-table tr.is-skipped td { color: #b3261e; }
+.lab-extract-table tr.is-saved { background: #eaf7ee; }
 
 /* AI consultation result */
 .consult-meta {
