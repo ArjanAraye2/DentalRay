@@ -291,13 +291,31 @@ public sealed class AiClient
         }
     }
 
+    /// <summary>
+    /// A 403 is not always a bad key: filtering gateways and security software
+    /// answer with their own "denied" text before the request ever reaches the
+    /// AI provider. The doctor must not go hunting in the config for a key that
+    /// is perfectly fine - so the message names the real cause whenever the body
+    /// makes it clear.
+    /// </summary>
+    private static AiException BlockedOrKey(string detail)
+    {
+        bool blocked = detail.Contains("security policy", StringComparison.OrdinalIgnoreCase)
+            || detail.Contains("access denied", StringComparison.OrdinalIgnoreCase)
+            || detail.Contains("blocked", StringComparison.OrdinalIgnoreCase);
+        return blocked
+            ? new AiException(
+                "دسترسی به سرویسِ هوش مصنوعی قطع شده است (فیلترینگ یا محافظِ امنیتی جلوی اتصال را گرفته). احتمالاً VPN خاموش است؛ آن را روشن کنید و دوباره تلاش کنید. کلیدِ شما سالم است.", 502, detail)
+            : new AiException(
+                "کلیدِ هوش مصنوعی نامعتبر است یا دسترسی ندارد. کلید را در ReSiRai.config.json بررسی کنید.", 502, detail);
+    }
+
     private static AiException Translate(HttpStatusCode status, string raw)
     {
         string detail = raw.Length > 500 ? raw[..500] : raw;
         return status switch
         {
-            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => new AiException(
-                "کلیدِ هوش مصنوعی نامعتبر است یا دسترسی ندارد. کلید را در ReSiRai.config.json بررسی کنید.", 502, detail),
+            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => BlockedOrKey(detail),
             HttpStatusCode.PaymentRequired => new AiException(
                 "اعتبارِ حسابِ هوش مصنوعی تمام شده است.", 502, detail),
             HttpStatusCode.TooManyRequests => new AiException(
