@@ -122,8 +122,13 @@ namespace ReSiRai.Api.Controllers
         [HttpPost("definitions")]
         public async Task<IActionResult> AddDefinition(AddFactorRequest request, CancellationToken cancellationToken)
         {
-            string nameEn = (request.NameEn ?? string.Empty).Trim();
-            string nameFa = string.IsNullOrWhiteSpace(request.NameFa) ? nameEn : request.NameFa.Trim();
+            static string Clamp(string? s, int max)
+            {
+                string t = (s ?? string.Empty).Trim();
+                return t.Length <= max ? t : t[..max];
+            }
+            string nameEn = Clamp(request.NameEn, 200);
+            string nameFa = string.IsNullOrWhiteSpace(request.NameFa) ? nameEn : Clamp(request.NameFa, 200);
             if (nameEn.Length == 0 && nameFa.Length == 0)
                 return BadRequest(new { success = false, message = "نام تست لازم است." });
             if (nameEn.Length == 0) nameEn = nameFa;
@@ -142,15 +147,15 @@ namespace ReSiRai.Api.Controllers
                     FactorCode = await UniqueFactorCode(nameEn, cancellationToken),
                     NameFa = nameFa,
                     NameEn = nameEn,
-                    ShortCode = string.IsNullOrWhiteSpace(request.ShortCode) ? null : request.ShortCode.Trim(),
+                    ShortCode = string.IsNullOrWhiteSpace(request.ShortCode) ? null : Clamp(request.ShortCode, 20),
                     Category = "Lab",
                     DataType = request.DataType == 0 ? (byte)1 : request.DataType,
-                    UnitUCUM = string.IsNullOrWhiteSpace(request.UnitUCUM) ? null : request.UnitUCUM.Trim(),
+                    UnitUCUM = string.IsNullOrWhiteSpace(request.UnitUCUM) ? null : Clamp(request.UnitUCUM, 30),
                     LoincCode = null,
                     LoincStatus = 0,
                     RefLow = request.RefLow,
                     RefHigh = request.RefHigh,
-                    RefText = string.IsNullOrWhiteSpace(request.RefText) ? null : request.RefText.Trim(),
+                    RefText = string.IsNullOrWhiteSpace(request.RefText) ? null : Clamp(request.RefText, 500),
                     RefSource = "برگه آزمایش چاپ‌شده (ثبت هنگام استخراج)",
                     RefPopulation = null,
                     AbnormalDirection = request.RefLow.HasValue || request.RefHigh.HasValue ? (byte)3 : null,
@@ -158,8 +163,22 @@ namespace ReSiRai.Api.Controllers
                     CreatedDate = DateTime.Now
                 };
                 _db.ClinicalFactors.Add(factor);
-                await _db.SaveChangesAsync(cancellationToken);
-                created = true;
+                try
+                {
+                    await _db.SaveChangesAsync(cancellationToken);
+                    created = true;
+                }
+                catch (DbUpdateException e)
+                {
+                    // Never crash on a dictionary row: tell the doctor what the
+                    // database said and leave the review screen usable.
+                    _db.Entry(factor).State = EntityState.Detached;
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "ذخیرهٔ فاکتورِ جدید ناموفق بود: " + (e.InnerException?.Message ?? e.Message)
+                    });
+                }
             }
 
             // Bind it to the visit's specialty (or internal medicine) so the factor

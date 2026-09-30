@@ -58,7 +58,7 @@ public static class LabSheetParser
                 if (!unitOk && !NumberRegex.IsMatch(refText)) continue;
                 if (unit.Length == 1) { refText = (unit + " " + refText).Trim(); unit = string.Empty; }
                 var (lo, hi) = ParseRef(refText);
-                rows.Add(new Row(name, m.Groups["value"].Value.Trim(), unit, refText, lo, hi));
+                rows.Add(new Row(name, m.Groups["value"].Value.Trim(), unit, Clamp(refText, 500), lo, hi));
                 continue;
             }
 
@@ -67,7 +67,7 @@ public static class LabSheetParser
             {
                 string rest = lost.Groups["rest"].Value.Trim();
                 var (lo, hi) = ParseRef(rest);
-                rows.Add(new Row(lost.Groups["name"].Value.Trim(), string.Empty, GuessUnit(rest), rest, lo, hi));
+                rows.Add(new Row(lost.Groups["name"].Value.Trim(), string.Empty, GuessUnit(rest), Clamp(rest, 500), lo, hi));
                 continue;
             }
 
@@ -76,7 +76,8 @@ public static class LabSheetParser
             if (rows.Count > 0 && NumberRegex.IsMatch(line))
             {
                 var prev = rows[^1];
-                rows[^1] = prev with { RefText = (prev.RefText + " / " + line).Trim(' ', '/') };
+                string joined = (prev.RefText + " / " + line).Trim(' ', '/');
+                if (joined.Length <= 500) rows[^1] = prev with { RefText = joined };
             }
         }
         return rows;
@@ -117,6 +118,8 @@ public static class LabSheetParser
 
     private static string GuessUnit(string rest)
         => KnownUnits.FirstOrDefault(u => rest.Contains(u, StringComparison.OrdinalIgnoreCase)) ?? string.Empty;
+
+    private static string Clamp(string s, int max) => s.Length <= max ? s : s[..max];
 
     private static int Letters(string s) => s.Count(char.IsLetter);
 }
