@@ -223,7 +223,21 @@ public static class LabSheetParser
                 else refCell = (refCell + " " + text).Trim();
                 continue;
             }
-            if (text.Any(char.IsDigit)) { refCell = (refCell + " " + text).Trim(); continue; }
+            if (text.Any(char.IsDigit))
+            {
+                // سلولِ درهمِ «مقدار واحد بازه» («4.85 10%L 4.2-5.6») وقتی هنوز
+                // مقدار و واحد ثبت نشده‌اند: عددِ اول = مقدار، بعدیِ واحددار = واحد.
+                if (!valueSet && unit.Length == 0 && TrySplitMerged(text, out string v, out string u, out string rest))
+                {
+                    value = v;
+                    valueSet = true;
+                    unit = u;
+                    if (rest.Length > 0) refCell = (refCell + " " + rest).Trim();
+                    continue;
+                }
+                refCell = (refCell + " " + text).Trim();
+                continue;
+            }
             if (name.Length == 0) { name = text; continue; }
             if (!valueSet && Letters(text) >= 3) { value = text; valueSet = true; continue; }
             refCell = (refCell + " " + text).Trim();
@@ -253,6 +267,29 @@ public static class LabSheetParser
         if (s == "%" || KnownUnits.Any(k => k.Equals(s, StringComparison.OrdinalIgnoreCase))) return true;
         // "g/dL", "IU/mL", "10^9/L": شکلِ واحد با خطِ تیره.
         return s.Contains('/') && s.Count(c => char.IsLetter(c) || c == '%') >= 2;
+    }
+
+    // «4.85 10%L 4.2-5.6» → مقدار 4.85، واحد 10%L، بازهٔ 4.2-5.6. فقط وقتی
+    // الگو واقعاً همین باشد؛ «6 - 22» یا «18:0 ...» دست نمی‌خورند.
+    private static bool TrySplitMerged(string text, out string value, out string unit, out string rest)
+    {
+        value = unit = rest = string.Empty;
+        var m = Regex.Match(text, @"^(?<v>[<>]?\s*\d+(?:[.,]\d+)?)\s+(?<tail>.+)$");
+        if (!m.Success) return false;
+        var tokens = m.Groups["tail"].Value.Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) return false;
+        int idx = 0;
+        if (IsUnit(tokens[0]) || (tokens[0].Length <= 12 && !tokens[0].Contains('-')
+            && tokens[0].Any(c => char.IsLetter(c) || c == '%')))
+        {
+            unit = tokens[0];
+            idx = 1;
+        }
+        rest = string.Join(" ", tokens.Skip(idx));
+        if (unit.Length == 0 && !RangeRegex.IsMatch(rest) && !BoundRegex.IsMatch(rest)) return false;
+        value = m.Groups["v"].Value.Trim();
+        return true;
     }
 
     private static string JoinWords(List<TsvWord> words)
