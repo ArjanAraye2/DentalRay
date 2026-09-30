@@ -173,6 +173,14 @@ public sealed class AiLabReportController : ControllerBase
                     var rows = LabSheetParser.ParseTsv(tsv);
                     if (rows.Count == 0)
                         rows = LabSheetParser.Parse(LabSheetParser.TsvToText(tsv));
+                    if (rows.Count < 3)
+                    {
+                        // برگه وارونه؟ یک‌بار دیگر با چرخشِ ۱۸۰ و نگه‌داشتنِ
+                        // نتیجهٔ بهتر؛ چیزی به خاطرِ جهتِ عکس گم نمی‌شود.
+                        string turned = await _ai.OcrTsvTurnedAsync(part.Bytes, ct);
+                        var rows2 = LabSheetParser.ParseTsv(turned);
+                        if (rows2.Count > rows.Count) rows = rows2;
+                    }
                     lock (gate) parsed.AddRange(rows);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
