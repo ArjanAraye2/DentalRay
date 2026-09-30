@@ -155,7 +155,16 @@ public sealed class AiLabReportController : ControllerBase
         var parsed = new List<LabSheetParser.Row>();
         foreach (var (mime, bytes) in parts)
         {
-            try { parsed.AddRange(LabSheetParser.Parse(await _ai.OcrTextAsync(bytes, cancellationToken))); }
+            try
+            {
+                // مسیرِ قطعی: اول بازسازیِ جدول از TSV (مختصاتِ کلمات) که در
+                // برگه‌های متراکم ردیف‌ها را قاطی نمی‌کند؛ متنِ ساده فقط پشتیبان است.
+                string tsv = await _ai.OcrTsvAsync(bytes, cancellationToken);
+                var rows = LabSheetParser.ParseTsv(tsv);
+                if (rows.Count == 0)
+                    rows = LabSheetParser.Parse(await _ai.OcrTextAsync(bytes, cancellationToken));
+                parsed.AddRange(rows);
+            }
             catch (AiException) { /* no OCR on this machine - the AI path decides */ }
         }
         if (parsed.Count >= 3)

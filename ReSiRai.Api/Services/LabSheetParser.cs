@@ -4,9 +4,15 @@ namespace ReSiRai.Api.Services;
 
 /// <summary>
 /// A printed lab sheet is a table: test name, result, unit, reference range.
-/// Reading it needs no AI model - a deterministic parse of the OCR text is
-/// exact and, which matters most in a patient record, can never invent a row.
-/// The AI path remains only as a fallback for sheets this parser cannot read.
+/// Reading it needs no AI model - a deterministic parse is exact and, which
+/// matters most in a patient record, can never invent a row. The AI path remains
+/// only as a fallback for sheets this parser cannot read.
+///
+/// The TSV path (word positions from Tesseract) is the main one: every printed
+/// row is one OCR line even on a skewed scan, and each line is split into cells
+/// (name | value | unit | reference) by the gaps between words. A garbled OCR
+/// token never becomes a value: the row keeps an empty value and the doctor
+/// fills it in - a missing number is safe, a wrong one is not.
 /// </summary>
 public static class LabSheetParser
 {
@@ -32,11 +38,22 @@ public static class LabSheetParser
 
     private static readonly Regex NumberRegex = new(@"\d+(?:[.,]\d+)?", RegexOptions.Compiled);
 
+    // A result value is only ever a clean number ("<5", "4.3", "12%") or a short
+    // qualitative word ("Negative", "Yellow"). A garbled token like "4a}" is
+    // never turned into "4".
+    private static readonly Regex PureNumberRegex = new(
+        @"^[<>]?\s*-?\d+(?:[.,]\d+)?\s*%?$", RegexOptions.Compiled);
+
+    private sealed record TsvWord(string Text, int Left, int Top, int Width, int Height,
+        double Conf, string Line);
+
     private static readonly string[] Headers =
-        { "Test", "Result", "Unit", "Refrence", "Reference", "Blood", "Normal ranges", "Page" };
+        { "Test", "Result", "Unit", "Refrence", "Reference", "Blood", "Normal ranges", "Parameters", "Page" };
 
     private static readonly string[] KnownUnits =
         { "mg/dL", "U/L", "g/dL", "mEq/L", "mmol/L", "mIU/ml", "μIU/ml", "ng/mL", "pg/mL", "IU/mL", "Ratio", "%" };
+
+    // ---------------- plain-text fallback ----------------
 
     public static List<Row> Parse(string? ocrText)
     {
@@ -81,6 +98,172 @@ public static class LabSheetParser
             }
         }
         return rows;
+    }
+
+    // ---------------- TSV path: word positions ----------------
+
+    /// <summary>
+    /// بازسازیِ جدول از خروجیِ Tesseract-TSV (مختصاتِ هر کلمه). هر خطِ TSV یک
+    /// ردیفِ چاپی است - حتی روی اسکنِ کج - و هر خط با شکافِ بینِ کلمات به
+    /// سلول‌های (نام | مقدار | واحد | بازه) تقسیم می‌شود. کلماتِ کم‌اعتمادِ OCR
+    /// هرگز مقدار نمی‌سازند؛ مقدارِ خالی را پزشک پر می‌کند.
+    /// </summary>
+    public static List<Row> ParseTsv(string? tsv)
+    {
+        var words = new List<TsvWord>();
+        foreach (var raw in (tsv ?? string.Empty).Split('\n'))
+        {
+            var parts = raw.Split('\t');
+            if (parts.Length < 12) continue;
+            if (!int.TryParse(parts[0], out int level) || level != 5) continue;
+            if (!int.TryParse(parts[6], out int left) || !int.TryParse(parts[7], out int top) ||
+                !int.TryParse(parts[8], out int width) || !int.TryParse(parts[9], out int height)) continue;
+            if (!double.TryParse(parts[10], out double conf)) conf = 0;
+            string text = NormalizeDigits(string.Join("\t", parts[11..]).Trim());
+            if (text.Length == 0) continue;
+            bool pureNumber = PureNumberRegex.IsMatch(text);
+            // OCR خراب: کلماتِ غیرعددیِ کم‌اعتبار هرگز نگه داشته نمی‌شوند؛ عددِ
+            // کم‌اعتبار هم فقط اگر بالای ۳۰ باشد می‌ماند.
+            if (!(pureNumber ? conf >= 30 : conf >= 40)) continue;
+            words.Add(new TsvWord(text, left, top, width, height, conf, $"{parts[1]}/{parts[2]}/{parts[3]}/{parts[4]}"));
+        }
+        if (words.Count < 4) return new();
+
+        // شکافِ بینِ سلول‌ها با اندازهٔ صفحه می‌آید (حدودِ ۴٫۵٪ عرضِ صفحه)، نه
+        // با اندازهٔ کلمه: فاصلهٔ کلماتِ یک نام کوتاه است، فاصلهٔ ستون‌ها بزرگ.
+        double pageWidth = words.Max(w => w.Left + w.Width);
+        double cellGap = Math.Clamp(pageWidth * 0.045, 100, 200);
+
+        var rows = new List<Row>();
+        foreach (var line in words.GroupBy(w => w.Line).Select(g => g.OrderBy(w => w.Left).ToList()))
+            foreach (var segment in SegmentLine(line, cellGap))
+                AppendRow(rows, segment);
+        return rows;
+    }
+
+    // شکافِ بزرگِ بینِ کلمات = مرزِ سلول. شکافِ خیلی بزرگ = دو جدولِ کنارِ هم در
+    // یک خط (برگهٔ آنالیز ادرار: ماکروسکوپی | میکروسکوپی).
+    private static List<List<List<TsvWord>>> SegmentLine(List<TsvWord> line, double cellGap)
+    {
+        var cells = new List<List<TsvWord>> { new() { line[0] } };
+        var gaps = new List<double> { 0 };
+        double right = line[0].Left + line[0].Width;
+        foreach (var w in line.Skip(1))
+        {
+            double gap = w.Left - right;
+            if (gap > cellGap) { cells.Add(new()); gaps.Add(gap); }
+            cells[^1].Add(w);
+            right = Math.Max(right, w.Left + w.Width);
+        }
+
+        int splitAt = -1;
+        double maxGap = 0;
+        for (int i = 1; i < cells.Count; i++)
+            if (gaps[i] > maxGap) { maxGap = gaps[i]; splitAt = i; }
+
+        // دو جدولِ کنارِ هم در یک خط (برگهٔ ادرار) فقط وقتی جدا می‌شود که هر دو
+        // طرفِ شکاف، خودش یک ردیفِ کامل باشد: دست‌کم دو سلول با یک نام.
+        var segments = new List<List<List<TsvWord>>>();
+        bool TwoPanels()
+        {
+            bool Half(List<List<TsvWord>> side) => side.Count >= 2 && side.Any(NameLike);
+            return splitAt > 0 && splitAt < cells.Count && maxGap > cellGap * 2.5
+                && Half(cells.Take(splitAt).ToList()) && Half(cells.Skip(splitAt).ToList());
+        }
+        if (TwoPanels())
+        {
+            segments.Add(cells.Take(splitAt).ToList());
+            segments.Add(cells.Skip(splitAt).ToList());
+        }
+        else
+        {
+            segments.Add(cells);
+        }
+        return segments;
+    }
+
+    private static bool NameLike(List<TsvWord> cell)
+    {
+        string t = JoinWords(cell);
+        return !t.Any(char.IsDigit) && Letters(t) >= 2 && !IsUnit(t);
+    }
+
+    // طبقه‌بندیِ سلول‌ها: واحد | عددِ تمیز (اولی = مقدار) | متنِ دارایِ رقم (بازه)
+    // | متن (اولی = نام، دومی = مقدارِ کیفی مثل Negative).
+    private static void AppendRow(List<Row> rows, List<List<TsvWord>> cells)
+    {
+        string name = string.Empty, value = string.Empty, unit = string.Empty, refCell = string.Empty;
+        bool valueSet = false;
+
+        foreach (var cell in cells)
+        {
+            string text = JoinWords(cell);
+            if (text.Length == 0) continue;
+            if (unit.Length == 0 && IsUnit(text)) { unit = text; continue; }
+            if (PureNumberRegex.IsMatch(text))
+            {
+                // در جدول‌های چاپی مقدار همیشه قبل از واحد است؛ عددِ بعد از واحد
+                // بخشی از بازه است ("< 480" کنارِ U/L مقدارِ LDH نیست).
+                if (!valueSet && unit.Length == 0) { value = text; valueSet = true; }
+                else refCell = (refCell + " " + text).Trim();
+                continue;
+            }
+            if (text.Any(char.IsDigit)) { refCell = (refCell + " " + text).Trim(); continue; }
+            if (name.Length == 0) { name = text; continue; }
+            if (!valueSet && Letters(text) >= 3) { value = text; valueSet = true; continue; }
+            refCell = (refCell + " " + text).Trim();
+        }
+
+        if (Letters(name) < 1 || !char.IsLetter(name[0])) return;
+        if (Letters(name) < 2 && value.Length == 0 && unit.Length == 0) return;
+        if (Headers.Any(h => name.StartsWith(h, StringComparison.OrdinalIgnoreCase))) return;
+        // مقدارِ کیفیِ ردیفی که بازهٔ عددی دارد، مشکوک است (اغلب نامِ جدولِ کناری
+        // است)؛ به‌جایِ مقدارِ اشتباه، کنارِ بازه می‌ماند و پزشک می‌بیند.
+        if (valueSet && !PureNumberRegex.IsMatch(value) && NumberRegex.IsMatch(refCell))
+        {
+            refCell = (value + " " + refCell).Trim();
+            value = string.Empty;
+        }
+        // ردیفی که نه مقدار دارد، نه واحد، نه بازه، ردیفِ واقعیِ آزمایش نیست.
+        if (value.Length == 0 && unit.Length == 0 && refCell.Length == 0) return;
+
+        var (lo, hi) = ParseRef(refCell);
+        rows.Add(new Row(name, value, unit, Clamp(refCell, 500), lo, hi));
+    }
+
+    private static bool IsUnit(string s)
+    {
+        s = s.Trim();
+        if (s.Length == 0 || s.Length > 12 || s.Contains(' ')) return false;
+        if (s == "%" || KnownUnits.Any(k => k.Equals(s, StringComparison.OrdinalIgnoreCase))) return true;
+        // "g/dL", "IU/mL", "10^9/L": شکلِ واحد با خطِ تیره.
+        return s.Contains('/') && s.Count(c => char.IsLetter(c) || c == '%') >= 2;
+    }
+
+    private static string JoinWords(List<TsvWord> words)
+        => string.Join(" ", words.Select(w => w.Text)).Trim();
+
+    private static double Median(List<double> values)
+    {
+        if (values.Count == 0) return 0;
+        var sorted = values.OrderBy(x => x).ToList();
+        return sorted[sorted.Count / 2];
+    }
+
+    private static string NormalizeDigits(string s)
+    {
+        if (s.Length == 0) return s;
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (char c in s)
+            sb.Append(c switch
+            {
+                >= '\u06F0' and <= '\u06F9' => (char)('0' + (c - '\u06F0')),
+                >= '\u0660' and <= '\u0669' => (char)('0' + (c - '\u0660')),
+                '\u066B' => '.',
+                '\u066C' => ',',
+                _ => c
+            });
+        return sb.ToString();
     }
 
     /// <summary>
