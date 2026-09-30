@@ -237,6 +237,14 @@
 
             factors = defRes.factors || [];
             const latest = latestByFactor(valRes.values);
+            // Earlier visits' values of the same factors, oldest first - the
+            // little trend beside each row.
+            const history = new Map();
+            for (const h of (valRes.history || []).slice().reverse()) {
+                if (h.valueNumber === null || h.valueNumber === undefined) continue;
+                if (!history.has(h.factorID)) history.set(h.factorID, []);
+                history.get(h.factorID).push(Number(h.valueNumber));
+            }
             content.replaceChildren();
             if (factors.length === 0) {
                 const empty = document.createElement("div");
@@ -300,7 +308,18 @@
                 flag.className = "factor-flag";
                 flag.textContent = "خارج از بازه طبیعی";
 
-                row.append(label, input, ref, flag);
+                const trend = document.createElement("span");
+                trend.className = "factor-trend";
+                const past = history.get(f.factorID) || [];
+                if (f.dataType === 1 && past.length) {
+                    const current = Number(input.value);
+                    const arrow = input.value !== "" && Number.isFinite(current)
+                        ? (current > past[past.length - 1] ? "↑" : current < past[past.length - 1] ? "↓" : "→")
+                        : "";
+                    trend.textContent = (arrow + " " + past.slice(-3).join("، ")).trim();
+                    trend.title = "مقادیر قبلی (قدیمی → جدید): " + past.join("، ");
+                }
+                row.append(label, input, ref, flag, trend);
                 group.appendChild(row);
             }
 

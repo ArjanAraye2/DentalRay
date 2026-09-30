@@ -259,7 +259,22 @@ namespace ReSiRai.Api.Controllers
                     f.RefLow, f.RefHigh, f.RefText, f.AbnormalDirection, f.Category
                 }).ToListAsync();
 
-            return Ok(new { success = true, count = rows.Count, values = rows });
+            // Earlier values of the same factors from this patient's other visits,
+            // newest first - the raw material of the trend line.
+            int patientID = await _db.RadiologyStudies.AsNoTracking()
+                .Where(x => x.StudyID == studyID)
+                .Select(x => x.PatientID)
+                .FirstOrDefaultAsync();
+            var factorIds = rows.Select(x => x.FactorID).Distinct().ToList();
+            var history = await (
+                from v in _db.StudyFactorValues.AsNoTracking()
+                join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
+                where factorIds.Contains(v.FactorID) && v.StudyID != studyID && s.PatientID == patientID
+                orderby v.ObservedAt descending
+                select new { v.FactorID, v.StudyID, v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate, v.ObservedAt, v.Source }
+            ).Take(60).ToListAsync();
+
+            return Ok(new { success = true, count = rows.Count, values = rows, history });
         }
 
         /// <summary>
@@ -316,7 +331,104 @@ namespace ReSiRai.Api.Controllers
             }
 
             await _db.SaveChangesAsync();
-            return Ok(new { success = true, saved = request.Items.Count });
+            int computed = await ComputeDerivedAsync(request.StudyID);
+            return Ok(new { success = true, saved = request.Items.Count, computed });
+        }
+
+        /// <summary>
+        /// BMI and eGFR are facts of arithmetic, not of opinion: whenever height
+        /// and weight (or creatinine, age and sex) are known, the derived numbers
+        /// are stored with Source = 4 (computed) so the panel, the chart and the
+        /// AI always carry them. A number a human typed by hand is never touched.
+        /// </summary>
+        private async Task<int> ComputeDerivedAsync(int studyID)
+        {
+            var study = await _db.RadiologyStudies.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.StudyID == studyID);
+            if (study is null) return 0;
+            var patient = await _db.Patients.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PatientID == study.PatientID);
+
+            var codes = new[] { "ANTH.HEIGHT", "ANTH.WEIGHT", "ANTH.BMI", "LAB.CREAT", "LAB.EGFR" };
+            var factors = await _db.ClinicalFactors.AsNoTracking()
+                .Where(x => codes.Contains(x.FactorCode))
+                .ToListAsync();
+            int Fid(string code) => factors.FirstOrDefault(x => x.FactorCode == code)?.FactorID ?? 0;
+
+            // The latest known measurement of this patient, from any visit.
+            decimal? Latest(string code)
+            {
+                int id = Fid(code);
+                if (id == 0) return null;
+                return (
+                    from v in _db.StudyFactorValues.AsNoTracking()
+                    join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
+                    where v.FactorID == id && s.PatientID == study.PatientID && v.ValueNumber != null
+                    orderby v.ObservedAt descending
+                    select v.ValueNumber
+                ).FirstOrDefault();
+            }
+
+            bool HumanRecorded(int factorID) => factorID != 0 && _db.StudyFactorValues.Any(x =>
+                x.StudyID == studyID && x.FactorID == factorID && x.Source != 4);
+
+            int done = 0;
+            var now = DateTime.Now;
+
+            decimal? heightCm = Latest("ANTH.HEIGHT");
+            decimal? weightKg = Latest("ANTH.WEIGHT");
+            if (heightCm is > 50m and < 260m && weightKg is > 10m and < 400m
+                && Fid("ANTH.BMI") != 0 && !HumanRecorded(Fid("ANTH.BMI")))
+            {
+                decimal h = heightCm.Value / 100m;
+                if (await UpsertComputedAsync(studyID, Fid("ANTH.BMI"),
+                    Math.Round(weightKg.Value / (h * h), 1), now)) done++;
+            }
+
+            // CKD-EPI 2021 (race-free): 142 x (Scr/k)^a x (Scr/k)^-1.2 x 0.9938^age
+            // x 1.012 if female; k = 0.7/0.9, a = -0.241/-0.302. Scr in mg/dL.
+            decimal? creat = Latest("LAB.CREAT");
+            if (creat is > 0.1m and < 15m && patient?.BirthDate != null
+                && Fid("LAB.EGFR") != 0 && !HumanRecorded(Fid("LAB.EGFR")))
+            {
+                double age = Math.Floor((DateTime.Now - patient!.BirthDate!.Value).TotalDays / 365.25);
+                bool female = patient.Gender == 2;
+                double scr = (double)creat.Value;
+                double k = female ? 0.7 : 0.9;
+                double a = female ? -0.241 : -0.302;
+                double egfr = 142.0
+                    * Math.Pow(Math.Min(scr / k, 1.0), a)
+                    * Math.Pow(Math.Max(scr / k, 1.0), -1.200)
+                    * Math.Pow(0.9938, age)
+                    * (female ? 1.012 : 1.0);
+                if (egfr > 0 && egfr < 300 && await UpsertComputedAsync(studyID, Fid("LAB.EGFR"),
+                    Math.Round((decimal)egfr, 1), now)) done++;
+            }
+
+            if (done > 0) await _db.SaveChangesAsync();
+            return done;
+        }
+
+        /// <summary>Writes one derived value; returns true when something changed.</summary>
+        private async Task<bool> UpsertComputedAsync(int studyID, int factorID, decimal value, DateTime now)
+        {
+            var row = await _db.StudyFactorValues.FirstOrDefaultAsync(x =>
+                x.StudyID == studyID && x.FactorID == factorID && x.Source == 4);
+            if (row != null && row.ValueNumber == value) return false;
+            if (row == null)
+            {
+                row = new StudyFactorValue
+                {
+                    StudyID = studyID,
+                    FactorID = factorID,
+                    ObservedAt = now,
+                    CreatedDate = now
+                };
+                _db.StudyFactorValues.Add(row);
+            }
+            row.ValueNumber = value;
+            row.Source = 4;
+            return true;
         }
 
         /// <summary>Remove one recorded value (used when a review step rejects an extraction).</summary>
