@@ -97,6 +97,8 @@ public sealed class AiClient
     // نبودِ کلید، ایرادِ راه‌اندازی است نه خطای سرویس ⇒ فراخواننده 503 برمی‌گرداند.
     public string? ConfigurationError()
     {
+        // مسیرِ بدونِ کلید که فعال باشد، محصول بدونِ هیچ کلیدی هم کار می‌کند.
+        if (KeylessAllowed) return null;
         if (string.IsNullOrWhiteSpace(ApiKey))
             return "کلیدِ هوش مصنوعی تنظیم نشده است. ساختِ کلیدِ رایگان: openrouter.ai/keys و سپس AI:ApiKey در ReSiRai.config.json";
         if (string.IsNullOrWhiteSpace(Model))
@@ -152,11 +154,14 @@ public sealed class AiClient
                 last = new AiException("پاسخِ سرویسِ هوش مصنوعی قابلِ استفاده نبود. دوباره تلاش کنید.",
                     502, retryable: true);
             }
-            catch (AiException e) when (e.Retryable)
+            catch (AiException e)
             {
-                last = e; // مدلِ بعدیِ فهرست را امتحان می‌کنیم
+                // هر خطا (قطعی، کلید، پاسخِ بد) → مدلِ بعدی؛ اگر همه شکستند، مسیرِ رایگان.
+                last = e;
             }
         }
+        if (KeylessAllowed)
+            return await KeylessAsync(prompt, prepared, cancellationToken);
         throw last ?? new AiException("ارتباط با سرویسِ هوش مصنوعی برقرار نشد.", 502);
     }
 
@@ -308,6 +313,187 @@ public sealed class AiClient
                 "اتصال به سرویسِ هوش مصنوعی قطع شده است (فیلترینگِ شبکه جلوی آن را گرفته). کلیدِ شما سالم است؛ با اتصالِ بدونِ فیلتر دوباره تلاش کنید یا کمی بعد امتحان کنید.", 502, detail)
             : new AiException(
                 "کلیدِ هوش مصنوعی نامعتبر است یا دسترسی ندارد. کلید را در ReSiRai.config.json بررسی کنید.", 502, detail);
+    }
+
+    // --- مسیرِ بدونِ کلید (رایگان) -------------------------------------------
+    // وقتی سرویسِ کلیددار در دسترس نیست (قطعی/تحریم/بدونِ کلید)، محصول نباید
+    // بایستد: صفحه‌ها محلی با Tesseract خوانده می‌شوند و یک مدلِ متنیِ رایگان
+    // نتیجه را ساختار می‌دهد. برایِ خاموش کردن: AI:AllowKeylessFallback=false
+    private bool KeylessAllowed =>
+        !string.Equals(_configuration["AI:AllowKeylessFallback"], "false", StringComparison.OrdinalIgnoreCase);
+
+    private string TesseractExe
+    {
+        get
+        {
+            string? configured = _configuration["AI:TesseractExe"];
+            if (!string.IsNullOrWhiteSpace(configured)) return configured;
+            string[] candidates =
+            {
+                Path.Combine(AppContext.BaseDirectory, "Tools", "Tesseract-OCR", "tesseract.exe"),
+                @"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                @"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+            };
+            return candidates.FirstOrDefault(File.Exists) ?? string.Empty;
+        }
+    }
+
+    private string TessdataDir
+    {
+        get
+        {
+            string? configured = _configuration["AI:TessdataDir"];
+            if (!string.IsNullOrWhiteSpace(configured)) return configured;
+            string bundled = Path.Combine(AppContext.BaseDirectory, "Tools", "tessdata");
+            if (Directory.Exists(bundled)) return bundled;
+            return Path.Combine(Path.GetDirectoryName(TesseractExe) ?? string.Empty, "tessdata");
+        }
+    }
+
+    // OCR محلی: اول جهتِ صفحه (عکسِ موبایل اغلب ۹۰ درجه چرخیده است)، بعد خواندن.
+    private async Task<string> OcrAsync(byte[] bytes, CancellationToken cancellationToken)
+    {
+        string exe = TesseractExe;
+        if (exe.Length == 0) return await OcrSpaceAsync(bytes, cancellationToken);
+        string temp = Path.Combine(Path.GetTempPath(), "resirai-ocr-" + Guid.NewGuid().ToString("N") + ".jpg");
+        try
+        {
+            await File.WriteAllBytesAsync(temp, bytes, cancellationToken);
+            string osd = await RunTesseractAsync(exe, temp, "--psm 0 -l osd", cancellationToken) ?? string.Empty;
+            var match = System.Text.RegularExpressions.Regex.Match(osd, @"Rotate:\s*(\d+)");
+            if (match.Success && OperatingSystem.IsWindows())
+                RotateToUpright(temp, int.Parse(match.Groups[1].Value) % 360);
+            try
+            {
+                return await RunTesseractAsync(exe, temp, "--psm 6 -l fas+eng", cancellationToken) ?? string.Empty;
+            }
+            catch (AiException)
+            {
+                // اگر دادهٔ زبانِ فارسی نصب نبود، همان انگلیسی بهتر از هیچ است.
+                return await RunTesseractAsync(exe, temp, "--psm 6 -l eng", cancellationToken) ?? string.Empty;
+            }
+        }
+        finally
+        {
+            try { File.Delete(temp); } catch { }
+        }
+    }
+
+    // فقط ویندوز (System.Drawing)؛ مانندِ PrepareForAi صریح می‌گوییم.
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static void RotateToUpright(string path, int rotate)
+    {
+        if (rotate is not (90 or 180 or 270)) return;
+        using var img = System.Drawing.Image.FromFile(path);
+        img.RotateFlip(rotate switch
+        {
+            90 => System.Drawing.RotateFlipType.Rotate90FlipNone,
+            180 => System.Drawing.RotateFlipType.Rotate180FlipNone,
+            _ => System.Drawing.RotateFlipType.Rotate270FlipNone
+        });
+        img.Save(path, System.Drawing.Imaging.ImageFormat.Jpeg);
+    }
+
+    private static async Task<string?> RunTesseractAsync(string exe, string imagePath, string args,
+        CancellationToken cancellationToken)
+    {
+        var info = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = exe,
+            Arguments = $"{args} \"{imagePath}\" stdout",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        using var process = System.Diagnostics.Process.Start(info);
+        if (process is null) throw new AiException("برنامهٔ خواندنِ متن اجرا نشد.", 502);
+        string stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+        string stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
+        if (process.ExitCode != 0 && stdout.Trim().Length == 0)
+            throw new AiException("خواندنِ متنِ تصویر ناموفق بود.", 502, stderr);
+        return stdout;
+    }
+
+    // پشتیبان: اگر Tesseract نصب نبود، سرویسِ OCR رایگان (سقفِ حجم/روز دارد).
+    private async Task<string> OcrSpaceAsync(byte[] bytes, CancellationToken cancellationToken)
+    {
+        var client = _httpClients.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(Math.Max(60, AttemptTimeoutSeconds));
+        using var form = new MultipartFormDataContent();
+        form.Add(new StringContent("helloworld"), "apikey");
+        form.Add(new StringContent("eng"), "language");
+        form.Add(new StringContent("false"), "isOverlayRequired");
+        form.Add(new ByteArrayContent(bytes), "file", "page.jpg");
+        using var response = await client.PostAsync("https://api.ocr.space/parse/image", form, cancellationToken);
+        string raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode) throw new AiException("سرویسِ خواندنِ متن در دسترس نیست.", 502, raw);
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.TryGetProperty("ParsedResults", out var results) && results.ValueKind == JsonValueKind.Array)
+            {
+                var sb = new System.Text.StringBuilder();
+                foreach (var r in results.EnumerateArray())
+                    if (r.TryGetProperty("ParsedText", out var t) && t.ValueKind == JsonValueKind.String)
+                        sb.AppendLine(t.GetString());
+                return sb.ToString();
+            }
+        }
+        catch (JsonException) { }
+        return string.Empty;
+    }
+
+    // سرویس‌های رایگانِ بدونِ کلید — متنی؛ تصویرها قبلاً با OCR خوانده شده‌اند.
+    private async Task<string> KeylessAsync(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images,
+        CancellationToken cancellationToken)
+    {
+        string finalPrompt = prompt;
+        if (images.Count > 0)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append(prompt);
+            sb.Append("\n\nThe printed content of the photographed page(s) was read with OCR and may contain noise:\n---\n");
+            foreach (var (mime, bytes) in images)
+                if (bytes is { Length: > 0 }) sb.AppendLine(await OcrAsync(bytes, cancellationToken));
+            sb.Append("---\nStructure the result from the text above. Fix obvious OCR noise (for example a missing decimal point) using the printed reference ranges and context. Never invent rows.");
+            finalPrompt = sb.ToString();
+        }
+
+        (string Url, string Model)[] attempts =
+        {
+            ("https://text.pollinations.ai/openai", "openai-fast"),
+            ("https://api.llm7.io/v1/chat/completions", "DeepSeek-V4-Flash-0731")
+        };
+        AiException? last = null;
+        foreach (var (url, model) in attempts)
+        {
+            try
+            {
+                var client = _httpClients.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(AttemptTimeoutSeconds);
+                var body = new { model, temperature = 0.1, messages = new object[] { new { role = "user", content = finalPrompt } } };
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+                using var response = await client.SendAsync(request, cancellationToken);
+                string raw = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (!response.IsSuccessStatusCode) throw Translate(response.StatusCode, raw);
+                string text = ExtractText(raw) ?? string.Empty;
+                string normalized = NormalizeJson(text);
+                if (normalized.Length > 0 && (normalized[0] == '{' || normalized[0] == '['))
+                {
+                    Console.WriteLine($"[ReSiRai AI] ok via keyless {model} in {url}");
+                    return normalized;
+                }
+                last = new AiException("پاسخِ سرویسِ رایگان قابلِ استفاده نبود.", 502, retryable: true);
+            }
+            catch (AiException e)
+            {
+                last = e;
+            }
+        }
+        throw last ?? new AiException("ارتباط با سرویسِ رایگان برقرار نشد.", 502);
     }
 
     private static AiException Translate(HttpStatusCode status, string raw)
