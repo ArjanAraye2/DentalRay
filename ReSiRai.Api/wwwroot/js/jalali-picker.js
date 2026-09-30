@@ -86,7 +86,7 @@
      const mPrev=document.createElement("button");mPrev.type="button";mPrev.className="jalali-nav";mPrev.textContent="‹";mPrev.title="ماه قبل";mPrev.setAttribute("aria-label","ماه قبل");
      const title=document.createElement("strong");title.className="jalali-picker-title";
      const monthName=document.createElement("span");monthName.textContent=MONTHS[mo-1];
-     const yearText=document.createElement("span");yearText.className="jalali-picker-year";yearText.textContent=String(y);
+     const yearText=document.createElement("select");yearText.className="jalali-picker-year";yearText.setAttribute("aria-label","سال");for(let yy=today[0]+1;yy>=today[0]-120;yy--){const o=document.createElement("option");o.value=String(yy);o.textContent=String(yy);if(yy===y)o.selected=true;yearText.appendChild(o);}yearText.addEventListener("change",()=>{y=Number(yearText.value)||y;draw();});
      title.append(monthName,yearText);
      const mNext=document.createElement("button");mNext.type="button";mNext.className="jalali-nav";mNext.textContent="›";mNext.title="ماه بعد";mNext.setAttribute("aria-label","ماه بعد");
      const yNext=document.createElement("button");yNext.type="button";yNext.className="jalali-nav-year";yNext.textContent="»";yNext.title="سال بعد";yNext.setAttribute("aria-label","سال بعد");

@@ -1337,7 +1337,7 @@ button {
   font-size:var(--fs-md);
   font-weight:700;
 }
-.jalali-picker-year{color:var(--muted);font-size:var(--fs-sm);font-weight:600;direction:ltr}
+.jalali-picker-year{color:var(--muted);font-size:var(--fs-sm);font-weight:600;direction:ltr;border:1px solid #cfdce2;border-radius:6px;padding:1px 4px;background:#fff;cursor:pointer}
 .jalali-picker-weekdays{
   display:grid;
   grid-template-columns:repeat(7,1fr);
