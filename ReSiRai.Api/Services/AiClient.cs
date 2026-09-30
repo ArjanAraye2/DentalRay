@@ -581,6 +581,17 @@ public sealed class AiClient
     private async Task<string> KeylessAsync(string prompt, IReadOnlyList<(string Mime, byte[] Bytes)> images,
         CancellationToken cancellationToken)
     {
+        // سقفِ اندازه برایِ سرویس‌های رایگان؛ بزرگ‌تر از این با 402/400 رد می‌شود.
+        const int MaxPromptChars = 9000;
+
+        // از وسط فشرده می‌شود: آغازِ داده‌ها و پایانِ قراردادِ JSON سالم می‌مانند.
+        static string CompressPrompt(string text, int max)
+        {
+            int head = max * 2 / 5;
+            int tail = max - head - 60;
+            return text[..head] + "\n...[abbreviated]...\n" + text[^tail..];
+        }
+
         string finalPrompt = prompt;
         if (images.Count > 0)
         {
@@ -592,6 +603,11 @@ public sealed class AiClient
             sb.Append("---\nStructure the result from the text above. Fix obvious OCR noise (for example a missing decimal point) using the printed reference ranges and context. Never invent rows.");
             finalPrompt = sb.ToString();
         }
+
+        // سرویس‌های رایگان پرامپتِ بزرگ را با 402/400 رد می‌کنند؛ از وسط فشرده
+        // می‌شود تا آغازِ داده‌ها و پایانِ قراردادِ JSON سالم بمانند.
+        if (finalPrompt.Length > MaxPromptChars)
+            finalPrompt = CompressPrompt(finalPrompt, MaxPromptChars);
 
         (string Url, string Model)[] attempts =
         {

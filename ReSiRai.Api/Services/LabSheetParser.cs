@@ -136,7 +136,7 @@ public static class LabSheetParser
     public static List<Row> ParseTsv(string? tsv)
     {
         var words = ReadWords(tsv);
-        if (words.Count < 4) return new();
+        if (words.Count < 2) return new();
 
         // شکافِ بینِ سلول‌ها با اندازهٔ صفحه می‌آید (حدودِ ۴٫۵٪ عرضِ صفحه)، نه
         // با اندازهٔ کلمه: فاصلهٔ کلماتِ یک نام کوتاه است، فاصلهٔ ستون‌ها بزرگ.
@@ -282,18 +282,9 @@ public static class LabSheetParser
 
         if (Letters(name) < 1 && name.Length > 0) return;
 
-        // (الف) نتیجه در ستونِ بازه: برگه‌های آنالیز ادرار نتیجه را بدونِ واحد
-        // چاپ می‌کنند («RBC.» کنارِ «10-12») — این عدد نتیجه است، نه بازه.
-        if (!valueSet && unit.Length == 0 && BareRangeRegex.IsMatch(refCell))
-        {
-            value = refCell.Trim();
-            valueSet = true;
-            refCell = string.Empty;
-        }
-
         // (ب) سطرِ توضیحِ بازه («Adults : 2.6-4.5»، «100-126 Impaired ...») به
         // بازهٔ ردیفِ بالا می‌پیوندد؛ اطلاعاتِ برگه گم نمی‌شود ولی ردیفِ جعلی
-        // هم ساخته نمی‌شود.
+        // هم ساخته نمی‌شود. باید قبل از قاعدهٔ نتیجهٔ ادراری بررسی شود.
         if (!valueSet && unit.Length == 0 && rows.Count > 0
             && NumberRegex.IsMatch(refCell) && IsContinuation(name))
         {
@@ -301,6 +292,15 @@ public static class LabSheetParser
             string joined = (prev.RefText + " / " + name + " " + refCell).Trim(' ', '/');
             if (joined.Length <= 500) rows[^1] = prev with { RefText = joined };
             return;
+        }
+
+        // (الف) نتیجه در ستونِ بازه: برگه‌های آنالیز ادرار نتیجه را بدونِ واحد
+        // چاپ می‌کنند («RBC.» کنارِ «10-12») — این عدد نتیجه است، نه بازه.
+        if (!valueSet && unit.Length == 0 && BareRangeRegex.IsMatch(refCell))
+        {
+            value = refCell.Trim();
+            valueSet = true;
+            refCell = string.Empty;
         }
 
         if (name.Length == 0) return;
