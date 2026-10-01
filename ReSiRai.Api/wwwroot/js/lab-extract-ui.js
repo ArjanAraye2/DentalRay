@@ -754,5 +754,5 @@
         }
     }
 
-    window.ReSiRaiLabExtract = { open };
+    window.ReSiRaiLabExtract = { open, _renderReview: renderReview };
 })();
