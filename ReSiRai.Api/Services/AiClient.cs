@@ -449,9 +449,11 @@ public sealed class AiClient
         if (exe.Length == 0)
             return (outputMode.Length == 0 ? await OcrSpaceAsync(bytes, cancellationToken) : string.Empty, upright);
         string temp = Path.Combine(Path.GetTempPath(), "resirai-ocr-" + Guid.NewGuid().ToString("N") + ".jpg");
+        string tempOrig = Path.Combine(Path.GetTempPath(), "resirai-ocr0-" + Guid.NewGuid().ToString("N") + ".jpg");
         try
         {
             await File.WriteAllBytesAsync(temp, bytes, cancellationToken);
+            await File.WriteAllBytesAsync(tempOrig, bytes, cancellationToken);
             // تشخیصِ جهت باید روی خودِ تصویرِ کامل باشد؛ نسخهٔ کوچک OSD را به
             // اشتباه می‌اندازد (برگه وارونه خوانده می‌شد). شکستِ OSD هم مهلک
             // نیست: تکه‌های کوچک اغلب OSD ندارند و همان‌طور که هستند خوانده می‌شوند.
@@ -462,27 +464,66 @@ public sealed class AiClient
             }
             catch (AiException) { /* بدونِ چرخش ادامه می‌دهیم */ }
             var match = System.Text.RegularExpressions.Regex.Match(osd, @"Rotate:\s*(\d+)");
+            bool turned = false;
             if (match.Success && OperatingSystem.IsWindows())
             {
-                RotateToUpright(temp, int.Parse(match.Groups[1].Value) % 360);
-                upright = await File.ReadAllBytesAsync(temp, cancellationToken);
+                int angle = int.Parse(match.Groups[1].Value) % 360;
+                if (angle != 0)
+                {
+                    RotateToUpright(temp, angle);
+                    upright = await File.ReadAllBytesAsync(temp, cancellationToken);
+                    turned = true;
+                }
             }
-            if (!persianFirst)
-                return (await RunTesseractAsync(exe, temp, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty, upright);
-            try
+            async Task<string> ReadAsync(string file)
             {
-                return (await RunTesseractAsync(exe, temp, $"--psm 6 -l fas+eng {outputMode}", cancellationToken) ?? string.Empty, upright);
+                if (!persianFirst)
+                    return await RunTesseractAsync(exe, file, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty;
+                try
+                {
+                    return await RunTesseractAsync(exe, file, $"--psm 6 -l fas+eng {outputMode}", cancellationToken) ?? string.Empty;
+                }
+                catch (AiException)
+                {
+                    // اگر دادهٔ زبانِ فارسی نصب نبود، همان انگلیسی بهتر از هیچ است.
+                    return await RunTesseractAsync(exe, file, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty;
+                }
             }
-            catch (AiException)
+            if (!turned) return (await ReadAsync(temp), upright);
+            // OSD می‌تواند اشتباه کند (عکسِ نمایشگر، عکسِ با مانع) و چرخشِ اشتباه
+            // OCR را نابود می‌کند؛ هر دو حالت خوانده می‌شود و خواناتر می‌ماند.
+            string turnedText = await ReadAsync(temp);
+            string straightText = await ReadAsync(tempOrig);
+            if (OcrScore(straightText, outputMode) > OcrScore(turnedText, outputMode))
             {
-                // اگر دادهٔ زبانِ فارسی نصب نبود، همان انگلیسی بهتر از هیچ است.
-                return (await RunTesseractAsync(exe, temp, $"--psm 6 -l eng {outputMode}", cancellationToken) ?? string.Empty, upright);
+                upright = bytes;
+                return (straightText, upright);
             }
+            return (turnedText, upright);
         }
         finally
         {
             try { File.Delete(temp); } catch { }
+            try { File.Delete(tempOrig); } catch { }
         }
+    }
+
+    /// <summary>
+    /// خواناییِ خروجیِ OCR برایِ انتخابِ بینِ حالتِ چرخیده و اصلی: کلمه‌هایِ
+    /// مطمئنِ TSV یا حروفِ متنِ ساده.
+    /// </summary>
+    private static int OcrScore(string text, string outputMode)
+    {
+        if (outputMode != "tsv") return text.Count(char.IsLetter);
+        int score = 0;
+        foreach (var line in text.Split('\n').Skip(1))
+        {
+            var parts = line.Split('\t');
+            if (parts.Length < 11) continue;
+            if (double.TryParse(parts[10], System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out double conf) && conf >= 50) score++;
+        }
+        return score;
     }
 
     /// <summary>

@@ -74,6 +74,35 @@ public class LabRowAnalyzerTests
     }
 
     [Fact]
+    public void LostDecimalFitsTheRange_IsRestored()
+    {
+        // گزارش‌های PDF ممیز را در OCR می‌بلعند: «72» برایِ ۷٫۲ با بازهٔ ۴٫۵–۱۱.
+        // جابه‌جایی فقط اگر نتیجه داخلِ بازه بنشیند.
+        Assert.Equal("7.2", LabSheetParser.FitScale("72", 4.5m, 11m));
+        Assert.Equal("250", LabSheetParser.FitScale("2500", 150m, 450m));
+        Assert.Equal("34", LabSheetParser.FitScale("340", 32m, 36m));
+        Assert.Equal("2", LabSheetParser.FitScale("20", 1.3m, 4m));
+    }
+
+    [Fact]
+    public void GenuineHighValues_AreNeverShiftedToFit()
+    {
+        // «WBC 45» واقعی است؛ چون زیرِ ۵ برابرِ بازه است تکان نمی‌خورد و
+        // «164» گلوکز هم با وجودِ جابه‌جایی، در بازه نمی‌نشیند.
+        Assert.Equal("45", LabSheetParser.FitScale("45", 4m, 11m));
+        Assert.Equal("164", LabSheetParser.FitScale("164", 70m, 110m));
+    }
+
+    [Fact]
+    public void BelowRangeDecimalValue_IsRestoredWhenTheRangeIsDecimal()
+    {
+        // «34» برایِ ۳٫۴ با بازهٔ اعشاریِ ۳٫۵–۵٫۵ (گزارشِ PDF ممیز را می‌بلعد).
+        Assert.Equal("3.4", LabSheetParser.FitScale("34", 3.5m, 5.5m));
+        // ولی بازهٔ صحیح («4-11») مقادیرش را جابه‌جا نمی‌کند: «WBC 45» واقعی است.
+        Assert.Equal("45", LabSheetParser.FitScale("45", 4m, 11m));
+    }
+
+    [Fact]
     public void QualitativeOrEmptyValuesGetNoVerdict()
     {
         var none = new List<ConsistencyFinding>();

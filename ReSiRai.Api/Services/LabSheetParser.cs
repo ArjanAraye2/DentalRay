@@ -352,6 +352,20 @@ public static class LabSheetParser
         }
 
         if (name.Length == 0) return;
+        // مقدارِ چسبیده به نام («POTASSIUM 8.2» در عکسِ نمایشگرِ آزمایشگاه):
+        // عددِ آخرِ نام، مقدارِ همان ردیف است — اگر پیش از آن حرف باشد و نام
+        // با شماره تمام شود («COVID-19» هرگز شکسته نمی‌شود).
+        if (value.Length == 0 && unit.Length == 0)
+        {
+            var tail = System.Text.RegularExpressions.Regex.Match(name, @"^(?<n>.*\S)\s+(?<v>\d+(?:[.,]\d+)?)$");
+            if (tail.Success && Letters(tail.Groups["n"].Value) >= 3)
+            {
+                name = tail.Groups["n"].Value.Trim();
+                value = tail.Groups["v"].Value;
+                valueSet = true;
+                valueConf = 50;
+            }
+        }
         // نامِ تست می‌تواند با رقم شروع شود («25-OH-Vitamin D»)؛ تا وقتی حرفِ
         // کافی دارد، نام است.
         if (!char.IsLetter(name[0]) && Letters(name) < 4) return;
@@ -489,13 +503,45 @@ public static class LabSheetParser
         if (lo is null && hi is null) return value;
 
         decimal ruler = hi ?? lo!.Value;
-        if (ruler <= 0 || v < ruler * 8m) return value;
+        if (ruler <= 0) return value;
 
-        foreach (decimal d in new[] { 10m, 100m, 1000m })
+        // (۱) موردِ آشکار: عدد چند برابرِ بالایِ بازه است («329» برایِ ۳۲–۳۶).
+        if (v >= ruler * 8m)
         {
-            decimal c = v / d;
-            bool inside = (lo is null || c >= lo.Value * 0.5m) && (hi is null || c <= hi.Value * 1.6m);
-            if (inside) return prefix + c.ToString(System.Globalization.CultureInfo.InvariantCulture) + suffix;
+            foreach (decimal d in new[] { 10m, 100m, 1000m })
+            {
+                decimal c = v / d;
+                bool inside = (lo is null || c >= lo.Value * 0.5m) && (hi is null || c <= hi.Value * 1.6m);
+                if (inside) return prefix + c.ToString(System.Globalization.CultureInfo.InvariantCulture) + suffix;
+            }
+        }
+
+        // (۲) ممیزِ گم‌شده در گزارش‌های PDF («72» برایِ ۷٫۲ با بازهٔ ۴٫۵–۱۱):
+        // جابه‌جایی فقط و فقط اگر نتیجه دقیقاً داخلِ بازه بنشیند. شرطِ ۵ برابرِ
+        // بازه هم هست تا «WBC 45» واقعی هرگز تکان نخورد — پرچمِ دروغین
+        // بدترین چیز است.
+        if (v >= ruler * 5m)
+        {
+            foreach (decimal d in new[] { 10m, 100m, 1000m })
+            {
+                decimal c = v / d;
+                if ((lo is null || c >= lo.Value) && (hi is null || c <= hi.Value))
+                    return prefix + c.ToString(System.Globalization.CultureInfo.InvariantCulture) + suffix;
+            }
+            // (۳) مقدارِ زیرِ بازه («34» برایِ ۳٫۴ با بازهٔ ۳٫۵–۵٫۵): فقط وقتی
+            // که خودِ بازه اعشاری باشد (یعنی برگه مقادیر را اعشاری می‌نویسد) و
+            // نتیجه با همان بازهٔ آزادتر بخواند. بازهٔ صحیح («4-11») هرگز دست
+            // نمی‌خورد تا «WBC 45» واقعی سرِ جایش بماند.
+            bool decimalRange = (lo is not null && lo.Value % 1 != 0) || (hi is not null && hi.Value % 1 != 0);
+            if (decimalRange)
+            {
+                foreach (decimal d in new[] { 10m, 100m, 1000m })
+                {
+                    decimal c = v / d;
+                    if ((lo is null || c >= lo.Value * 0.5m) && (hi is null || c <= hi.Value * 1.6m))
+                        return prefix + c.ToString(System.Globalization.CultureInfo.InvariantCulture) + suffix;
+                }
+            }
         }
         return value;
     }

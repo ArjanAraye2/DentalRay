@@ -21,6 +21,24 @@ public class LabSheetParserTests
         => LabSheetParser.ParseTsv(string.Join("\n", words));
 
     [Fact]
+    public void ValueGluedToTheName_IsSplitOff()
+    {
+        // «POTASSIUM 8.2» در عکسِ نمایشگرِ آزمایشگاه: عددِ آخرِ نام، مقدارِ
+        // همان ردیف است. «COVID-19» که شماره‌اش به نام چسبیده هرگز شکسته نمی‌شود.
+        var rows = Parse(
+            W(1, 200, 100, 180, 95, "POTASSIUM"),
+            W(1, 390, 102, 60, 95, "8.2"),
+            W(2, 200, 170, 140, 95, "COVID-19"),
+            W(2, 560, 172, 110, 95, "IU/mL"));
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("POTASSIUM", rows[0].Name);
+        Assert.Equal("8.2", rows[0].Value);
+        Assert.Equal("COVID-19", rows[1].Name);
+        Assert.Equal("", rows[1].Value);
+    }
+
+    [Fact]
     public void SectionTitles_MarkRowsBelowAndAreNotRowsThemselves()
     {
         // «Urine Analysis» سطرِ عنوانِ بخش است، نه تست: کنار گذاشته می‌شود و
