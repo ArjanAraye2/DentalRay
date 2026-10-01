@@ -558,6 +558,53 @@ Return ONLY valid JSON with this exact shape:
     /// able to verify it: one click shows the exact band of the sheet the number
     /// was read from, beside the number itself.
     /// </summary>
+    /// <summary>
+    /// آزمایشاتِ این مراجعه. هر «آزمایش» یک گزارشِ آزمایشگاه است: یک یا چند
+    /// صفحه که یکجا استخراج شده‌اند + فیلدهای استخراج‌شده‌اش (هموگلوبین و …).
+    /// آزمایش مثلِ تصویرِ رادیولوژی یک «سندِ» پیوست‌شده به مراجعه است — نه
+    /// اقدام، نه مالی، و هیچ ارتباطی بینِ آزمایش و اقدام نیست.
+    /// </summary>
+    [HttpGet("lab-tests")]
+    public async Task<IActionResult> LabTests([FromQuery] int studyID, CancellationToken cancellationToken)
+    {
+        if (studyID <= 0) return BadRequest(new { success = false, message = "شمارهٔ مراجعه درست نیست." });
+
+        var batches = await _db.LabReportExtractions.AsNoTracking()
+            .Where(x => x.StudyID == studyID)
+            .OrderBy(x => x.CreatedDate)
+            .ToListAsync(cancellationToken);
+
+        var tests = batches.Select(b =>
+        {
+            List<LabSheetParser.Row> rows = new();
+            try { rows = JsonSerializer.Deserialize<List<LabSheetParser.Row>>(b.RawJson ?? "[]") ?? new(); }
+            catch { rows = new(); }
+            return new
+            {
+                extractionID = b.ExtractionID,
+                labName = b.LabName,
+                sampleDate = b.SampleDate,
+                createdDate = b.CreatedDate,
+                status = b.Status,
+                pageCount = (b.ImagePath ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries).Length,
+                fields = rows.Select((r, i) => new
+                {
+                    row = i,
+                    name = r.Name,
+                    value = r.Value,
+                    unit = r.Unit,
+                    refText = r.RefText,
+                    refLow = r.RefLow,
+                    refHigh = r.RefHigh,
+                    confidence = r.Confidence,
+                    section = r.Section
+                }).Where(x => !string.IsNullOrWhiteSpace(x.name) && !string.IsNullOrWhiteSpace(x.value)).ToList()
+            };
+        }).ToList();
+
+        return Ok(new { success = true, tests });
+    }
+
     [HttpGet("crop")]
     public async Task<IActionResult> Crop([FromQuery] long extractionID, [FromQuery] int row,
         CancellationToken cancellationToken)

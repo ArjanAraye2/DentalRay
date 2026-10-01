@@ -390,3 +390,40 @@
     .study-finance-row .row-actions,
     .study-actions-row .row-actions { justify-content: flex-start; }
 }
+
+/* --- پنل آزمایشات: هم‌سطحِ اقدامات، کنارِ تصاویر --------------------------
+   آزمایش مثلِ تصویرِ رادیولوژی یک «سند» است؛ کارتِ هر آزمایش فیلدهای
+   استخراج‌شده را با بازهٔ چاپ‌شده و ضریبِ اطمینان نشان می‌دهد و هر ردیف
+   با تکهٔ برگه قابلِ راستی‌آزمایی است. */
+.study-labtests{margin:12px 0;border:1px solid var(--border,#d9dee7);border-radius:12px;background:var(--panel,#fff);overflow:hidden}
+.study-labtests-head{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:0;background:transparent;cursor:pointer;font:inherit;text-align:right}
+.study-labtests-head:hover{background:var(--soft,#f4f7fb)}
+.study-labtests-head strong{font-size:15px}
+.study-labtests-desc{flex:1;min-width:0;color:var(--muted,#667085);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.study-labtests-chip{flex-shrink:0;background:var(--accent-soft,#eaf1ff);color:var(--accent,#2f5fd0);border-radius:999px;padding:2px 10px;font-size:12px}
+.study-labtests-arrow{color:var(--muted,#667085);font-size:12px}
+.study-labtests.is-collapsed{background:var(--soft,#fafbfc)}
+.study-labtests-body{padding:0 12px 12px}
+.study-labtests-status{min-height:18px;font-size:12px;color:var(--muted,#667085)}
+.study-labtests-status.error{color:#c0392b}
+.study-labtests-empty{padding:10px;color:var(--muted,#667085);font-size:13px}
+
+.labtest-card{border:1px solid var(--border,#e3e8ef);border-radius:10px;margin:8px 0;overflow:hidden;background:var(--card,#fcfdff)}
+.labtest-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--soft,#f4f7fb);border-bottom:1px solid var(--border,#e3e8ef)}
+.labtest-head strong{font-size:14px}
+.labtest-meta{color:var(--muted,#667085);font-size:12px}
+.labtest-table{width:100%;border-collapse:collapse;font-size:13px}
+.labtest-table th{position:sticky;top:0;background:var(--soft,#f6f8fb);color:var(--muted,#667085);font-weight:600;font-size:12px;padding:6px 10px;text-align:right;border-bottom:1px solid var(--border,#e3e8ef)}
+.labtest-table td{padding:6px 10px;border-bottom:1px solid var(--border,#eef1f5)}
+.labtest-row{cursor:pointer}
+.labtest-row:hover{background:var(--soft,#f7fafd)}
+.labtest-value{font-weight:700;font-variant-numeric:tabular-nums}
+.labtest-section{color:var(--muted,#98a2b3);font-size:11px}
+.labtest-state{font-style:normal;font-size:11px;border-radius:999px;padding:1px 8px}
+.labtest-state.is-ok{background:#e7f6ec;color:#1c7a3d}
+.labtest-state.is-high{background:#fdecec;color:#b42318}
+.labtest-state.is-low{background:#fff4e5;color:#b25e09}
+.labtest-state.is-none{background:#eef1f5;color:#667085}
+.labtest-evidence td{background:#0f172a08}
+.labtest-evidence img{max-width:min(100%,720px);max-height:220px;border:1px solid var(--border,#d9dee7);border-radius:8px;display:block}
+.labtest-evidence.hidden{display:none}

@@ -179,8 +179,8 @@ app.Use(async (context, next) =>
         if (File.Exists(indexPath))
         {
             string html = await File.ReadAllTextAsync(indexPath);
-            const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css?v=20261001.9\" />";
-            const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20261001.9\" />";
+            const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css?v=20261001.10\" />";
+            const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20261001.10\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}{cardExtractionStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
             const string featureScripts =
                 "<script src=\"/js/mobile-camera-loader.js?v=20261001.9\"></script>\n" +
