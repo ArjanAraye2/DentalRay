@@ -194,6 +194,20 @@
     background: #fff;
 }
 
+.panel-group { border: 1px solid var(--border, #d5dbe1); border-radius: 10px; margin: 10px 0; background: #fff; }
+.panel-group > summary {
+    cursor: pointer;
+    font-weight: 700;
+    padding: 9px 12px;
+    color: #2c6e8f;
+    list-style: none;
+    user-select: none;
+}
+.panel-group > summary::-webkit-details-marker { display: none; }
+.panel-group > summary::before { content: "▸ "; color: #888; }
+.panel-group[open] > summary::before { content: "▾ "; }
+.panel-group > .lab-extract-table { margin: 0; }
+
 .lab-extract-table {
     width: 100%;
     border-collapse: collapse;

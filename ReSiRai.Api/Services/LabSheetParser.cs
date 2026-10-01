@@ -19,7 +19,13 @@ public static class LabSheetParser
     public sealed record Row(string Name, string Value, string Unit, string RefText,
         decimal? RefLow, decimal? RefHigh, bool Suggested = false,
         int PixelTop = -1, int PixelHeight = -1, int Page = 0,
-        int Confidence = 0, string ConfidenceNote = "");
+        int Confidence = 0, string ConfidenceNote = "", string Section = "");
+
+    // سطرِ عنوانِ بخشِ چاپی («Urine Analysis»، «CBC» و…) — نه اسمِ تست، نه مقدار.
+    // عنوان‌ها ارقام ندارند و خودِ ردیف، واحد و بازه هم ندارند.
+    private static readonly Regex SectionTitleRegex = new(
+        @"\b(analysis|culture|sensitivity|count|cbc|differential|hematolog|haematolog|biochem|chemist|hormone|serolog|immunolog|thyroid|diabet|lipid|liver|kidney|cardiac|tumor|allerg|drug|urine|stool|panel|electrolyte|enzyme|function|microscop|macroscop)\b",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     // "name value unit ref..." - the shape of a printed result row.
     private static readonly Regex RowRegex = new(
@@ -84,11 +90,21 @@ public static class LabSheetParser
     public static List<Row> Parse(string? ocrText)
     {
         var rows = new List<Row>();
+        string section = string.Empty;
         foreach (var rawLine in (ocrText ?? string.Empty).Split('\n'))
         {
             string line = rawLine.Trim();
             if (line.Length < 3) continue;
             if (Headers.Any(h => line.StartsWith(h, StringComparison.OrdinalIgnoreCase))) continue;
+
+            // سطرِ عنوانِ بخشِ چاپی: نه ردیفِ آزمایش است و نه مقدار — نامِ
+            // پانلِ ردیف‌های بعدی می‌شود تا نتایج به تفکیکِ نوع بیایند.
+            if (!line.Any(char.IsDigit) && line.Split(' ').Length <= 4 && !line.Contains('.')
+                && SectionTitleRegex.IsMatch(line) && Letters(line) >= 5)
+            {
+                section = line;
+                continue;
+            }
 
             var m = RowRegex.Match(line);
             if (m.Success)
@@ -101,7 +117,7 @@ public static class LabSheetParser
                 if (!unitOk && !NumberRegex.IsMatch(refText)) continue;
                 if (unit.Length == 1) { refText = (unit + " " + refText).Trim(); unit = string.Empty; }
                 var (lo, hi) = ParseRef(refText);
-                rows.Add(new Row(name, m.Groups["value"].Value.Trim(), unit, Clamp(refText, 500), lo, hi));
+                rows.Add(new Row(name, m.Groups["value"].Value.Trim(), unit, Clamp(refText, 500), lo, hi, Section: section));
                 continue;
             }
 
@@ -110,7 +126,7 @@ public static class LabSheetParser
             {
                 string rest = lost.Groups["rest"].Value.Trim();
                 var (lo, hi) = ParseRef(rest);
-                rows.Add(new Row(lost.Groups["name"].Value.Trim(), string.Empty, GuessUnit(rest), Clamp(rest, 500), lo, hi));
+                rows.Add(new Row(lost.Groups["name"].Value.Trim(), string.Empty, GuessUnit(rest), Clamp(rest, 500), lo, hi, Section: section));
                 continue;
             }
 
@@ -145,11 +161,28 @@ public static class LabSheetParser
         double cellGap = Math.Clamp(pageWidth * 0.045, 100, 200);
 
         var rows = new List<Row>();
+        string section = string.Empty;
         foreach (var line in words.GroupBy(w => w.Line).Select(g => g.OrderBy(w => w.Left).ToList()))
+        {
             foreach (var segment in SegmentLine(line, cellGap))
+            {
+                // سطرِ عنوانِ بخشِ چاپی («Urine Analysis»، «CBC» و…) نه ردیفِ
+                // آزمایش است و نه مقدار: نامِ پانلِ ردیف‌های بعدی می‌شود تا
+                // نتایج به تفکیکِ نوع (خون‌شناسی، ادرار، کشت، …) دیده شوند.
+                string text = string.Join(" ", segment.Select(JoinWords)).Trim();
+                if (IsSectionTitle(text)) { section = text; continue; }
+                int before = rows.Count;
                 AppendRow(rows, segment);
+                for (int i = before; i < rows.Count; i++)
+                    rows[i] = rows[i] with { Section = section };
+            }
+        }
         return rows;
     }
+
+    private static bool IsSectionTitle(string text)
+        => text.Length >= 3 && Letters(text) >= 3 && !text.Any(char.IsDigit)
+            && SectionTitleRegex.IsMatch(text);
 
     /// <summary>
     /// متنِ پشتیبان از همان TSV ساخته می‌شود؛ اجرای دوبارهٔ Tesseract برایِ
@@ -265,6 +298,15 @@ public static class LabSheetParser
             }
             if (text.Any(char.IsDigit))
             {
+                // نامِ تست می‌تواند رقم داشته باشد («25-OH-Vitamin D»، «HbA1c»،
+                // «S.G.0.T.»)؛ تا وقتی نام چیزی نشده، متنِ حرف‌دارِ بلند نام است،
+                // نه مقدار یا بازه.
+                if (name.Length == 0 && !valueSet && unit.Length == 0 && Letters(text) >= 4
+                    && !text.Contains('>') && !text.Contains('<'))
+                {
+                    name = text;
+                    continue;
+                }
                 // سلولِ درهمِ «مقدار واحد بازه» («4.85 10%L 4.2-5.6») وقتی هنوز
                 // مقدار و واحد ثبت نشده‌اند: عددِ اول = مقدار، بعدیِ واحددار = واحد.
                 if (!valueSet && unit.Length == 0 && TrySplitMerged(text, out string v, out string u, out string rest))
@@ -310,7 +352,9 @@ public static class LabSheetParser
         }
 
         if (name.Length == 0) return;
-        if (!char.IsLetter(name[0])) return;
+        // نامِ تست می‌تواند با رقم شروع شود («25-OH-Vitamin D»)؛ تا وقتی حرفِ
+        // کافی دارد، نام است.
+        if (!char.IsLetter(name[0]) && Letters(name) < 4) return;
         if (Letters(name) < 2 && value.Length == 0 && unit.Length == 0) return;
         if (Headers.Any(h => name.StartsWith(h, StringComparison.OrdinalIgnoreCase))) return;
         // مقدارِ کیفیِ ردیفی که بازهٔ عددی دارد، مشکوک است (اغلب نامِ جدولِ کناری

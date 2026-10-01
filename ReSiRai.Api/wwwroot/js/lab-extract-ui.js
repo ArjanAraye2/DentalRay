@@ -245,6 +245,18 @@
         toolbar.appendChild(filterBtn);
         body.appendChild(toolbar);
 
+        // نتایج به تفکیکِ پانل (CBC، ادرار، کشت، …) در بخش‌هایِ بازشونده با
+        // عنوانِ مناسب — هر مراجعه می‌تواند چند نوع آزمایش داشته باشد.
+        const byPanel = new Map();
+        (x.items || []).forEach((item, rowIndex) => {
+            const p = panelOf(item);
+            if (!byPanel.has(p)) byPanel.set(p, []);
+            byPanel.get(p).push([rowIndex, item]);
+        });
+        for (const [panel, panelRows] of byPanel) {
+        const panelBox = el("details", "panel-group");
+        panelBox.open = true;
+        panelBox.appendChild(el("summary", null, `${panel} — ${panelRows.length} ردیف`));
         const table = el("table", "lab-extract-table");
         const thead = el("thead");
         const hr = el("tr");
@@ -253,7 +265,7 @@
         table.appendChild(thead);
 
         const tbody = el("tbody");
-        for (const [rowIndex, item] of (x.items || []).entries()) {
+        for (const [rowIndex, item] of panelRows) {
             const tr = el("tr");
             const include = document.createElement("input");
             include.type = "checkbox";
@@ -431,7 +443,9 @@
             tbody.appendChild(tr);
         }
         table.appendChild(tbody);
-        body.appendChild(table);
+        panelBox.appendChild(table);
+        body.appendChild(panelBox);
+        }
 
         const foot = overlay.querySelector(".lab-extract-foot");
         const confirmBtn = el("button", "primary-button", "ثبت موارد تأییدشده");
@@ -481,6 +495,19 @@
 
     // نکته: سطرِ بدونِ مقدار معمولاً متنِ اضافی است نه تست — همان‌جا نوشته می‌شود
     // تا پیش از تأیید دیده شود. با تایپِ مقدار یا بازخوانی، نکته کنار می‌رود.
+    // عنوانِ پانلِ هر ردیف: نامِ بخشِ چاپیِ برگه اگر باشد، وگرنه از رویِ خودِ
+    // نامِ تست. هر مراجعه می‌تواند چند نوع آزمایش داشته باشد (CBC، ادرار، کشت،
+    // بیوشیمی) و نتایج باید به تفکیکِ همان‌ها دیده شوند.
+    function panelOf(item) {
+        const t = (String(item.section || "") + " " + String(item.name || "")).toLowerCase();
+        if (/culture|sensitivity/.test(t)) return "کشت و آنتی‌بیوگرام";
+        if (/urine|specific gravity|urobilinogen|ketone|nitrite|epithelial|bacteria|mucus|casts|crystals/.test(t)) return "آنالیز ادرار";
+        if (/cbc|blood count|differential|hematolog|\bwbc\b|\brbc\b|hgb|hct|mcv|mch|mchc|rdw|\bplt\b|mpv|pct|pdw|p-lcr|neu|lym|mon|eos|bas|blasts|poikilo|aniso|microcyt|hypochrom|macrocyt|spherocyte|schistocyte/.test(t)) return "خون‌شناسی (CBC)";
+        if (/fbs|fasting|\bbun\b|creatinine|cholesterol|triglyc|\bhdl\b|\bldl\b|sgot|sgpt|alkaline|phosphatase|\bcpk\b|\bldh\b|protein|albumin|globulin|calcium|phosphorus|sodium|potassium|bilirubin|glucose|ratio/.test(t)) return "بیوشیمی";
+        if (/tsh|ferritin|vitamin|\bcrp\b|hormone|thyroid/.test(t)) return "هورمون و التهاب";
+        return String(item.section || "").trim() || "سایر";
+    }
+
     function refreshAn(tr) {
         const cell = tr.querySelector(".an-cell");
         if (!cell) return;

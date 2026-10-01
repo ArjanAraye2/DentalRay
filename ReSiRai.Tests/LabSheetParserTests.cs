@@ -21,6 +21,43 @@ public class LabSheetParserTests
         => LabSheetParser.ParseTsv(string.Join("\n", words));
 
     [Fact]
+    public void SectionTitles_MarkRowsBelowAndAreNotRowsThemselves()
+    {
+        // «Urine Analysis» سطرِ عنوانِ بخش است، نه تست: کنار گذاشته می‌شود و
+        // نامش کنارِ ردیف‌های بعدی می‌ماند تا نتایج به تفکیکِ پانل دیده شوند.
+        var rows = Parse(
+            W(1, 200, 100, 120, 95, "Urine"),
+            W(1, 330, 100, 150, 95, "Analysis"),
+            W(2, 200, 165, 120, 95, "Color"),
+            W(2, 600, 168, 110, 95, "Yellow"),
+            W(3, 200, 230, 120, 95, "WBC"),
+            W(3, 600, 233, 110, 95, "6.13"));
+
+        Assert.Equal(2, rows.Count); // خودِ عنوان، ردیف نیست
+        Assert.Equal("Color", rows[0].Name);
+        Assert.Equal("Urine Analysis", rows[0].Section);
+        Assert.Equal("WBC", rows[1].Name);
+        Assert.Equal("Urine Analysis", rows[1].Section);
+    }
+
+    [Fact]
+    public void AValuelessTestRowIsNeverTreatedAsASectionTitle()
+    {
+        // «25-OH-Vitamin D» با مقدارِ گم‌شده تست است نه عنوانِ بخش (ارقام دارد)؛
+        // نه حذف می‌شود و نه عنوان می‌شود.
+        var rows = Parse(
+            W(1, 200, 100, 200, 95, "25-OH-Vitamin"),
+            W(1, 420, 100, 80, 95, "D"),
+            W(1, 700, 105, 120, 95, "ng/ml"),
+            W(2, 200, 165, 120, 95, "Color"),
+            W(2, 600, 168, 110, 95, "Yellow"));
+
+        Assert.Equal(2, rows.Count);
+        Assert.Contains(rows, r => r.Name.Contains("Vitamin"));
+        Assert.Contains(rows, r => r.Section == "");
+    }
+
+    [Fact]
     public void DenseRow_KeepsNameValueUnitRefInTheirColumns()
     {
         // "Alkaline Phosphatase 220 U/L 80 - 306" with the scan's shear: each

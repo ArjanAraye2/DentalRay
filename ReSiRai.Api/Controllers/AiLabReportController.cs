@@ -440,6 +440,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             {
                 name = row.Name,
                 nameFa = (string?)null,
+                section = row.Section,
                 value,
                 unit = row.Unit,
                 refText = row.RefText,
