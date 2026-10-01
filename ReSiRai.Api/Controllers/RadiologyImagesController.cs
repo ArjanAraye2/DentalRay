@@ -201,7 +201,7 @@ namespace ReSiRai.Api.Controllers
             if (!await _studyAccess.CanAccessStudyAsync(studyID,User)) return NotFound(new { success=false,message="Study not found." });
             // linkCount = به چند مراجعه متصل است؛ رابط کاربری بر اساس آن بین
             // «حذف تصویر» (فقط یک مراجعه) و «جدا کردن از این مراجعه» (چند مراجعه) انتخاب می‌کند.
-            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=t!=null?t.ImageTypeName:null,i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate,linkCount=_context.RadiologyStudyImages.Count(l2=>l2.ImageID==i.ImageID),hasAnalysis=_context.AIImageAnalyses.Any(a=>a.ImageID==i.ImageID&&a.Kind==1) }).ToListAsync();
+            var images=await (from l in _context.RadiologyStudyImages.AsNoTracking() join i in _context.RadiologyImages.AsNoTracking() on l.ImageID equals i.ImageID join t in _context.ImageTypes.AsNoTracking() on i.ImageTypeID equals t.ImageTypeID into types from t in types.DefaultIfEmpty() where l.StudyID==studyID orderby i.FileName descending select new { i.ImageID,i.PatientID,i.ImageTypeID,ImageTypeName=i.ImageTypeText??(t!=null?t.ImageTypeName:null),i.FileName,i.RelativePath,i.ContentType,i.SerialNumber,i.CreatedDate,linkCount=_context.RadiologyStudyImages.Count(l2=>l2.ImageID==i.ImageID),hasAnalysis=_context.AIImageAnalyses.Any(a=>a.ImageID==i.ImageID&&a.Kind==1) }).ToListAsync();
             return Ok(new { success=true,studyID,count=images.Count,images });
         }
 
@@ -229,7 +229,7 @@ namespace ReSiRai.Api.Controllers
             var accessibleStudyIDs=_studyAccess.ApplyAccess(_context.RadiologyStudies.AsNoTracking().Where(s=>s.PatientID==patientID),User).Select(s=>s.StudyID);
             var accessibleImageIDs=_context.RadiologyStudyImages.AsNoTracking().Where(l=>accessibleStudyIDs.Contains(l.StudyID)).Select(l=>l.ImageID).Distinct();
             var images=await _context.RadiologyImages.AsNoTracking().Where(x=>x.PatientID==patientID && (StudyAccessService.IsSuperAdmin(User) || accessibleImageIDs.Contains(x.ImageID))).OrderByDescending(x=>x.FileName)
-                .Select(x=>new { x.ImageID,x.ImageTypeID,ImageTypeName=_context.ImageTypes.Where(t=>t.ImageTypeID==x.ImageTypeID).Select(t=>t.ImageTypeName).FirstOrDefault(),x.FileName,x.ContentType,x.CreatedDate,studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) }).ToListAsync();
+                .Select(x=>new { x.ImageID,x.ImageTypeID,ImageTypeName=x.ImageTypeText??_context.ImageTypes.Where(t=>t.ImageTypeID==x.ImageTypeID).Select(t=>t.ImageTypeName).FirstOrDefault(),x.FileName,x.ContentType,x.CreatedDate,studyCount=_context.RadiologyStudyImages.Count(l=>l.ImageID==x.ImageID) }).ToListAsync();
             return Ok(new { success=true,patientID,count=images.Count,images });
         }
 
@@ -295,6 +295,10 @@ namespace ReSiRai.Api.Controllers
                 .Where(x => x.ImageTypeID == request.ImageTypeID)
                 .Select(x => x.ImageTypeName)
                 .FirstAsync();
+
+            // اصلاحِ دستی، متنِ نمایش را هم همگام می‌کند تا گروهِ درست بماند.
+            image.ImageTypeText = name;
+            await _context.SaveChangesAsync();
 
             return Ok(new { success=true, imageID, imageTypeID=request.ImageTypeID, imageTypeName=name });
         }

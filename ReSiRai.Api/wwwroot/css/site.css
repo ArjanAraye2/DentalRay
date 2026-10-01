@@ -791,6 +791,40 @@ button {
     gap: 15px;
 }
 
+/* گروه‌هایِ بازشونده به تفکیکِ نوعِ تصویر (تشخیصِ رسیرا) — تمیز و بدونِ شلوغی. */
+.image-type-group {
+    border: 1px solid var( --border );
+    border-radius: var( --radius-lg );
+    background: #fafbfc;
+    padding: 0;
+}
+.image-type-group > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: var( --text, #333 );
+    user-select: none;
+}
+.image-type-group > summary::-webkit-details-marker { display: none; }
+.image-type-group > summary::before {
+    content: "▸";
+    color: var( --muted, #888 );
+    transition: transform .15s ease;
+}
+.image-type-group[open] > summary::before { transform: rotate(90deg); }
+.image-type-group > summary:hover { background: #f2f5f8; }
+.image-type-grid {
+    display: grid;
+    grid-template-columns: repeat( auto-fill, minmax( 185px, 1fr ) );
+    gap: 15px;
+    padding: 0 14px 14px;
+}
+
 
 .image-card {
     padding: 10px;

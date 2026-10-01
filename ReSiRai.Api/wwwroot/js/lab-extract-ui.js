@@ -104,6 +104,10 @@
         }
 
         const images = x.images || [];
+        // صفحاتِ «برگهٔ آزمایش» (به تشخیصِ رسیرا) بالای فهرست می‌آیند و
+        // پیش‌انتخاب می‌شوند تا مسیرِ معمولِ استخراج یک کلیک کمتر بخواهد.
+        const isLabPage = im => String(im.imageTypeName || "").includes("آزمایش");
+        images.sort((a, b) => (isLabPage(b) ? 1 : 0) - (isLabPage(a) ? 1 : 0));
         body.replaceChildren();
         body.appendChild(el("div", "factors-empty",
             "صفحه‌های برگه آزمایش را انتخاب کنید — برای برگهٔ چندصفحه‌ای چند تصویر را با هم تیک بزنید:"));
@@ -118,6 +122,8 @@
                 box.type = "checkbox";
                 box.name = "labExtractImage";
                 box.value = String(image.imageID);
+                box.checked = isLabPage(image);
+                item.title = image.imageTypeName || "";
                 const thumb = document.createElement("img");
                 thumb.loading = "lazy";
                 thumb.alt = "تصویر";
