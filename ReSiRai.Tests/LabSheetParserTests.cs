@@ -211,7 +211,123 @@ public class LabSheetParserTests
 
     [Fact]
     public void BoundOnlyRange_DoesNotScaleARealValue()
-        => Assert.Equal("22", LabSheetParser.FitScale("22", null, 10m)); // CRP 22 is real, not 2.2
+        => Assert.Equal("22", LabSheetParser.FitScale("22", null, 10m)); // بدونِ بازهٔ چاپ‌شده تکان نمی‌خورد
+
+    // ---------------- rule 4: decimal-printed one-sided range ----------------
+
+    [Fact]
+    public void DecimalPrintedBound_ScalesOneStep()
+        // «up to 10.0» و «22»: عددِ خارج از بازه، با بازهٔ اعشاریِ چاپ‌شده، فقط
+        // یک گامِ ÷۱۰ و فقط اگر دقیقاً داخلِ بازه بنشیند (مبنایِ دستی: 2.2).
+        => Assert.Equal("2.2", LabSheetParser.FitScale("22", null, 10m, "up to 10.0"));
+
+    [Theory]
+    [InlineData("45", 4, 11, "4-11")]              // WBC 45 واقعی است
+    [InlineData("164", 70, 110, "70-100 Normal")]  // گلوکز 164 واقعی است
+    public void IntegerPrintedRange_NeverScales(string printed, decimal lo, decimal hi, string refText)
+        => Assert.Equal(printed, LabSheetParser.FitScale(printed, lo, hi, refText));
+
+    [Fact]
+    public void UpToBound_IsParsedAsOneSidedRange()
+    {
+        var (lo, hi) = LabSheetParser.ParseRef("up to 10.0");
+        Assert.Null(lo);
+        Assert.Equal(10m, hi);
+    }
+
+    // ---------------- golden TSV rows: real failure modes ----------------
+
+    [Fact]
+    public void TableBorderPipes_DoNotKillTheRow()
+    {
+        // «| PLT | 169 | 10%L | 150-450 |» — خطوطِ جدول به متن می‌چسبیدند و
+        // نامِ «| PLT» ردیف را می‌انداخت.
+        var rows = Parse(
+            W(1, 88, 100, 12, 90, "|"),
+            W(1, 133, 100, 80, 93, "PLT"),
+            W(1, 552, 102, 60, 54, "169"),
+            W(1, 712, 102, 80, 62, "10%L"),
+            W(1, 987, 102, 110, 38, "150-450"));
+        Assert.Single(rows);
+        Assert.Equal("PLT", rows[0].Name);
+        Assert.Equal("169", rows[0].Value);
+        Assert.Equal(150m, rows[0].RefLow);
+    }
+
+    [Fact]
+    public void LowConfidenceNumber_IsKeptAndScaled()
+    {
+        // عددِ ستونِ مقدار با اعتمادِ ≈۴ خوانده شده بود («118» ← 1.18) و با
+        // آستانهٔ اطمینان می‌افتاد؛ عددِ گم‌شده بدتر از عددِ پرچم‌دار است.
+        var rows = Parse(
+            W(1, 145, 100, 258, 96, "Creatinine"),
+            W(1, 987, 92, 101, 3.9, "118"),
+            W(1, 1379, 86, 148, 88, "mg/dL"),
+            W(1, 1757, 83, 72, 0, "0.5"),
+            W(1, 1839, 82, 104, 0, "-1.4"));
+        Assert.Single(rows);
+        Assert.Equal("118", rows[0].Value);
+        Assert.Equal(0.5m, rows[0].RefLow);
+        Assert.Equal(1.4m, rows[0].RefHigh);
+        Assert.Equal("1.18", LabSheetParser.FitScale(rows[0].Value, rows[0].RefLow, rows[0].RefHigh, rows[0].RefText));
+    }
+
+    [Fact]
+    public void SlashInTestName_IsNotAUnit()
+    {
+        // «Blood/Hgb» نامِ آزمایش است؛ هر چیزِ دارایِ «/» واحد نیست.
+        var rows = Parse(
+            W(1, 172, 100, 200, 68, "Blood/Hgb"),
+            W(1, 746, 100, 160, 62, "Positive(I+)"));
+        Assert.Single(rows);
+        Assert.Equal("Blood/Hgb", rows[0].Name);
+        Assert.Equal("Positive(I+)", rows[0].Value);
+    }
+
+    [Fact]
+    public void ColumnHeaderRow_DoesNotSwallowTheRowBesideIt()
+    {
+        // «Urine Analysis | W.B.C. | Many» — عنوانِ ستونِ چپ نباید ردیفِ کنارش
+        // را ببلعد (قبلاً «W.B.C. Many» به‌عنوانِ عنوانِ بخش می‌رفت).
+        var rows = Parse(
+            W(1, 144, 100, 216, 95, "Urine"),
+            W(1, 281, 100, 100, 95, "Analysis"),
+            W(1, 1543, 100, 110, 40, "W.B.C."),
+            W(1, 2167, 100, 90, 96, "Many"));
+        var wb = rows.SingleOrDefault(r => r.Name == "W.B.C.");
+        Assert.NotNull(wb);
+        Assert.Equal("Many", wb!.Value);
+    }
+
+    [Fact]
+    public void PercentGluedToValue_MovesToTheUnit()
+    {
+        // «145%» ← مقدار 145 و واحدِ «%».
+        var rows = Parse(
+            W(1, 159, 100, 120, 84, "RDWCV"),
+            W(1, 536, 100, 90, 40, "145%"),
+            W(1, 1019, 100, 90, 78, "11-15"));
+        Assert.Single(rows);
+        Assert.Equal("145", rows[0].Value);
+        Assert.Equal("%", rows[0].Unit);
+    }
+
+    [Fact]
+    public void DottedAbbreviation_IsNotEatenByNumberRecovery()
+    {
+        // «S.G.0.T.» با اعتمادِ ۳۴: صفر/او را OCR در هم می‌ریزد؛ سرواژه نباید به
+        // عددِ زباله تبدیل شود («25-OH-Vitamin» هم از همین محافظ می‌آید).
+        var rows = Parse(
+            W(1, 161, 100, 200, 34, "S.G.0.T."),
+            W(1, 391, 100, 120, 92, "(AST"),
+            W(1, 543, 100, 20, 89, ")"),
+            W(1, 1013, 100, 40, 93, "33"),
+            W(1, 1412, 100, 60, 96, "U/L"),
+            W(1, 1784, 100, 50, 90, "<40"));
+        Assert.Single(rows);
+        Assert.Equal("33", rows[0].Value);
+        Assert.Contains("S.G.0.T.", rows[0].Name);
+    }
 
     [Fact]
     public void TsvToText_FallbackNeedsNoSecondOcrPass()

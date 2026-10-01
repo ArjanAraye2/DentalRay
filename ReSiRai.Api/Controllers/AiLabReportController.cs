@@ -377,7 +377,8 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             string value = row.Value.Length == 0
                 ? ""
                 : LabSheetParser.FitScale(row.Value,
-                    useDict ? best!.RefLow : row.RefLow, useDict ? best!.RefHigh : row.RefHigh);
+                    useDict ? best!.RefLow : row.RefLow, useDict ? best!.RefHigh : row.RefHigh,
+                    row.RefText);
             decimal? low = useDict ? best!.RefLow : row.RefLow;
             decimal? high = useDict ? best!.RefHigh : row.RefHigh;
             bool isNumber = decimal.TryParse(value,

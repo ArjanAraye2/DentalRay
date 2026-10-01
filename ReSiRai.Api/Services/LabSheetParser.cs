@@ -205,23 +205,27 @@ public static class LabSheetParser
                 !int.TryParse(parts[8], out int width) || !int.TryParse(parts[9], out int height)) continue;
             if (!double.TryParse(parts[10], out double conf)) conf = 0;
             string text = NormalizeDigits(string.Join("\t", parts[11..]).Trim());
+            // خطوطِ جدولِ «|» در متنِ سلول می‌چسبند و نام را می‌کُشند («| PLT» ردیف
+            // را می‌انداخت). فقط جداکننده‌ها بریده می‌شوند؛ پرانتزِ «(AST)» می‌ماند.
+            // گیومهٔ چسبیده به عدد («6.13"») هم زبالهٔ OCR است.
+            text = text.Trim('|', '¦', '[', ']', '{', '}', '‖', '«', '»', '"', '\'', '`', '~').Trim();
             if (text.Length == 0) continue;
             bool pureNumber = PureNumberRegex.IsMatch(text);
-            // OCR خراب: کلماتِ غیرعددیِ کم‌اعتبار هرگز نگه داشته نمی‌شوند؛ عددِ
-            // کم‌اعتبار هم فقط اگر بالای ۳۰ باشد می‌ماند.
-            if (!(pureNumber ? conf >= 30 : conf >= 40))
+            var almost = AlmostNumberRegex.Match(text);
+            bool numberish = pureNumber || (almost.Success && Letters(text) <= 1);
+            if (numberish)
             {
-                // عددِ چاپ‌شده با رنگِ متفاوت (مثلاً قرمزِ پرچم‌دار) با اعتمادِ
-                // کم و یکی‌دو نمادِ زباله جلویش خوانده می‌شود («`51.1»). اگر بعد
-                // از پاک‌سازی عددِ تمیز بماند، همان عددِ برگه است.
-                var almost = AlmostNumberRegex.Match(text);
-                if (almost.Success && conf >= 20)
-                {
+                // عددِ کم‌اعتماد هرگز انداخته نمی‌شود: با ضریبِ اطمینانِ پایین
+                // می‌نشیند، تحلیل پرچمش می‌زند و انسان می‌بیندش. عددِ گم‌شده
+                // («118» با اعتمادِ ≈۴ که 1.18 بود) بدتر از عددِ پرچم‌دار است.
+                // ولی سرواژه‌ها هرگز به عدد تبدیل نمی‌شوند: «S.G.0.T.» و
+                // «25-OH-Vitamin» نام‌اند، نه عددِ با زبالهٔ جلویش.
+                if (!pureNumber && almost.Success)
                     text = NormalizeDigits(almost.Groups["n"].Value.Trim());
-                    pureNumber = true;
-                }
-                else continue;
             }
+            // سرواژهٔ نقطه‌دارِ میان‌رده («S.G.0.T.» با اعتمادِ ۳۴) می‌ماند؛ OCR
+            // صفر/او را در هم می‌ریزد و دیکشنریِ برنامه با مترادف می‌بنددش.
+            else if (conf < 40 && !(conf >= 25 && text.Contains('.') && text.Count(char.IsLetter) >= 2)) continue;
             words.Add(new TsvWord(text, left, top, width, height, conf, $"{parts[1]}/{parts[2]}/{parts[3]}/{parts[4]}"));
         }
         return words;
@@ -252,9 +256,14 @@ public static class LabSheetParser
         var segments = new List<List<List<TsvWord>>>();
         bool TwoPanels()
         {
-            bool Half(List<List<TsvWord>> side) => side.Count >= 2 && side.Any(NameLike);
+            // سمتِ چپ می‌تواند تنها یک سلولِ نام‌مانند باشد (سطرِ عنوانِ ستون:
+            // «Urine Analysis | W.B.C. Many») وگرنه «W.B.C.=Many» بلعیدهٔ عنوان
+            // می‌شد. سمتِ راست همچنان دست‌کم دو سلول می‌خواهد تا ردیفِ کیفیِ
+            // «Bilirubin Negative» با فاصلهٔ زیاد دو تکه نشود.
+            bool HalfLeft(List<List<TsvWord>> side) => side.Any(NameLike);
+            bool HalfRight(List<List<TsvWord>> side) => side.Count >= 2 && side.Any(NameLike);
             return splitAt > 0 && splitAt < cells.Count && maxGap > cellGap * 2.5
-                && Half(cells.Take(splitAt).ToList()) && Half(cells.Skip(splitAt).ToList());
+                && HalfLeft(cells.Take(splitAt).ToList()) && HalfRight(cells.Skip(splitAt).ToList());
         }
         if (TwoPanels())
         {
@@ -318,6 +327,23 @@ public static class LabSheetParser
                     if (rest.Length > 0) refCell = (refCell + " " + rest).Trim();
                     continue;
                 }
+                // واحدِ این سلول به‌کلی زباله است («6.13 7105» ← واحدِ «10^3/uL» را
+                // OCR خراب خوانده) ولی عددِ سرِ سلول معتبر است؛ باقی به بازه می‌رود.
+                // «0.5 -1.4» بازه است و با خطِ تیرهٔ سرِ بقیه کنار گذاشته می‌شود.
+                if (!valueSet && unit.Length == 0
+                    && Regex.IsMatch(text, @"^[<>]?\s*\d+(?:[.,]\d+)?\s+\S")
+                    && !text.TrimStart().StartsWith('-') && !text.TrimStart().StartsWith('+'))
+                {
+                    var parts = text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length == 2 && !parts[1].StartsWith('-') && !parts[1].StartsWith('+'))
+                    {
+                        value = parts[0].Trim();
+                        valueSet = true;
+                        valueConf = cellConf;
+                        refCell = (refCell + " " + parts[1]).Trim();
+                        continue;
+                    }
+                }
                 refCell = (refCell + " " + text).Trim();
                 lastDigitConf = cellConf;
                 continue;
@@ -370,7 +396,11 @@ public static class LabSheetParser
         // کافی دارد، نام است.
         if (!char.IsLetter(name[0]) && Letters(name) < 4) return;
         if (Letters(name) < 2 && value.Length == 0 && unit.Length == 0) return;
-        if (Headers.Any(h => name.StartsWith(h, StringComparison.OrdinalIgnoreCase))) return;
+        // نامِ دارایِ خطِ تیره («Blood/Hgb») هرگز سربرگ نیست — سربرگ‌ها برچسبِ
+        // خالی‌اند و نامِ آزمایشِ واقعی نباید قربانیِ آنها شود.
+        if (!name.Contains('/') && Headers.Any(h => name.Equals(h, StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith(h + " ", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith(h + ":", StringComparison.OrdinalIgnoreCase))) return;
         // مقدارِ کیفیِ ردیفی که بازهٔ عددی دارد، مشکوک است (اغلب نامِ جدولِ کناری
         // است)؛ به‌جایِ مقدارِ اشتباه، کنارِ بازه می‌ماند و پزشک می‌بیند.
         if (valueSet && !PureNumberRegex.IsMatch(value) && NumberRegex.IsMatch(refCell))
@@ -410,6 +440,13 @@ public static class LabSheetParser
             }
         }
 
+        // درصدِ چسبیده به عدد («145%») مقدار نیست؛ واحد است.
+        if (unit.Length == 0 && value.EndsWith('%') && value.Length > 1)
+        {
+            unit = "%";
+            value = value[..^1].TrimEnd();
+        }
+
         var (lo, hi) = ParseRef(refCell);
         // جایِ ردیف روی تصویر تا بعداً بتوان همان ناحیه را برایِ خواندنِ مدل برید.
         int pixTop = cells.SelectMany(c => c).Min(w => w.Top);
@@ -419,13 +456,26 @@ public static class LabSheetParser
             Confidence: confidence, ConfidenceNote: confNote));
     }
 
+    // پسوندهایِ واحد بعد از خطِ تیره: «mg/dL»، «10^9/L»، «cells/µL». نامِ آزمایش
+    // با خطِ تیره («Blood/Hgb»، «LDL/HDL») هرگز واحد نیست.
+    private static readonly string[] UnitSuffixes =
+        { "l", "dl", "ml", "ul", "l", "mol", "mmol", "eq", "meq", "iu", "miu", "u",
+          "g", "mg", "ng", "pg", "kg", "hr", "min", "sec", "day", "hpf", "lpf",
+          "cells", "vol", "mosm", "mm", "cm", "m" };
+
     private static bool IsUnit(string s)
     {
         s = s.Trim();
         if (s.Length == 0 || s.Length > 12 || s.Contains(' ')) return false;
         if (s == "%" || KnownUnits.Any(k => k.Equals(s, StringComparison.OrdinalIgnoreCase))) return true;
-        // "g/dL", "IU/mL", "10^9/L": شکلِ واحد با خطِ تیره.
-        return s.Contains('/') && s.Count(c => char.IsLetter(c) || c == '%') >= 2;
+        // "g/dL", "IU/mL", "10^9/L": شکلِ واحد با خطِ تیره — بخشِ بعد از خط باید
+        // واقعاً پسوندِ واحد باشد، وگرنه «Blood/Hgb» به‌جایِ نام، واحد می‌خورد.
+        int slash = s.IndexOf('/');
+        if (slash <= 0 || slash >= s.Length - 1) return false;
+        string head = s[..slash], tail = s[(slash + 1)..];
+        if (head.Length > 4 || tail.Length > 4) return false;
+        return UnitSuffixes.Any(u => u.Equals(tail, StringComparison.OrdinalIgnoreCase))
+            && head.All(c => char.IsLetterOrDigit(c) || c == '%' || c == '^');
     }
 
     // «4.85 10%L 4.2-5.6» → مقدار 4.85، واحد 10%L، بازهٔ 4.2-5.6. فقط وقتی
@@ -484,7 +534,7 @@ public static class LabSheetParser
     /// so far outside the range that a missing decimal is the likely cause: a
     /// genuinely extreme value (WBC 45) is never touched.
     /// </summary>
-    public static string FitScale(string value, decimal? lo, decimal? hi)
+    public static string FitScale(string value, decimal? lo, decimal? hi, string? refText = null)
     {
         string core = value.Trim();
         string prefix = string.Empty, suffix = string.Empty;
@@ -543,6 +593,18 @@ public static class LabSheetParser
                 }
             }
         }
+        // (۴) بازهٔ «اعشاریِ چاپ‌شده» (مثلِ «up to 10.0»): «22» ← 2.2. فقط یک گامِ
+        // تقسیم بر ۱۰، فقط وقتی خودِ عدد خارج از بازه باشد، و فقط اگر نتیجه دقیقاً
+        // داخلِ بازه بنشیند. بازهٔ عددِ صحیحِ چاپ‌شده («4-11»، «70-100») هرگز
+        // مشمول نمی‌شود؛ پس «WBC 45» و «گلوکز 164» تکان نمی‌خورند.
+        bool printedDecimal = refText is not null && (refText.Contains('.') || refText.Contains(','));
+        bool vInside = (lo is null || v >= lo.Value) && (hi is null || v <= hi.Value);
+        if (printedDecimal && !vInside)
+        {
+            decimal c = v / 10m;
+            if ((lo is null || c >= lo.Value) && (hi is null || c <= hi.Value))
+                return prefix + c.ToString(System.Globalization.CultureInfo.InvariantCulture) + suffix;
+        }
         return value;
     }
 
@@ -556,6 +618,11 @@ public static class LabSheetParser
         var bound = BoundRegex.Match(refText);
         if (bound.Success && decimal.TryParse(bound.Groups["n"].Value.Replace(',', '.'), out decimal n))
             return bound.Value.StartsWith('<') ? (null, n) : (n, null);
+        // «up to 10.0»: بازهٔ یک‌طرفه به شکلِ انگلیسی. همین «22» ← 2.2 را ممکن
+        // می‌کند وگرنه بازه‌ای در کار نیست و ممیز جرأت نمی‌کند.
+        var upTo = Regex.Match(refText, @"(?:up\s*to|less\s*than|below)\s*(?<n>\d+(?:[.,]\d+)?)", RegexOptions.IgnoreCase);
+        if (upTo.Success && decimal.TryParse(upTo.Groups["n"].Value.Replace(',', '.'), out decimal u))
+            return (null, u);
         return (null, null);
     }
 
