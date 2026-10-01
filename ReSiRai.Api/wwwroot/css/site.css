@@ -664,6 +664,29 @@ button {
    Patient Details
    ========================================================== */
 
+/* بخش‌هایِ بازشوندهٔ پروندهٔ بیمار: کارتِ هویت همیشه دیده می‌شود؛ جزئیات با
+   یک کلیک — تا مراجعات بدونِ اسکرول بالا بیایند. */
+.patient-info-more { margin-top: 6px; }
+.patient-info-more > summary {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var( --radius-md, 8px );
+    font-weight: 600;
+    color: var( --primary, #2c6e8f );
+    border: 1px dashed var( --border, #d5dbe1 );
+    background: #fbfcfd;
+}
+.patient-info-more > summary::-webkit-details-marker { display: none; }
+.patient-info-more > summary::before { content: "▸"; color: var( --muted, #888 ); transition: transform .15s ease; }
+.patient-info-more[open] > summary::before { transform: rotate(90deg); }
+.patient-info-more > summary:hover { background: #f2f6f9; }
+.patient-info-more > .patient-info-grid { margin-top: 10px; }
+
 .patient-info-grid {
     display: grid;
     grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
