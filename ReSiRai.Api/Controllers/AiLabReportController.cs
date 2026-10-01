@@ -400,14 +400,10 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             for (int i = 0; i < work.Count; i++)
             {
                 var w = work[i];
-                if (w.Best is null) continue;
-                var hits = findings.Where(f => FindingHitsRow(f, w.Best, factors)).ToList();
-                if (hits.Count == 0) continue;
-                string text = string.Join("؛ ", hits.Select(f => f.MessageFa).Distinct());
-                string level = hits.Any(f => f.Severity == "error") ? "error" : "warn";
-                string retest = string.Join("؛ ", hits.Select(f => f.RetestFa).Where(x => !string.IsNullOrEmpty(x)).Distinct()!);
-                if (retest.Length > 0) text += " — توصیه به تکرار: " + retest;
-                analysisByRow[i] = (text, level);
+                var fi = w.Best is null ? null : factors.First(f => f.FactorID == w.Best!.FactorID);
+                var id = new LabRowAnalyzer.RowIdentity(fi?.NameEn, fi?.NameFa, w.Best?.ShortCode, w.Best?.FactorCode);
+                var verdict = LabRowAnalyzer.Analyze(id, w.Value, w.Low, w.High, findings);
+                if (verdict.Text.Length > 0) analysisByRow[i] = verdict;
             }
         }
         catch
@@ -419,7 +415,7 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
         var items = new List<object>();
         for (int i = 0; i < work.Count; i++)
         {
-            var (row, best, value, low, high, isNumber, num) = work[i];
+            var (row, best, value, _, _, _, _) = work[i];
             // اگر FitScale ممیزِ اعشار را جابه‌جا کرد، این استنتاج است نه خواندنِ
             // مستقیم؛ ضریبِ اطمینان کمی پایین می‌آید تا در بررسی دیده شود.
             int confidence = row.Confidence;
@@ -435,12 +431,6 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             {
                 analysis = hit.Text;
                 analysisLevel = hit.Level;
-            }
-            else if (isNumber && value.Length > 0)
-            {
-                if (low is not null && num < low) { analysis = "پایین‌تر از بازه — نیاز به پیگیری"; analysisLevel = "warn"; }
-                else if (high is not null && num > high) { analysis = "بالاتر از بازه — نیاز به پیگیری"; analysisLevel = "warn"; }
-                else if (low is not null || high is not null) { analysis = "در محدوده"; analysisLevel = "ok"; }
             }
             items.Add(new
             {
@@ -478,28 +468,6 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             unmatchedCount = unmatched,
             items
         });
-    }
-
-    /// <summary>
-    /// آیا این یافته به همین ردیف مربوط است؟ نامِ فاکتورها در موتورِ ناسازگاری
-    /// انگلیسی است و اینجا نامِ چاپی/فارسی/کوتاه — با نرمال‌سازی یکی می‌شوند.
-    /// </summary>
-    private static bool FindingHitsRow(Services.ConsistencyFinding finding, MatchResult best, List<FactorInfo> factors)
-    {
-        var fi = factors.FirstOrDefault(x => x.FactorID == best.FactorID);
-        var cands = new List<string?> { fi?.NameEn, fi?.NameFa, best.ShortCode, best.FactorCode?.Split('.').Last() };
-        foreach (var key in finding.Factors)
-        {
-            var k = Norm(key);
-            if (k.Length < 2) continue;
-            foreach (var cand in cands)
-            {
-                var c = Norm(cand ?? "");
-                if (c.Length == 0) continue;
-                if (c == k || (k.Length >= 3 && (c.Contains(k) || k.Contains(c)))) return true;
-            }
-        }
-        return false;
     }
 
     private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM, decimal? RefLow, decimal? RefHigh, byte DataType);

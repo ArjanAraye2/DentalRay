@@ -13,5 +13,7 @@
   <ItemGroup>
     <!-- The parser is linked, not referenced: no web host needed to test it. -->
     <Compile Include="..\ReSiRai.Api\Services\LabSheetParser.cs" Link="LabSheetParser.cs" />
+    <Compile Include="..\ReSiRai.Api\Services\LabConsistencyChecker.cs" Link="LabConsistencyChecker.cs" />
+    <Compile Include="..\ReSiRai.Api\Services\LabRowAnalyzer.cs" Link="LabRowAnalyzer.cs" />
   </ItemGroup>
 </Project>
