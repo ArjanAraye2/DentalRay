@@ -195,7 +195,7 @@
     <span id="counter">۱ / ۱</span>
     <button type="button" id="openOriginal" target="_blank" rel="noopener">اندازهٔ اصلی</button>
   </div>
-  <div class="viewer-stage" id="stage"><img id="viewerImage" alt="تصویر رادیولوژی" /></div>
+  <div class="viewer-stage" id="stage"><img id="viewerImage" alt="تصویر پرونده" /></div>
   <div class="viewer-foot">
     <button type="button" id="prevImage">قبلی</button>
     <button type="button" id="zoomOut">−</button>
@@ -241,10 +241,10 @@
       return;
     }
 
-    $("patientName").textContent = data.patientName || "تصاویر رادیولوژی";
+    $("patientName").textContent = data.patientName || "تصاویر پرونده";
     $("studyType").textContent = [data.studyType, data.bodyPart].filter(Boolean).join(" — ");
     $("studyDate").textContent = data.studyDate ? jalali(data.studyDate) : "";
-    document.title = "تصاویر رادیولوژی " + (data.patientName || "");
+    document.title = "تصاویر پرونده " + (data.patientName || "");
 
     if (data.report) { $("reportText").textContent = data.report; $("report").hidden = false; }
 

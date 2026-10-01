@@ -101,13 +101,31 @@ public sealed class AiImageTypeController : ControllerBase
 
         byte[] bytes = await System.IO.File.ReadAllBytesAsync(path, cancellationToken);
         const string prompt = """
-This image comes from a patient record. Decide what it is and name its type.
-Prefer one of these canonical names (Persian) whenever it fits:
-سی‌تی‌اسکن، سونوگرافی، MRI، PET، اسکن هسته‌ای، رادیوگرافی، OPG، CBCT، برگهٔ آزمایش، فاکتور، نامه یا گزارش پزشکی، کارت یا سند، عکس بالینی، سایر
+This image comes from a patient dental/medical record. Decide what it is and name its type.
+Choose ONE of these canonical Persian type names when it fits (descriptions):
+- «بایت‌وینگ»: dental bitewing X-ray (small film showing upper and lower back teeth side by side)
+- «پری‌آپیکال»: single-tooth periapical X-ray
+- «OPG»: panoramic dental X-ray (whole jaw in one wide film)
+- «CBCT»: cone-beam CT slices montage or its report
+- «سی‌تی‌اسکن»: medical CT images or CT report
+- «سونوگرافی»: ultrasound image or report
+- «MRI»: MRI image or report
+- «PET»: PET image or report
+- «اسکن هسته‌ای»: nuclear medicine / scintigraphy
+- «رادیوگرافی»: plain medical X-ray (chest, limb, ...)
+- «نسخه»: handwritten or printed prescription (drug list, recipe pad, treatment plan sketch)
+- «برگهٔ آزمایش»: printed lab test sheet or table
+- «فاکتور»: invoice or receipt
+- «نامه یا گزارش پزشکی»: medical letter or typed report
+- «کارت یا سند»: ID card, insurance card, official document
+- «عکس بالینی»: intraoral / clinical photo of teeth or gums
+- «سایر»: anything else — photos of objects, fabrics, rooms, unclear or non-medical pictures
+Be honest: when the content does not CLEARLY fit a type, use «سایر». Never guess a
+radiology type for handwriting, paper documents, or photos of objects.
 Return ONLY valid JSON with this exact shape:
-{"imageType":"string","reason":"string"}
-- imageType: a short Persian type name (one of the list above whenever possible)
-- reason: a very short phrase in Persian explaining the choice
+{"imageType":"string","confidence":number,"reason":"string"}
+- confidence: 0..1 how sure you are; if below 0.6 you must use «سایر»
+- reason: a very short phrase in Persian
 """;
 
         string raw;
@@ -127,7 +145,12 @@ Return ONLY valid JSON with this exact shape:
                 && tEl.ValueKind == JsonValueKind.String ? tEl.GetString() : null;
             string? reason = doc.RootElement.TryGetProperty("reason", out var rEl)
                 && rEl.ValueKind == JsonValueKind.String ? rEl.GetString() : null;
+            // حدسِ کم‌اعتماد پذیرفته نمی‌شود: بهتر است «سایرِ» صادقانه باشد تا
+            // «CBCT»ِ دروغین — گروه‌های نمایش باید قابلِ اعتماد بمانند.
+            double confidence = doc.RootElement.TryGetProperty("confidence", out var cEl)
+                && cEl.ValueKind == JsonValueKind.Number ? cEl.GetDouble() : 1.0;
             picked = CanonicalType(picked);
+            if (confidence < 0.6) picked = "سایر";
             if (picked is null) return (null, reason);
 
             var tracked = await _db.RadiologyImages
@@ -168,6 +191,9 @@ Return ONLY valid JSON with this exact shape:
             "opg" or "پانورامیک" or "orthopantomogram" => "OPG",
             "cbct" => "CBCT",
             "برگهآزمایش" or "آزمایش" or "lab" or "labsheet" or "labreport" or "برگهآزمایشگاه" => "برگهٔ آزمایش",
+            "نسخه" or "تجویز" or "prescription" or "rx" => "نسخه",
+            "بایتوینگ" or "پایتونگی" or "پایتون‌وینگ" or "bitewing" or "bw" => "بایت‌وینگ",
+            "پریاپیکال" or "periapical" => "پری‌آپیکال",
             "فاکتور" or "رسید" or "invoice" or "receipt" => "فاکتور",
             "نامه" or "گزارشپزشکی" or "نامهیاگزارشپزشکی" or "letter" or "report" => "نامه یا گزارش پزشکی",
             "کارت" or "سند" or "کارتیاسند" or "document" or "card" or "idcard" => "کارت یا سند",
