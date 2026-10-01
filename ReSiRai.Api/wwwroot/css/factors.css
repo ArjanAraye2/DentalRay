@@ -298,6 +298,9 @@
 .conf-badge.b-low { background: #fdecea; color: #b3261e; border: 1px solid #f2b8b5; }
 .lab-extract-table tr.conf-low td { background: #fff7f6; }
 .lab-extract-table tr.conf-mid td { background: #fffdf5; }
+.lab-extract-table .conf-cell { text-align: center; }
+.act-icon { padding: 3px 7px; }
+.lab-extract-table td .act-icon { margin: 0 auto; display: flex; }
 .lab-extract-table tr.is-reread { box-shadow: inset 3px 0 0 #2a7da8; }
 .lab-extract-table tr.crop-row td { background: #f6f8fa; text-align: center; }
 .crop-img {

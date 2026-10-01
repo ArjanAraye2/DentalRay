@@ -241,7 +241,7 @@
         const table = el("table", "lab-extract-table");
         const thead = el("thead");
         const hr = el("tr");
-        ["", "نام تست (چاپ‌شده)", "مقدار", "واحد", "بازه چاپ‌شده", "فاکتورِ متناظر"].forEach(t => hr.appendChild(el("th", null, t)));
+        ["", "اعتماد", "نام تست (چاپ‌شده)", "مقدار", "واحد", "بازه چاپ‌شده", "فاکتورِ متناظر", "تکهٔ برگه", "بازخوانی"].forEach(t => hr.appendChild(el("th", null, t)));
         thead.appendChild(hr);
         table.appendChild(thead);
 
@@ -256,23 +256,25 @@
             tr.appendChild(tdOf(include));
 
             const nameCell = el("td", null, item.name || "");
-            // ضریبِ اطمینانِ استخراج: عدد، رنگ و نشان — کم‌اعتمادها در یک نگاه.
+            // ضریبِ اطمینان: عدد در ستونِ خودش (برایِ کوررنگی هم خوانا باشد).
             const conf = Number(item.confidence ?? 0);
             tr.dataset.rowConf = String(conf);
+            const confCell = el("td", "conf-cell");
             if (conf > 0) {
                 if (conf < 60) tr.classList.add("conf-low");
                 else if (conf < 85) tr.classList.add("conf-mid");
                 const badge = el("span", "conf-badge " + (conf < 60 ? "b-low" : conf < 85 ? "b-mid" : "b-high"), String(conf));
                 badge.title = (item.confidenceNote ? item.confidenceNote + " — " : "") + `ضریبِ اطمینانِ استخراج: ${conf} از ۱۰۰`;
-                nameCell.appendChild(badge);
+                confCell.appendChild(badge);
             }
+            tr.appendChild(confCell);
             // Trust in AI comes from verification: one click shows the exact
             // snippet of the paper this row was read from. Plain SVG + a Persian
             // label - emoji glyphs render inconsistently across machines.
             const peek = document.createElement("button");
             peek.type = "button";
-            peek.className = "lab-extract-act act-peek";
-            peek.innerHTML = ICON_EYE + "<span>تکهٔ برگه</span>";
+            peek.className = "lab-extract-act act-icon act-peek";
+            peek.innerHTML = ICON_EYE;
             peek.title = "تکهٔ برگه پشتِ این ردیف را ببینید و با عدد مقایسه کنید";
             peek.addEventListener("click", () => {
                 // نمایشِ درون‌خطی: نه تبِ جدا، نه صفحهٔ خالی — همان تکه زیرِ ردیف.
@@ -283,7 +285,7 @@
                 }
                 const cropRow = el("tr", "crop-row");
                 const cropTd = el("td");
-                cropTd.colSpan = 7;
+                cropTd.colSpan = 9;
                 const img = document.createElement("img");
                 img.className = "crop-img";
                 img.alt = "تکهٔ برگه";
@@ -295,13 +297,14 @@
                 cropRow.appendChild(cropTd);
                 tr.after(cropRow);
             });
-            nameCell.appendChild(peek);
+            const peekCell = tdOf(peek);
+            const redoCell = tdOf(redo);
             // اگر تکهٔ برگه با عدد نمی‌خواند، فقط همان ناحیه دوباره خوانده
             // می‌شود؛ نه کلِ برگه.
             const redo = document.createElement("button");
             redo.type = "button";
-            redo.className = "lab-extract-act act-redo";
-            redo.innerHTML = ICON_REFRESH + "<span>بازخوانی</span>";
+            redo.className = "lab-extract-act act-icon act-redo";
+            redo.innerHTML = ICON_REFRESH;
             redo.title = "همین ناحیه را دوباره بخوان (بدونِ خواندنِ کلِ برگه)";
             redo.addEventListener("click", async () => {
                 if (busy) return;
@@ -335,7 +338,6 @@
                     redo.disabled = false;
                 }
             });
-            nameCell.appendChild(redo);
             tr.appendChild(nameCell);
             // The value cell is editable: when OCR mangles a row the doctor fixes
             // the number here and presses confirm again - no more dead ends.
@@ -407,6 +409,8 @@
                 tr.classList.add("is-suggested");
                 tr.title = "پیشنهادِ هوش مصنوعی — قبل از ثبت تأیید یا اصلاح کنید";
             }
+            tr.appendChild(peekCell);
+            tr.appendChild(redoCell);
             tbody.appendChild(tr);
         }
         table.appendChild(tbody);
