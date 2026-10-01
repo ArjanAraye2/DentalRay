@@ -373,6 +373,15 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 ? ""
                 : LabSheetParser.FitScale(row.Value,
                     useDict ? best!.RefLow : row.RefLow, useDict ? best!.RefHigh : row.RefHigh);
+            // اگر FitScale ممیزِ اعشار را جابه‌جا کرد، این استنتاج است نه خواندنِ
+            // مستقیم؛ ضریبِ اطمینان کمی پایین می‌آید تا در بررسی دیده شود.
+            int confidence = row.Confidence;
+            string confidenceNote = row.ConfidenceNote;
+            if (value.Length > 0 && value != row.Value)
+            {
+                confidence = Math.Min(confidence <= 0 ? 82 : confidence, 82);
+                confidenceNote = "ممیزِ اعشار از روی بازه تصحیح شد";
+            }
             items.Add(new
             {
                 name = row.Name,
@@ -383,6 +392,8 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 refLow = row.RefLow,
                 refHigh = row.RefHigh,
                 flag = (string?)null,
+                confidence,
+                confidenceNote,
                 suggested = row.Suggested,
                 factorID = best?.FactorID,
                 factorCode = best?.FactorCode,
@@ -457,7 +468,14 @@ Return ONLY valid JSON with this exact shape:
                 if (row.Value.Length == 0 && !string.IsNullOrWhiteSpace(v))
                 {
                     v = v.Trim();
-                    if (v.Length is > 0 and <= 24) row = row with { Value = v, Suggested = true };
+                    if (v.Length is > 0 and <= 24)
+                        row = row with
+                        {
+                            Value = v,
+                            Suggested = true,
+                            Confidence = 70,
+                            ConfidenceNote = "پیشنهادِ هوش مصنوعی — قبل از ثبت تأیید کنید"
+                        };
                 }
                 string? rt = GetString(el, "refText");
                 if (row.RefText.Length == 0 && !string.IsNullOrWhiteSpace(rt))

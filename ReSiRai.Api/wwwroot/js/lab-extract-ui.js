@@ -219,6 +219,25 @@
             `${x.labName ? "آزمایشگاه: " + x.labName + " - " : ""}${x.sampleDateRaw ? "تاریخ نمونه: " + x.sampleDateRaw : ""}`);
         body.appendChild(info);
 
+        // ضریبِ اطمینانِ استخراج: کم‌اعتمادها باید در یک نگاه پیدا شوند.
+        const toolbar = el("div", "lab-extract-toolbar");
+        toolbar.appendChild(el("span", "lab-extract-legend",
+            "ضریبِ اطمینان: سبز ≥ ۸۵ · زرد ۶۰ تا ۸۴ · قرمز کمتر از ۶۰"));
+        const filterBtn = el("button", "lab-extract-act act-filter", "فقط مواردِ نیازمندِ بررسی");
+        filterBtn.type = "button";
+        let filterOn = false;
+        filterBtn.addEventListener("click", () => {
+            filterOn = !filterOn;
+            filterBtn.classList.toggle("is-on", filterOn);
+            for (const tr of body.querySelectorAll(".lab-extract-table tbody tr")) {
+                if (tr.classList.contains("crop-row")) { tr.style.display = "none"; continue; }
+                const needsWork = tr.classList.contains("conf-low") || tr.classList.contains("conf-mid") || tr.classList.contains("is-skipped");
+                tr.style.display = filterOn && !needsWork ? "none" : "";
+            }
+        });
+        toolbar.appendChild(filterBtn);
+        body.appendChild(toolbar);
+
         const table = el("table", "lab-extract-table");
         const thead = el("thead");
         const hr = el("tr");
@@ -237,6 +256,16 @@
             tr.appendChild(tdOf(include));
 
             const nameCell = el("td", null, item.name || "");
+            // ضریبِ اطمینانِ استخراج: عدد، رنگ و نشان — کم‌اعتمادها در یک نگاه.
+            const conf = Number(item.confidence ?? 0);
+            tr.dataset.rowConf = String(conf);
+            if (conf > 0) {
+                if (conf < 60) tr.classList.add("conf-low");
+                else if (conf < 85) tr.classList.add("conf-mid");
+                const badge = el("span", "conf-badge " + (conf < 60 ? "b-low" : conf < 85 ? "b-mid" : "b-high"), String(conf));
+                badge.title = (item.confidenceNote ? item.confidenceNote + " — " : "") + `ضریبِ اطمینانِ استخراج: ${conf} از ۱۰۰`;
+                nameCell.appendChild(badge);
+            }
             // Trust in AI comes from verification: one click shows the exact
             // snippet of the paper this row was read from. Plain SVG + a Persian
             // label - emoji glyphs render inconsistently across machines.
@@ -563,7 +592,7 @@
                 }
             }
             const item = {
-                factorID, source: 2, extractionID, confidence: Number(tr.dataset.confidence || 0),
+                factorID, source: 2, extractionID, confidence: Number(tr.dataset.rowConf || 0),
                 // What the paper printed: stored with the value and used by the
                 // panel and the AI instead of the dictionary's default range.
                 refText: tr.dataset.refText || null,

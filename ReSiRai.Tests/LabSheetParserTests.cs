@@ -165,4 +165,47 @@ public class LabSheetParserTests
         Assert.Contains("Ketone", text);
         Assert.Contains("Negative", text);
     }
+
+    // ---------------- Confidence: review the weak rows first ----------------
+
+    [Fact]
+    public void CleanRow_CarriesHighConfidence()
+    {
+        var rows = Parse(
+            W(1, 170, 100, 150, 96, "Alkaline"),
+            W(1, 300, 105, 240, 95, "Phosphatase"),
+            W(1, 1020, 80, 60, 94, "220"),
+            W(1, 1420, 85, 55, 95, "U/L"),
+            W(1, 1790, 90, 45, 93, "80"),
+            W(1, 1870, 92, 12, 93, "-"),
+            W(1, 1900, 95, 55, 93, "306"));
+
+        var row = Assert.Single(rows);
+        Assert.True(row.Confidence >= 85, $"confidence was {row.Confidence}");
+    }
+
+    [Fact]
+    public void RecoveredLowConfidenceValue_IsMarkedForReview()
+    {
+        var rows = Parse(
+            W(1, 160, 300, 150, 88, "RDW-SD"),
+            W(1, 535, 305, 70, 28, "`51.1"),
+            W(1, 1018, 300, 80, 95, "39-47"));
+
+        var row = Assert.Single(rows);
+        Assert.True(row.Confidence <= 65, $"confidence was {row.Confidence}");
+        Assert.Contains("اعتماد", row.ConfidenceNote);
+    }
+
+    [Fact]
+    public void MissingValue_LandsAtTheBottomOfConfidence()
+    {
+        var rows = Parse(
+            W(1, 180, 200, 160, 95, "Globulin"),
+            W(1, 1025, 190, 60, 20, "4a}"),
+            W(1, 1420, 185, 60, 95, "g/dL"));
+
+        var row = Assert.Single(rows);
+        Assert.True(row.Confidence <= 35, $"confidence was {row.Confidence}");
+    }
 }

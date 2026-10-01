@@ -275,6 +275,29 @@
 .act-redo { color: #1d7a3f; border-color: #bfe3cb; background: #f2f9f4; }
 .act-redo:hover { background: #e2f4e9; }
 .lab-extract-act:disabled { opacity: 0.5; cursor: wait; }
+.lab-extract-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 8px 0 6px;
+}
+.lab-extract-legend { font-size: 10.5px; color: #7b8b96; }
+.act-filter.is-on { background: #fff3d6; border-color: #e0b34d; color: #8a5a00; }
+.conf-badge {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 0 5px;
+    border-radius: 5px;
+    font-size: 9.5px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+.conf-badge.b-high { background: #eaf7ee; color: #1d7a3f; border: 1px solid #bfe3cb; }
+.conf-badge.b-mid { background: #fff3d6; color: #8a5a00; border: 1px solid #e0b34d; }
+.conf-badge.b-low { background: #fdecea; color: #b3261e; border: 1px solid #f2b8b5; }
+.lab-extract-table tr.conf-low td { background: #fff7f6; }
+.lab-extract-table tr.conf-mid td { background: #fffdf5; }
 .lab-extract-table tr.is-reread { box-shadow: inset 3px 0 0 #2a7da8; }
 .lab-extract-table tr.crop-row td { background: #f6f8fa; text-align: center; }
 .crop-img {

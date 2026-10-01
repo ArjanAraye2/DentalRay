@@ -18,7 +18,8 @@ public static class LabSheetParser
 {
     public sealed record Row(string Name, string Value, string Unit, string RefText,
         decimal? RefLow, decimal? RefHigh, bool Suggested = false,
-        int PixelTop = -1, int PixelHeight = -1, int Page = 0);
+        int PixelTop = -1, int PixelHeight = -1, int Page = 0,
+        int Confidence = 0, string ConfidenceNote = "");
 
     // "name value unit ref..." - the shape of a printed result row.
     private static readonly Regex RowRegex = new(
@@ -246,18 +247,20 @@ public static class LabSheetParser
     {
         string name = string.Empty, value = string.Empty, unit = string.Empty, refCell = string.Empty;
         bool valueSet = false;
+        int valueConf = 0, lastDigitConf = 0;
 
         foreach (var cell in cells)
         {
             string text = JoinWords(cell);
             if (text.Length == 0) continue;
+            int cellConf = (int)cell.Average(w => w.Conf);
             if (unit.Length == 0 && IsUnit(text)) { unit = text; continue; }
             if (PureNumberRegex.IsMatch(text))
             {
                 // در جدول‌های چاپی مقدار همیشه قبل از واحد است؛ عددِ بعد از واحد
                 // بخشی از بازه است ("< 480" کنارِ U/L مقدارِ LDH نیست).
-                if (!valueSet && unit.Length == 0) { value = text; valueSet = true; }
-                else refCell = (refCell + " " + text).Trim();
+                if (!valueSet && unit.Length == 0) { value = text; valueSet = true; valueConf = cellConf; }
+                else { refCell = (refCell + " " + text).Trim(); lastDigitConf = cellConf; }
                 continue;
             }
             if (text.Any(char.IsDigit))
@@ -268,15 +271,17 @@ public static class LabSheetParser
                 {
                     value = v;
                     valueSet = true;
+                    valueConf = cellConf;
                     unit = u;
                     if (rest.Length > 0) refCell = (refCell + " " + rest).Trim();
                     continue;
                 }
                 refCell = (refCell + " " + text).Trim();
+                lastDigitConf = cellConf;
                 continue;
             }
             if (name.Length == 0) { name = text; continue; }
-            if (!valueSet && Letters(text) >= 3) { value = text; valueSet = true; continue; }
+            if (!valueSet && Letters(text) >= 3) { value = text; valueSet = true; valueConf = cellConf; continue; }
             refCell = (refCell + " " + text).Trim();
         }
 
@@ -300,6 +305,7 @@ public static class LabSheetParser
         {
             value = refCell.Trim();
             valueSet = true;
+            valueConf = lastDigitConf;
             refCell = string.Empty;
         }
 
@@ -317,12 +323,42 @@ public static class LabSheetParser
         // ردیفی که نه مقدار دارد، نه واحد، نه بازه، ردیفِ واقعیِ آزمایش نیست.
         if (value.Length == 0 && unit.Length == 0 && refCell.Length == 0) return;
 
+        // ضریبِ اطمینانِ این ردیف از خودِ سیگنال‌ها می‌آید: اعتمادِ OCR همان
+        // کلماتِ مقدار، و کامل بودنِ سلول‌ها. زیرِ ۶۰ یعنی «خودت چک کن».
+        int confidence;
+        string confNote = string.Empty;
+        if (value.Length == 0)
+        {
+            confidence = 30;
+            confNote = "مقدار خوانده نشد — با دست وارد کنید";
+        }
+        else
+        {
+            confidence = Math.Clamp(valueConf <= 0 ? 50 : valueConf, 5, 100);
+            if (valueConf > 0 && valueConf < 40)
+            {
+                confidence = Math.Min(confidence, 65);
+                confNote = "مقدار با اعتمادِ کمِ OCR بازیابی شد";
+            }
+            else if (unit.Length == 0)
+            {
+                confidence = Math.Min(confidence, 85);
+                confNote = "واحد خوانده نشد";
+            }
+            else if (refCell.Length == 0)
+            {
+                confidence = Math.Min(confidence, 88);
+                confNote = "بازه چاپ‌شده خوانده نشد";
+            }
+        }
+
         var (lo, hi) = ParseRef(refCell);
         // جایِ ردیف روی تصویر تا بعداً بتوان همان ناحیه را برایِ خواندنِ مدل برید.
         int pixTop = cells.SelectMany(c => c).Min(w => w.Top);
         int pixBottom = cells.SelectMany(c => c).Max(w => w.Top + w.Height);
         rows.Add(new Row(name, value, unit, Clamp(refCell, 500), lo, hi,
-            PixelTop: pixTop, PixelHeight: pixBottom - pixTop));
+            PixelTop: pixTop, PixelHeight: pixBottom - pixTop,
+            Confidence: confidence, ConfidenceNote: confNote));
     }
 
     private static bool IsUnit(string s)
