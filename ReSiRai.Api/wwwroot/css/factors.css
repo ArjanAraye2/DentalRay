@@ -218,6 +218,22 @@
 .factors-group > summary.factors-group-title::before { content: "▸ "; color: #888; }
 .factors-group[open] > summary.factors-group-title::before { content: "▾ "; }
 
+/* جست‌وجوی سریعِ تست‌ها در پنلِ شرایط فعلی. */
+.factors-search { margin: 4px 0 12px; }
+.factors-search input {
+    width: 100%;
+    padding: 9px 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border, #d5dbe1);
+    font-size: 14px;
+    background: #fff;
+}
+.factors-search input:focus {
+    outline: none;
+    border-color: var(--primary, #2c6e8f);
+    box-shadow: 0 0 0 3px rgba(44, 110, 143, .12);
+}
+
 .lab-extract-table {
     width: 100%;
     border-collapse: collapse;

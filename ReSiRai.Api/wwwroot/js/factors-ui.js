@@ -295,6 +295,33 @@
             const counts = {};
             for (const f of byCategory) counts[f.category] = (counts[f.category] || 0) + 1;
 
+            // جست‌وجوی سریع: با تایپ، ردیف‌ها فیلتر و گروهِ درست خودکار باز
+            // می‌شود — رسیدن به هر تست بدونِ اسکرول و با حداقلِ کلیک.
+            const searchWrap = document.createElement("div");
+            searchWrap.className = "factors-search";
+            const searchInput = document.createElement("input");
+            searchInput.type = "search";
+            searchInput.placeholder = "جست‌وجوی سریع تست… (مثلاً کراتینین یا Hb)";
+            searchWrap.appendChild(searchInput);
+            content.appendChild(searchWrap);
+            const norm = s => String(s || "").toLowerCase()
+                .replace(/\u200c/g, " ").replace(/[يئ]/g, "ی").replace(/ك/g, "ک")
+                .replace(/\s+/g, " ").trim();
+            searchInput.addEventListener("input", () => {
+                const q = norm(searchInput.value);
+                for (const g of content.querySelectorAll(".factors-group")) {
+                    let visible = 0;
+                    for (const row of g.querySelectorAll(".factor-row")) {
+                        const hit = q.length === 0 || norm(row.dataset.search).includes(q);
+                        row.style.display = hit ? "" : "none";
+                        if (hit) visible++;
+                    }
+                    g.style.display = visible ? "" : "none";
+                    if (q.length > 0) { if (visible) g.open = true; }
+                    else g.open = false;
+                }
+            });
+
             let group = null;
             let weightRow = null;
             let heightRow = null;
@@ -319,6 +346,9 @@
                 const row = document.createElement("div");
                 row.className = "factor-row";
                 row.dataset.factorId = String(f.factorID);
+                // برایِ جست‌وجوی سریع: نامِ فارسی، کوتاه و کدِ فاکتور.
+                row.dataset.search = [f.nameFa, f.nameEn, f.shortCode, f.factorCode]
+                    .filter(Boolean).join(" ");
                 if (f.factorCode === "ANTH.HEIGHT") heightRow = row;
                 if (f.factorCode === "ANTH.WEIGHT") weightRow = row;
                 if (f.factorCode === "ANTH.BMI") bmiRow = row;
