@@ -298,7 +298,6 @@
                 tr.after(cropRow);
             });
             const peekCell = tdOf(peek);
-            const redoCell = tdOf(redo);
             // اگر تکهٔ برگه با عدد نمی‌خواند، فقط همان ناحیه دوباره خوانده
             // می‌شود؛ نه کلِ برگه.
             const redo = document.createElement("button");
@@ -338,6 +337,7 @@
                     redo.disabled = false;
                 }
             });
+            const redoCell = tdOf(redo);
             tr.appendChild(nameCell);
             // The value cell is editable: when OCR mangles a row the doctor fixes
             // the number here and presses confirm again - no more dead ends.
