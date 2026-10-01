@@ -361,8 +361,13 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             .Select(x => new FactorInfo(x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode, x.LoincCode, x.UnitUCUM, x.RefLow, x.RefHigh, x.DataType))
             .ToListAsync(cancellationToken);
 
-        var items = new List<object>();
+        // Pass one: match every row and hold its scale-fixed value. The
+        // consistency rules must see the whole sheet before any row is written,
+        // because they compare the rows against each other.
         int unmatched = 0;
+        var work = new List<(LabSheetParser.Row Row, MatchResult? Best, string Value,
+            decimal? Low, decimal? High, bool IsNumber, decimal Number)>();
+        var obs = new List<LabObs>();
         foreach (var row in rows)
         {
             var best = MatchFactor(row.Name, factors, LooksQualitative(row.Value));
@@ -373,6 +378,48 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 ? ""
                 : LabSheetParser.FitScale(row.Value,
                     useDict ? best!.RefLow : row.RefLow, useDict ? best!.RefHigh : row.RefHigh);
+            decimal? low = useDict ? best!.RefLow : row.RefLow;
+            decimal? high = useDict ? best!.RefHigh : row.RefHigh;
+            bool isNumber = decimal.TryParse(value,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var num);
+            work.Add((row, best, value, low, high, isNumber, num));
+            if (best is not null && isNumber)
+            {
+                var fi = factors.First(f => f.FactorID == best.FactorID);
+                obs.Add(new LabObs(best.FactorCode, best.ShortCode, fi.NameEn, num, row.Unit, low, high));
+            }
+        }
+
+        // What the rules found, told row by row: the verdict belongs next to the
+        // number in the same table, not in a separate report the doctor may miss.
+        var analysisByRow = new Dictionary<int, (string Text, string Level)>();
+        try
+        {
+            var findings = LabConsistencyChecker.Check(obs, null, null);
+            for (int i = 0; i < work.Count; i++)
+            {
+                var w = work[i];
+                if (w.Best is null) continue;
+                var hits = findings.Where(f => FindingHitsRow(f, w.Best, factors)).ToList();
+                if (hits.Count == 0) continue;
+                string text = string.Join("؛ ", hits.Select(f => f.MessageFa).Distinct());
+                string level = hits.Any(f => f.Severity == "error") ? "error" : "warn";
+                string retest = string.Join("؛ ", hits.Select(f => f.RetestFa).Where(x => !string.IsNullOrEmpty(x)).Distinct()!);
+                if (retest.Length > 0) text += " — توصیه به تکرار: " + retest;
+                analysisByRow[i] = (text, level);
+            }
+        }
+        catch
+        {
+            // The verdict is a bonus on top of the numbers; it must never block
+            // the extraction itself.
+        }
+
+        var items = new List<object>();
+        for (int i = 0; i < work.Count; i++)
+        {
+            var (row, best, value, low, high, isNumber, num) = work[i];
             // اگر FitScale ممیزِ اعشار را جابه‌جا کرد، این استنتاج است نه خواندنِ
             // مستقیم؛ ضریبِ اطمینان کمی پایین می‌آید تا در بررسی دیده شود.
             int confidence = row.Confidence;
@@ -381,6 +428,19 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             {
                 confidence = Math.Min(confidence <= 0 ? 82 : confidence, 82);
                 confidenceNote = "ممیزِ اعشار از روی بازه تصحیح شد";
+            }
+            // Per-row verdict: contradiction first, then the plain range check.
+            string analysis = "", analysisLevel = "";
+            if (analysisByRow.TryGetValue(i, out var hit))
+            {
+                analysis = hit.Text;
+                analysisLevel = hit.Level;
+            }
+            else if (isNumber && value.Length > 0)
+            {
+                if (low is not null && num < low) { analysis = "پایین‌تر از بازه — نیاز به پیگیری"; analysisLevel = "warn"; }
+                else if (high is not null && num > high) { analysis = "بالاتر از بازه — نیاز به پیگیری"; analysisLevel = "warn"; }
+                else if (low is not null || high is not null) { analysis = "در محدوده"; analysisLevel = "ok"; }
             }
             items.Add(new
             {
@@ -394,6 +454,8 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
                 flag = (string?)null,
                 confidence,
                 confidenceNote,
+                analysis,
+                analysisLevel,
                 suggested = row.Suggested,
                 factorID = best?.FactorID,
                 factorCode = best?.FactorCode,
@@ -416,6 +478,28 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
             unmatchedCount = unmatched,
             items
         });
+    }
+
+    /// <summary>
+    /// آیا این یافته به همین ردیف مربوط است؟ نامِ فاکتورها در موتورِ ناسازگاری
+    /// انگلیسی است و اینجا نامِ چاپی/فارسی/کوتاه — با نرمال‌سازی یکی می‌شوند.
+    /// </summary>
+    private static bool FindingHitsRow(Services.ConsistencyFinding finding, MatchResult best, List<FactorInfo> factors)
+    {
+        var fi = factors.FirstOrDefault(x => x.FactorID == best.FactorID);
+        var cands = new List<string?> { fi?.NameEn, fi?.NameFa, best.ShortCode, best.FactorCode?.Split('.').Last() };
+        foreach (var key in finding.Factors)
+        {
+            var k = Norm(key);
+            if (k.Length < 2) continue;
+            foreach (var cand in cands)
+            {
+                var c = Norm(cand ?? "");
+                if (c.Length == 0) continue;
+                if (c == k || (k.Length >= 3 && (c.Contains(k) || k.Contains(c)))) return true;
+            }
+        }
+        return false;
     }
 
     private sealed record FactorInfo(int FactorID, string FactorCode, string NameFa, string NameEn, string? ShortCode, string? LoincCode, string? UnitUCUM, decimal? RefLow, decimal? RefHigh, byte DataType);

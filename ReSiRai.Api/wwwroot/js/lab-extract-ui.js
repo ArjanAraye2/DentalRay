@@ -242,7 +242,7 @@
         const table = el("table", "lab-extract-table");
         const thead = el("thead");
         const hr = el("tr");
-        ["", "اعتماد", "نام تست (چاپ‌شده)", "مقدار", "واحد", "بازه چاپ‌شده", "فاکتورِ متناظر", "تکهٔ برگه", "بازخوانی"].forEach(t => hr.appendChild(el("th", null, t)));
+        ["", "اعتماد", "نام تست (چاپ‌شده)", "مقدار", "واحد", "بازه چاپ‌شده", "فاکتورِ متناظر", "تحلیل", "تکهٔ برگه", "بازخوانی"].forEach(t => hr.appendChild(el("th", null, t)));
         thead.appendChild(hr);
         table.appendChild(thead);
 
@@ -286,7 +286,7 @@
                 }
                 const cropRow = el("tr", "crop-row");
                 const cropTd = el("td");
-                cropTd.colSpan = 9;
+                cropTd.colSpan = 10;
                 const img = document.createElement("img");
                 img.className = "crop-img";
                 img.alt = "تکهٔ برگه";
@@ -403,6 +403,7 @@
             tr.dataset.refLow = item.refLow ?? "";
             tr.dataset.refHigh = item.refHigh ?? "";
             tr.dataset.refText = item.refText || "";
+            tr.dataset.printedName = item.name || "";
             tr.dataset.confidence = String(item.matchConfidence || 0);
             if (item.suggested) {
                 // پیشنهادِ هوش مصنوعی برای سلولی که OCR گم کرده بود؛ تا تأییدِ
@@ -410,6 +411,12 @@
                 tr.classList.add("is-suggested");
                 tr.title = "پیشنهادِ هوش مصنوعی — قبل از ثبت تأیید یا اصلاح کنید";
             }
+            // تحلیلِ ابتدایی همان ردیف: تناقض با مقادیرِ دیگر، بیرون از بازه یا
+            // در محدوده — در همان سطر، نه در گزارشِ جدا.
+            const anCell = el("td", "an-cell" + (item.analysisLevel ? " an-" + item.analysisLevel : ""),
+                item.analysis || "—");
+            if (item.analysis) anCell.title = item.analysis;
+            tr.appendChild(anCell);
             tr.appendChild(peekCell);
             tr.appendChild(redoCell);
             tbody.appendChild(tr);
@@ -442,6 +449,19 @@
         }
         body.insertBefore(box, body.firstChild);
         box.scrollIntoView({ block: "nearest" });
+        // ثبت انجام شده؛ پنجره خودش بسته می‌شود. شمارش معکوس پیداست و بستنِ
+        // دستی هم هست — اما دیگر پنجرهٔ باز پشتِ سرِ پزشک نمی‌ماند.
+        let left = 6;
+        let timer = null;
+        const closeNow = el("button", "primary-button sum-close", `بستنِ پنجره (${left})`);
+        closeNow.type = "button";
+        closeNow.addEventListener("click", () => { if (timer) clearInterval(timer); close(); });
+        box.appendChild(closeNow);
+        timer = setInterval(() => {
+            left--;
+            closeNow.textContent = `بستنِ پنجره (${left})`;
+            if (left <= 0) { clearInterval(timer); close(); }
+        }, 1000);
     }
 
     function tdOf(child) {
@@ -538,7 +558,7 @@
             if (!include || !include.checked) continue;
             // Already saved and untouched since? Never write it a second time.
             if (tr.dataset.picked === "1") { alreadySaved++; continue; }
-            const printedName = (tr.cells[1]?.textContent || "").trim();
+            const printedName = (tr.dataset.printedName || tr.cells[1]?.textContent || "").trim();
             let factorID = Number(tr.dataset.factorId || 0);
             const select = tr.querySelector("select");
             if (select && select.value) factorID = Number(select.value);

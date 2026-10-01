@@ -299,6 +299,15 @@
 .lab-extract-table tr.conf-low td { background: #fff7f6; }
 .lab-extract-table tr.conf-mid td { background: #fffdf5; }
 .lab-extract-table .conf-cell { text-align: center; }
+/* تحلیلِ ابتداییِ هر ردیف: تناقض قرمز، بیرون از بازه زرد، در محدوده خاکستری. */
+.lab-extract-table .an-cell {
+    max-width: 300px; overflow: hidden; text-overflow: ellipsis;
+    font-size: 12px; color: #444;
+}
+.lab-extract-table .an-cell.an-error { background: #fdecea; color: #b3261e; font-weight: 600; }
+.lab-extract-table .an-cell.an-warn { background: #fff7e0; color: #8a5a00; }
+.lab-extract-table .an-cell.an-ok { color: #2e7d32; }
+.sum-close { margin-top: 10px; }
 .act-icon { padding: 3px 7px; }
 .lab-extract-table td .act-icon { margin: 0 auto; display: flex; }
 .lab-extract-table tr.is-reread { box-shadow: inset 3px 0 0 #2a7da8; }
