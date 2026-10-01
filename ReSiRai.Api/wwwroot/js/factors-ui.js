@@ -285,6 +285,11 @@
                 return;
             }
 
+            // هر دسته، بخشِ بازشونده با عنوانِ مناسب و شمارنده است (علائم
+            // حیاتی، آزمایشگاه، …) — پنل دیگر اسکرولِ زیاد نمی‌خواهد.
+            const counts = {};
+            for (const f of factors) counts[f.category] = (counts[f.category] || 0) + 1;
+
             let group = null;
             let weightRow = null;
             let heightRow = null;
@@ -295,12 +300,13 @@
             let waistRow = null;
             for (const f of factors) {
                 if (!group || group.dataset.category !== f.category) {
-                    group = document.createElement("div");
+                    group = document.createElement("details");
                     group.className = "factors-group";
                     group.dataset.category = f.category;
-                    const groupTitle = document.createElement("h4");
+                    group.open = false;
+                    const groupTitle = document.createElement("summary");
                     groupTitle.className = "factors-group-title";
-                    groupTitle.textContent = CATEGORY_LABELS[f.category] || f.category;
+                    groupTitle.textContent = `${CATEGORY_LABELS[f.category] || f.category} — ${counts[f.category]} مورد`;
                     group.appendChild(groupTitle);
                     content.appendChild(group);
                 }

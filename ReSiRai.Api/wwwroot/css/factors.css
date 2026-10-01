@@ -208,6 +208,16 @@
 .panel-group[open] > summary::before { content: "▾ "; }
 .panel-group > .lab-extract-table { margin: 0; }
 
+/* دسته‌هایِ بازشوندهٔ پنلِ شرایط فعلی (علائم حیاتی، آزمایشگاه، …). */
+.factors-group > summary.factors-group-title {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+.factors-group > summary.factors-group-title::-webkit-details-marker { display: none; }
+.factors-group > summary.factors-group-title::before { content: "▸ "; color: #888; }
+.factors-group[open] > summary.factors-group-title::before { content: "▾ "; }
+
 .lab-extract-table {
     width: 100%;
     border-collapse: collapse;
