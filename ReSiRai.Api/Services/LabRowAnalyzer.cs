@@ -14,10 +14,13 @@ public static class LabRowAnalyzer
 
     /// <summary>
     /// متنِ تحلیل و سطحش (error/warn/ok یا خالی). تناقض بر بازه مقدم است؛
-    /// برایِ مقادیرِ کیفی یا بدونِ بازه چیزی ساخته نمی‌شود.
+    /// برایِ مقادیرِ کیفی یا بدونِ بازه چیزی ساخته نمی‌شود. بازه، همان چیزی است
+    /// که روی برگه چاپ شده؛ اگر قاعدهٔ بازه ممیزِ مقدار را جابه‌جا کرده باشد،
+    /// بازه هم همان‌قدر جابه‌جا می‌شود تا مقایسه با برگه عادلانه بماند.
     /// </summary>
     public static (string Text, string Level) Analyze(RowIdentity id, string value,
-        decimal? low, decimal? high, IReadOnlyList<ConsistencyFinding> findings)
+        decimal? low, decimal? high, IReadOnlyList<ConsistencyFinding> findings,
+        string? printedValue = null)
     {
         var hits = findings.Where(f => FindingHits(f, id)).ToList();
         if (hits.Count > 0)
@@ -29,14 +32,38 @@ public static class LabRowAnalyzer
             if (retest.Length > 0) text += " — توصیه به تکرار: " + retest;
             return (text, level);
         }
-        if (value.Length > 0 &&
-            decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var num))
+        if (TryNumber(value, out var num))
         {
+            // «۱۴٫۵٪» و «۳۲۹ → ۳۲٫۹» نباید از قضاوتِ بازه جا بمانند.
+            if (printedValue is not null && TryNumber(printedValue, out var printed)
+                && printed != 0 && num != printed)
+            {
+                decimal factor = num / printed;
+                if (factor is 0.01m or 0.1m or 10m or 100m)
+                {
+                    low = low is null ? null : low * factor;
+                    high = high is null ? null : high * factor;
+                }
+            }
             if (low is not null && num < low) return ("پایین‌تر از بازه — نیاز به پیگیری", "warn");
             if (high is not null && num > high) return ("بالاتر از بازه — نیاز به پیگیری", "warn");
             if (low is not null || high is not null) return ("در محدوده", "ok");
         }
         return ("", "");
+    }
+
+    /// <summary>
+    /// عددِ چاپی: ارقامِ فارسی/عربی، «٪» و فاصله‌ها تحمل می‌شوند؛ «10-12» یا
+    /// «Negative» عدد نیستند و هرگز قضاوتِ بازه نمی‌گیرند.
+    /// </summary>
+    private static bool TryNumber(string value, out decimal num)
+    {
+        var s = value.Trim().TrimEnd('%').Trim();
+        s = new string(s.Select(c =>
+            c is >= '۰' and <= '۹' ? (char)('0' + (c - '۰'))
+            : c is >= '٠' and <= '٩' ? (char)('0' + (c - '٠'))
+            : c).ToArray());
+        return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out num);
     }
 
     /// <summary>

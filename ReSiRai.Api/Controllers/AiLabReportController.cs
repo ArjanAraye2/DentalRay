@@ -394,22 +394,26 @@ If the images are not laboratory reports, return {"notALabReport":true,"labName"
         // What the rules found, told row by row: the verdict belongs next to the
         // number in the same table, not in a separate report the doctor may miss.
         var analysisByRow = new Dictionary<int, (string Text, string Level)>();
+        // موتورِ ناسازگاری هرگز نباید حکمِ بازه را ببلعد؛ فقط بخشِ تناقض در
+        // محافظ است و شکستِ احتمالی‌اش بی‌صدا کنار می‌رود.
+        List<ConsistencyFinding> findings;
         try
         {
-            var findings = LabConsistencyChecker.Check(obs, null, null);
-            for (int i = 0; i < work.Count; i++)
-            {
-                var w = work[i];
-                var fi = w.Best is null ? null : factors.First(f => f.FactorID == w.Best!.FactorID);
-                var id = new LabRowAnalyzer.RowIdentity(fi?.NameEn, fi?.NameFa, w.Best?.ShortCode, w.Best?.FactorCode);
-                var verdict = LabRowAnalyzer.Analyze(id, w.Value, w.Low, w.High, findings);
-                if (verdict.Text.Length > 0) analysisByRow[i] = verdict;
-            }
+            findings = LabConsistencyChecker.Check(obs, null, null);
         }
         catch
         {
-            // The verdict is a bonus on top of the numbers; it must never block
-            // the extraction itself.
+            findings = new();
+        }
+        for (int i = 0; i < work.Count; i++)
+        {
+            var w = work[i];
+            var fi = w.Best is null ? null : factors.First(f => f.FactorID == w.Best!.FactorID);
+            var id = new LabRowAnalyzer.RowIdentity(fi?.NameEn, fi?.NameFa, w.Best?.ShortCode, w.Best?.FactorCode);
+            // معیارِ قضاوت، بازهٔ چاپ‌شدهٔ خودِ برگه است — همان که در جدولِ بازبینی
+            // دیده می‌شود — نه بازهٔ دیکشنری.
+            var verdict = LabRowAnalyzer.Analyze(id, w.Value, w.Row.RefLow, w.Row.RefHigh, findings, w.Row.Value);
+            if (verdict.Text.Length > 0) analysisByRow[i] = verdict;
         }
 
         var items = new List<object>();
