@@ -301,18 +301,38 @@
             searchWrap.className = "factors-search";
             const searchInput = document.createElement("input");
             searchInput.type = "search";
-            searchInput.placeholder = "جست‌وجوی سریع تست… (مثلاً کراتینین یا Hb)";
+            searchInput.id = "factorsQuickSearch";
+            searchInput.placeholder = "جست‌وجوی سریع تست… (تایپ یا دیکتهٔ صوتی — مثلاً «اچ بی» یا کراتینین)";
             searchWrap.appendChild(searchInput);
             content.appendChild(searchWrap);
             const norm = s => String(s || "").toLowerCase()
                 .replace(/\u200c/g, " ").replace(/[يئ]/g, "ی").replace(/ك/g, "ک")
                 .replace(/\s+/g, " ").trim();
+            // تلفظِ حروفِ انگلیسی هم پذیرفته می‌شود: «اچ بی» ← Hb، «دبلیو بی سی» ← WBC.
+            const letterMap = new Map([
+                ["دبلیو", "w"], ["اکس", "x"], ["کیو", "q"], ["اچ", "h"], ["آر", "r"], ["اس", "s"],
+                ["بی", "b"], ["سی", "c"], ["دی", "d"], ["ای", "e"], ["اف", "f"], ["جی", "g"],
+                ["آی", "i"], ["کی", "k"], ["ال", "l"], ["ام", "m"], ["ان", "n"], ["او", "o"],
+                ["پی", "p"], ["تی", "t"], ["یو", "u"], ["وی", "v"], ["وای", "y"], ["زد", "z"]
+            ]);
+            const faToLatin = s => {
+                let out = "";
+                for (const t of norm(s).split(" ").filter(Boolean)) {
+                    const ch = letterMap.get(t) || letterMap.get(t.replace(/[\u064B-\u0652\u0640]/g, ""));
+                    if (!ch) return "";
+                    out += ch;
+                }
+                return out;
+            };
             searchInput.addEventListener("input", () => {
                 const q = norm(searchInput.value);
+                const qLetters = faToLatin(searchInput.value);
                 for (const g of content.querySelectorAll(".factors-group")) {
                     let visible = 0;
                     for (const row of g.querySelectorAll(".factor-row")) {
-                        const hit = q.length === 0 || norm(row.dataset.search).includes(q);
+                        const hay = norm(row.dataset.search);
+                        const hit = q.length === 0 || hay.includes(q)
+                            || (qLetters.length > 0 && hay.includes(qLetters));
                         row.style.display = hit ? "" : "none";
                         if (hit) visible++;
                     }

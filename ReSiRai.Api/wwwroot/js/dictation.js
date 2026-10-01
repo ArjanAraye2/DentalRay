@@ -6,7 +6,8 @@
 
  const TARGET_IDS = [
   // فرمِ مراجعهٔ جدید
-  "newBodyPart", "newStudyDescription", "newStudyReport",
+  "factorsQuickSearch",
+   "newBodyPart", "newStudyDescription", "newStudyReport",
   // صفحهٔ جزئیات/ویرایشِ مراجعه
   "studyDetailsBodyPart", "studyDetailsDescription", "studyDetailsReport"
  ];
