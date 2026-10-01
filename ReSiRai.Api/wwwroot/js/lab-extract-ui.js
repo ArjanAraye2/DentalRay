@@ -229,6 +229,7 @@
         filterBtn.addEventListener("click", () => {
             filterOn = !filterOn;
             filterBtn.classList.toggle("is-on", filterOn);
+            filterBtn.textContent = filterOn ? "همه موارد" : "فقط مواردِ نیازمندِ بررسی";
             for (const tr of body.querySelectorAll(".lab-extract-table tbody tr")) {
                 if (tr.classList.contains("crop-row")) { tr.style.display = "none"; continue; }
                 const needsWork = tr.classList.contains("conf-low") || tr.classList.contains("conf-mid") || tr.classList.contains("is-skipped");

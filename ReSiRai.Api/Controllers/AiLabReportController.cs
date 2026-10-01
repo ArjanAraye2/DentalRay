@@ -451,8 +451,8 @@ Return ONLY valid JSON with this exact shape:
         {
             // مدل، تصویرِ بزرگِ کلِ صفحه را با وضوحِ کم می‌بیند و اعدادِ ریزِ
             // فونتِ مورب را گم می‌کند؛ ناحیهٔ همان ردیف‌ها بریده و همان فرستاده
-            // می‌شود تا عدد درشت و خوانا باشد.
-            byte[] payload = CropRows(image, missing) ?? image;
+            // می‌شود تا عدد درشت و خوانا باشد. برش‌های باریک هم ۲× بزرگ می‌شوند.
+            byte[] payload = MagnifyForModel(CropRows(image, missing) ?? image);
             string raw = await _ai.CompleteJsonAsync(prompt,
                 new List<(string Mime, byte[] Bytes)> { ("image/jpeg", payload) }, ct);
             using var doc = JsonDocument.Parse(raw);
@@ -606,6 +606,33 @@ Return ONLY valid JSON with this exact shape:
         if (paths.Length == 0) return null;
         string path = row.Page >= 0 && row.Page < paths.Length ? paths[row.Page] : paths[0];
         return System.IO.File.Exists(path) ? path : null;
+    }
+
+    /// <summary>
+    /// برش‌های باریک (یک ردیف) برایِ مدل خیلی کوچک‌اند: با کوچک‌نماییِ داخلیِ
+    /// مدل، عدد ناخوانا می‌شود. ۲× بزرگ می‌شوند تا عدد درشت بماند.
+    /// </summary>
+    private static byte[] MagnifyForModel(byte[] jpeg)
+    {
+        if (!OperatingSystem.IsWindows()) return jpeg;
+        try
+        {
+            using var src = System.Drawing.Image.FromStream(new MemoryStream(jpeg));
+            if (src.Height >= 300 || src.Width < 800) return jpeg;
+            double scale = Math.Min(2.2, 360.0 / src.Height);
+            int w = (int)(src.Width * scale), h = (int)(src.Height * scale);
+            using var bmp = new System.Drawing.Bitmap(w, h);
+            using (var g = System.Drawing.Graphics.FromImage(bmp))
+            {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.Clear(System.Drawing.Color.White);
+                g.DrawImage(src, 0, 0, w, h);
+            }
+            using var ms = new MemoryStream();
+            bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+            return ms.ToArray();
+        }
+        catch { return jpeg; }
     }
 
     /// <summary>
