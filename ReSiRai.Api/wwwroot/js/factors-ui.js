@@ -287,8 +287,13 @@
 
             // هر دسته، بخشِ بازشونده با عنوانِ مناسب و شمارنده است (علائم
             // حیاتی، آزمایشگاه، …) — پنل دیگر اسکرولِ زیاد نمی‌خواهد.
+            // ترتیبِ دسته‌ها باید یکدست باشد وگرنه هر دسته چند بار ساخته می‌شود
+            // (کدهای LAB.CUSTOM بعد از IMG.* می‌آمدند و «آزمایشگاه» تکرار می‌شد).
+            const catOrder = ["Vitals", "Anthropometry", "History", "Exam", "Lab", "Imaging", "Score"];
+            const byCategory = [...factors].sort((a, b) =>
+                (catOrder.indexOf(a.category) + 1 || 99) - (catOrder.indexOf(b.category) + 1 || 99));
             const counts = {};
-            for (const f of factors) counts[f.category] = (counts[f.category] || 0) + 1;
+            for (const f of byCategory) counts[f.category] = (counts[f.category] || 0) + 1;
 
             let group = null;
             let weightRow = null;
@@ -298,7 +303,7 @@
             let creatRow = null;
             let pregRow = null;
             let waistRow = null;
-            for (const f of factors) {
+            for (const f of byCategory) {
                 if (!group || group.dataset.category !== f.category) {
                     group = document.createElement("details");
                     group.className = "factors-group";
