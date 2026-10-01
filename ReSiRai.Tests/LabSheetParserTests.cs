@@ -194,7 +194,8 @@ public class LabSheetParserTests
 
         var row = Assert.Single(rows);
         Assert.True(row.Confidence <= 65, $"confidence was {row.Confidence}");
-        Assert.Contains("اعتماد", row.ConfidenceNote);
+        Assert.NotEqual("", row.ConfidenceNote);
+        Assert.Contains("OCR", row.ConfidenceNote);
     }
 
     [Fact]
