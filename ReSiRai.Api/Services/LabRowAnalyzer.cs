@@ -34,21 +34,37 @@ public static class LabRowAnalyzer
         }
         if (TryNumber(value, out var num))
         {
-            // «۱۴٫۵٪» و «۳۲۹ → ۳۲٫۹» نباید از قضاوتِ بازه جا بمانند.
+            // «۱۴٫۵٪» و «۳۲۹ → ۳۲٫۹» نباید از قضاوتِ بازه جا بمانند. اگر مقدار
+            // تصحیحِ مقیاسی شده، برداشتِ دوم (بازهٔ هم‌مقیاس) هم ساخته می‌شود.
+            decimal? sLow = low, sHigh = high;
+            bool shifted = false;
             if (printedValue is not null && TryNumber(printedValue, out var printed)
                 && printed != 0 && num != printed)
             {
                 decimal factor = num / printed;
                 if (factor is 0.01m or 0.1m or 10m or 100m)
                 {
-                    low = low is null ? null : low * factor;
-                    high = high is null ? null : high * factor;
+                    sLow = low is null ? null : low * factor;
+                    sHigh = high is null ? null : high * factor;
+                    shifted = true;
                 }
             }
-            if (low is not null && num < low) return ("پایین‌تر از بازه — نیاز به پیگیری", "warn");
-            if (high is not null && num > high) return ("بالاتر از بازه — نیاز به پیگیری", "warn");
-            if (low is not null || high is not null) return ("در محدوده", "ok");
+            var plain = VerdictFor(num, low, high);
+            var scaled = VerdictFor(num, sLow, sHigh);
+            // برداشتی که مقدار را در بازه می‌نشانَد برنده است (پرچمِ دروغین
+            // بدترین چیز است)؛ وگرنه برداشتِ هم‌مقیاس با مقدارِ تصحیح‌شده.
+            if (plain.Level == "ok") return plain;
+            if (scaled.Level == "ok") return scaled;
+            return shifted ? scaled : plain;
         }
+        return ("", "");
+    }
+
+    private static (string Text, string Level) VerdictFor(decimal num, decimal? low, decimal? high)
+    {
+        if (low is not null && num < low) return ("پایین‌تر از بازه — نیاز به پیگیری", "warn");
+        if (high is not null && num > high) return ("بالاتر از بازه — نیاز به پیگیری", "warn");
+        if (low is not null || high is not null) return ("در محدوده", "ok");
         return ("", "");
     }
 

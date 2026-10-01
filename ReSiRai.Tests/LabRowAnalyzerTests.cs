@@ -122,6 +122,19 @@ public class LabRowAnalyzerTests
     }
 
     [Fact]
+    public void CorrectedValueWithHealthyPrintedRangeGetsNoFalseFlag()
+    {
+        // موردِ واقعیِ برگه (گزارش‌شده توسطِ پزشک): مقدارِ چاپی «145%» بوده،
+        // قاعدهٔ بازه درستش کرده «14.5%»، و بازهٔ چاپیِ ۱۱–۱۵ سالم است.
+        // جابه‌جاییِ بازه در این حالت پرچمِ دروغینِ «بالاتر از بازه» می‌ساخت.
+        var rdwcv = new LabRowAnalyzer.RowIdentity("RDW-CV", "ضریب تغییرات عرض گلبول قرمز", "RDWCV", "LAB.RDWCV");
+        var (text, level) = LabRowAnalyzer.Analyze(rdwcv, "14.5%", 11m, 15m, new List<ConsistencyFinding>(), "145%");
+
+        Assert.Equal("ok", level);
+        Assert.Equal("در محدوده", text);
+    }
+
+    [Fact]
     public void ScaleCorrectedValueIsJudgedAgainstTheSameShiftedRange()
     {
         // MCHC: «329» با قاعدهٔ بازه «32.9» شده؛ بازهٔ چاپیِ ۳۱۳–۳۵۷ هم باید
