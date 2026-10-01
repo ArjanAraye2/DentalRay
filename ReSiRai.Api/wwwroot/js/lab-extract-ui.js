@@ -326,6 +326,7 @@
                     tr.dataset.value = valueInput.value;
                     tr.dataset.refText = refInput.value;
                     tr.dataset.unit = y.unit ?? "";
+                    refreshAn(tr);
                     delete tr.dataset.picked;
                     tr.classList.remove("is-saved", "is-skipped");
                     tr.classList.add("is-reread");
@@ -349,6 +350,7 @@
             valueInput.value = item.value ?? "";
             valueInput.addEventListener("input", () => {
                 tr.dataset.value = valueInput.value;
+                refreshAn(tr);
                 tr.classList.remove("is-skipped");
                 tr.title = "";
                 // Edited rows are saved again on the next confirm; untouched
@@ -413,10 +415,11 @@
             }
             // تحلیلِ ابتدایی همان ردیف: تناقض با مقادیرِ دیگر، بیرون از بازه یا
             // در محدوده — در همان سطر، نه در گزارشِ جدا.
-            const anCell = el("td", "an-cell" + (item.analysisLevel ? " an-" + item.analysisLevel : ""),
-                item.analysis || "—");
-            if (item.analysis) anCell.title = item.analysis;
+            tr.dataset.anText = item.analysis || "";
+            tr.dataset.anLevel = item.analysisLevel || "";
+            const anCell = el("td", "an-cell");
             tr.appendChild(anCell);
+            refreshAn(tr);
             tr.appendChild(peekCell);
             tr.appendChild(redoCell);
             tbody.appendChild(tr);
@@ -470,6 +473,26 @@
         return td;
     }
 
+    // نکته: سطرِ بدونِ مقدار معمولاً متنِ اضافی است نه تست — همان‌جا نوشته می‌شود
+    // تا پیش از تأیید دیده شود. با تایپِ مقدار یا بازخوانی، نکته کنار می‌رود.
+    function refreshAn(tr) {
+        const cell = tr.querySelector(".an-cell");
+        if (!cell) return;
+        const anText = tr.dataset.anText || "";
+        if (anText) {
+            cell.textContent = anText;
+            cell.className = "an-cell an-" + (tr.dataset.anLevel || "warn");
+            cell.title = anText;
+            return;
+        }
+        const noValue = (tr.dataset.value || "").trim() === "";
+        cell.textContent = noValue ? "بدونِ مقدار — احتمالاً متنِ اضافی است، نه تست" : "—";
+        cell.className = "an-cell" + (noValue ? " an-warn" : "");
+        cell.title = noValue
+            ? "این عبارت مقداری ندارد؛ به‌عنوانِ تستِ جدید به دیکشنری افزوده نمی‌شود."
+            : "";
+    }
+
     // Printed values may carry Persian digits, thousands separators or a
     // "<"/">" mark; all of those must survive into a number instead of the row
     // being silently dropped.
@@ -492,6 +515,10 @@
     // The lab sheet itself is the source of the new factor's identity.
     async function createFactorFor(tr, studyID) {
         const raw = (tr.dataset.value || "").trim();
+        // نکته: عبارتِ بدونِ حرف یا با نامِ ناتمام («Comment:») تست نیست؛ متنِ
+        // اضافیِ برگه است و به دیکشنری راه نمی‌یابد.
+        const nameOnly = (tr.dataset.name || tr.dataset.printedName || "").trim();
+        if (!/[\p{L}]/u.test(nameOnly) || nameOnly.endsWith(":")) return {};
         const body = {
             nameEn: tr.dataset.name || "",
             nameFa: tr.dataset.nameFa || tr.dataset.name || "",
@@ -559,6 +586,13 @@
             // Already saved and untouched since? Never write it a second time.
             if (tr.dataset.picked === "1") { alreadySaved++; continue; }
             const printedName = (tr.dataset.printedName || tr.cells[1]?.textContent || "").trim();
+            // نکتهٔ مهم: عبارتِ بدونِ مقدار معمولاً تست نیست — متنِ اضافیِ برگه
+            // است («Comment:»، «wt» و مانندِ اینها). نه به دیکشنری می‌رود و نه ثبت.
+            const raw = (tr.dataset.value || "").trim();
+            if (raw === "") {
+                mark(tr, `${printedName}: مقدار ندارد؛ ثبت و افزوده به دیکشنری نشد (احتمالاً متنِ اضافی، نه تست)`);
+                continue;
+            }
             let factorID = Number(tr.dataset.factorId || 0);
             const select = tr.querySelector("select");
             if (select && select.value) factorID = Number(select.value);
@@ -581,8 +615,6 @@
             if (!factorID) { mark(tr, `${printedName}: فاکتور انتخاب نشده`); continue; }
 
             let f = byId.get(factorID);
-            const raw = (tr.dataset.value || "").trim();
-            if (raw === "") { mark(tr, `${printedName}: مقدار خالی`); continue; }
             // مقدار با نوعِ فاکتور نمی‌خواند؟ (مثلاً «Trace» برایِ پروتئینِ ادرار
             // که با پروتئینِ سرمِ عددی قاطی شده، یا «57.5» برایِ فاکتورِ گزینه‌ای)
             // — به‌جایِ خطا، فاکتورِ جدا با نوعِ درست ساخته می‌شود تا چیزی
