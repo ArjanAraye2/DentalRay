@@ -61,7 +61,7 @@
 
   function ensureLoginStyles(){
     if(document.getElementById('reSiRaiFinalLoginCss'))return;
-    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.2';document.head.appendChild(l);
+    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.3';document.head.appendChild(l);
   }
 
   function createLogin(){
@@ -86,7 +86,7 @@
             <div class="login-field">
               <label id="loginIdentifierLabel" for="loginUserName">شماره موبایل</label>
               <span id="loginIdentifierIcon" class="login-field-icon">${iconSvg('mobile')}</span>
-              <input id="loginUserName" name="username" type="text" inputmode="tel" autocomplete="username" maxlength="11" required placeholder="شماره موبایل خود را وارد کنید" />
+              <input id="loginUserName" name="username" type="text" inputmode="tel" autocomplete="username" maxlength="11" required placeholder="مثال: 09123456789" />
             </div>
             <div class="login-field">
               <label for="loginPassword">رمز عبور</label>
@@ -132,7 +132,7 @@
     function applyMode(next){
       mode=next; document.querySelectorAll('.login-id-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
       userName.value='';
-      if(mode==='mobile'){label.textContent='شماره موبایل';icon.innerHTML=iconSvg('mobile');userName.inputMode='tel';userName.maxLength=11;userName.placeholder='شماره موبایل خود را وارد کنید';}
+      if(mode==='mobile'){label.textContent='شماره موبایل';icon.innerHTML=iconSvg('mobile');userName.inputMode='tel';userName.maxLength=11;userName.placeholder='مثال: 09123456789';}
       else{label.textContent='کد ملی';icon.innerHTML=iconSvg('id');userName.inputMode='numeric';userName.maxLength=10;userName.placeholder='کد ملی خود را وارد کنید';}
       status.textContent=''; userName.focus();
     }
