@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><title>smoke5</title></head>
+<body>
+<!-- نگهبانِ «نگهبانِ fetch»: کدِ واقعی از index.html استخراج و آزموده می‌شود
+     (verify.ps1 آن را در gate-under-test.js می‌نویسد). سه حالت نباید هیچ‌کدام
+     هَنگ شوند — باگِ ۱۴۰۵/۰۷/۱۱ دقیقاً همین بود. -->
+<script src="/gate-under-test.js"></script>
+<script>
+(async () => {
+  const withTimeout = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r({ status: 'HANG' }), ms))]);
+  const out = {};
+  // حالتِ ناشناخته: درخواست در صف می‌نشیند تا وضعیت روشن شود
+  const queued = withTimeout(fetch('/api/ping.txt'), 2500);
+  // مهمان: پاسخِ ساختگیِ 401 بدونِ شبکه
+  window.__resiraiAuthGate.guest();
+  const g = await withTimeout(fetch('/api/ping.txt'), 2000);
+  out.guest = g.status;
+  out.queued = (await queued).status;
+  // واردشده: باید مستقیم به شبکه برود (فایلِ محلی = 200) و هَنگ نکند
+  window.__resiraiAuthGate.authed();
+  const a = await withTimeout(fetch('/api/ping.txt'), 2000);
+  out.authed = a.status;
+  // عبورِ آزادِ غیر /api
+  const p = await withTimeout(fetch('/ping.txt'), 2000);
+  out.passthrough = p.status;
+  const pass = out.guest === 401 && out.queued === 401 && out.authed === 200 && out.passthrough === 200;
+  document.title = (pass ? 'SMOKE5-PASS' : 'SMOKE5-FAIL')
+    + ' guest=' + out.guest + ' queued=' + out.queued + ' authed=' + out.authed + ' pass=' + out.passthrough;
+})();
+</script>
+</body>
+</html>

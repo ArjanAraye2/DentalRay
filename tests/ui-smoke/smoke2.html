@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><title>smoke</title></head>
+<body>
+<div id="host"></div>
+<script>
+// --- mock fetch: همان قراردادِ APIها، بدونِ سرور ---
+const ITEMS = [
+  { name: "WBC", value: "6.13", unit: "10^3/uL", refText: "4-11", refLow: 4, refHigh: 11, confidence: 90, confidenceNote: "", analysis: "", analysisLevel: "", suggested: false, factorID: 1, matchConfidence: 99, matchStatus: "matched", section: "" },
+  { name: "Color", value: "Yellow", unit: "", refText: "", refLow: null, refHigh: null, confidence: 85, confidenceNote: "", analysis: "", analysisLevel: "", suggested: false, factorID: 2, matchConfidence: 99, matchStatus: "matched", section: "Urine Analysis" },
+  { name: "Culture", value: "E.coli", unit: "", refText: "", refLow: null, refHigh: null, confidence: 85, confidenceNote: "", analysis: "رشدِ E.coli — توصیه به تکرار: کشت", analysisLevel: "error", suggested: false, factorID: 3, matchConfidence: 99, matchStatus: "matched", section: "Culture & Sensitivity" },
+  { name: "HGB", value: "14.1", unit: "g/dL", refText: "13.2-17.3", refLow: 13.2, refHigh: 17.3, confidence: 90, confidenceNote: "", analysis: "در محدوده", analysisLevel: "ok", suggested: false, factorID: 4, matchConfidence: 99, matchStatus: "matched", section: "" },
+  { name: "Comment:", value: "", unit: "", refText: "", refLow: null, refHigh: null, confidence: 30, confidenceNote: "", analysis: "", analysisLevel: "", suggested: false, factorID: null, matchConfidence: 0, matchStatus: "unmatched", section: "Urine Analysis" }
+];
+const FACTORS = [
+  { factorID: 1, factorCode: "LAB.HGB", nameFa: "هموگلوبین", shortCode: "Hb", category: "Lab", dataType: 1, isRequired: false },
+  { factorID: 2, factorCode: "VIT.BP", nameFa: "فشار خون", shortCode: "BP", category: "Vitals", dataType: 1, isRequired: false },
+  { factorID: 3, factorCode: "LAB.CA", nameFa: "کلسیم", shortCode: "Ca", category: "Lab", dataType: 1, isRequired: false },
+  { factorID: 4, factorCode: "LAB.WBC", nameFa: "گلبول سفید", shortCode: "WBC", category: "Lab", dataType: 1, isRequired: false }
+];
+window.fetch = async (url) => {
+  const u = String(url);
+  const ok = (obj) => ({ ok: true, status: 200, json: async () => obj });
+  if (u.includes("/api/radiologyimages/study/")) return ok({ success: true, images: [{ imageID: 1, imageTypeName: "برگهٔ آزمایش", fileName: "a.jpg", contentType: "image/jpeg" }] });
+  if (u.includes("extract")) return ok({ success: true, extractionID: 9, items: ITEMS });
+  return ok({ success: true, factors: FACTORS, values: [], saved: 0 });
+};
+window.alert = () => { };
+</script>
+<script src="file:///D:/Application/DentalRay/ReSiRai.Api/wwwroot/js/lab-extract-ui.js"></script>
+<script src="file:///D:/Application/DentalRay/ReSiRai.Api/wwwroot/js/factors-ui.js"></script>
+<script src="file:///D:/Application/DentalRay/ReSiRai.Api/wwwroot/js/dictation.js"></script>
+<script>
+(async () => {
+  const out = [];
+  try {
+    // ۱) جدولِ بازبینی: گروه‌بندیِ پانل‌ها + نشانِ «بدونِ مقدار»
+    window.ReSiRaiLabExtract.open(4);
+    await new Promise(r => setTimeout(r, 60));
+    const body = document.querySelector(".lab-extract-body");
+    await window.ReSiRaiLabExtract._renderReview(body, 4, [1]);
+    const panels = document.querySelectorAll(".panel-group");
+    out.push("panels=" + panels.length);
+    out.push("rows=" + document.querySelectorAll(".lab-extract-table tbody tr").length);
+    const anCells = [...document.querySelectorAll(".an-cell")].map(c => c.textContent.trim());
+    out.push("anHasRange=" + anCells.some(t => t === "در محدوده"));
+    out.push("anHasNoValue=" + anCells.some(t => t.includes("بدونِ مقدار")));
+    out.push("anHasRetest=" + anCells.some(t => t.includes("توصیه به تکرار")));
+    out.push("panelTitles=" + [...panels].map(p => p.querySelector("summary").textContent.trim().split("—")[0].trim()).join("|"));
+
+    // ۲) پنلِ شرایط فعلی: هر دسته فقط یک‌بار + جست‌وجو
+    await window.ReSiRaiFactors.render({ studyID: 4 }, document.getElementById("host"));
+    await new Promise(r => setTimeout(r, 60));
+    out.push("factorGroups=" + document.querySelectorAll("#host .factors-group").length);
+    out.push("searchBox=" + (document.querySelectorAll("#host .factors-search input").length));
+    out.push("micMounted=" + (document.querySelectorAll("#host .factors-search .dictate-btn").length));
+
+    // ۳) جست‌وجو: تلفظِ حروفِ انگلیسی («اچ بی» ← Hb)
+    const si = document.querySelector("#host .factors-search input");
+    si.value = "اچ بی";
+    si.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 30));
+    const visibleRows = [...document.querySelectorAll("#host .factor-row")].filter(r => r.style.display !== "none");
+    out.push("faLetterSearchHits=" + visibleRows.length + ":" + visibleRows.map(r => r.dataset.search).join(","));
+    si.value = "کلسیم";
+    si.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise(r => setTimeout(r, 30));
+    out.push("faNameSearchHits=" + [...document.querySelectorAll("#host .factor-row")].filter(r => r.style.display !== "none").length);
+  } catch (e) {
+    out.push("ERROR: " + (e && e.message ? e.message : e));
+  }
+  const pre = document.createElement("pre");
+  pre.textContent = "RESULT " + out.join(" ; ") + " END";
+  document.body.appendChild(pre);
+})();
+</script>
+</body>
+</html>

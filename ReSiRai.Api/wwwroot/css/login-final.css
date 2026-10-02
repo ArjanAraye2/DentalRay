@@ -18,7 +18,12 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
 .login-version{position:absolute;bottom:7px;left:22px;font-size:10px;color:#7d8b99}
 
 .login-form-panel{grid-column:2;direction:rtl;align-self:center;justify-self:center;width:min(86%,545px);background:rgba(255,255,255,.86);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.92);border-radius:27px;box-shadow:0 24px 70px rgba(31,87,126,.18);padding:30px 38px}
-.login-form-logo{text-align:center;margin-bottom:9px}.login-logo-img{width:min(225px,64%);height:auto}.login-form-heading{text-align:center;margin-bottom:17px}.login-form-heading h2{margin:0 0 7px;color:#0750b7;font-size:27px}.login-form-heading p{margin:0;color:#6c7c8f;font-size:13px}
+.login-form-logo{text-align:center;margin-bottom:9px}
+/* سایزِ لوگوی فرم — طبقِ استانداردِ برگهٔ هویت: نسبتِ ۵:۳ با فایلِ SVGِ تنگ‌شده.
+   225px در ستونِ ~340px فرم بی‌قرینه است؛ 190px با عنوانِ ۲۷px هم‌وزن می‌شود.
+   در نمایِ کوتاه (<700px) کوچک‌تر می‌شود تا دکمهٔ ورود همیشه دیده شود. */
+.login-logo-img{width:min(190px,60%);height:auto;object-fit:contain;display:block;margin:0 auto}
+@media (max-height:700px){.login-logo-img{width:min(160px,54%)}}.login-form-heading{text-align:center;margin-bottom:17px}.login-form-heading h2{margin:0 0 7px;color:#0750b7;font-size:27px}.login-form-heading p{margin:0;color:#6c7c8f;font-size:13px}
 .login-id-tabs{display:grid;grid-template-columns:1fr 1fr;background:#eef3f8;border-radius:12px;padding:3px;margin:0 0 14px}.login-id-tab{border:0;background:transparent;border-radius:10px;padding:10px;color:#526477;font:inherit;cursor:pointer}.login-id-tab.active{background:linear-gradient(90deg,#0877df,#129ce8);color:#fff;box-shadow:0 5px 15px rgba(0,123,218,.2)}
 .login-field{position:relative;margin-bottom:13px}.login-field label{display:block;margin:0 0 6px;font-size:13px;font-weight:700;color:#214b75}.login-field input{width:100%;border:1px solid #d4e0eb;border-radius:11px;background:rgba(248,251,255,.72);padding:14px 44px 14px 42px;font:inherit;outline:none;transition:.2s}.login-field input:focus{border-color:#1b9bd7;box-shadow:0 0 0 3px rgba(27,155,215,.1)}
 .login-field-icon{position:absolute;right:14px;bottom:12px;width:20px;height:20px;color:#65778a}.login-field-icon svg,.login-password-toggle svg{width:20px;height:20px}.login-password-row{position:relative}.login-password-row .login-field-icon{right:14px;bottom:auto;top:12px}.login-password-toggle{position:absolute;left:12px;top:9px;border:0;background:transparent;color:#65778a;cursor:pointer;padding:3px}

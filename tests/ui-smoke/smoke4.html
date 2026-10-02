@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><title>smoke4</title></head>
+<body>
+<div id="studiesContainer">
+  <div class="study-scroll-card" data-study-id="1">
+    <div class="study-scroll-body">
+      <div class="study-scroll-images"><img alt="x" /></div>
+    </div>
+  </div>
+</div>
+<script>
+  // fetch stub — هر دو پنل داده می‌خواهند
+  window.fetch = () => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ success: true, actions: [], payments: [], grossAmount: 0, netAmount: 0, receivedAmount: 0, balance: 0, tests: [] })
+  });
+</script>
+<script src="/study-finance.js"></script>
+<script src="/study-lab-tests.js"></script>
+<script>
+  // اگر observerهای دو پنل با هم بجنگند، جهش‌ها تا ابد ادامه می‌یابند (هزاران مورد).
+  let mutations = 0;
+  new MutationObserver(() => { mutations++; }).observe(document.getElementById('studiesContainer'), { childList: true, subtree: true });
+  setTimeout(() => {
+    const lab = document.querySelectorAll('.study-labtests').length;
+    const fin = document.querySelectorAll('.study-finance').length;
+    const pass = lab === 1 && fin === 1 && mutations < 60;
+    document.title = (pass ? 'SMOKE4-PASS' : 'SMOKE4-FAIL') + ' mutations=' + mutations + ' lab=' + lab + ' fin=' + fin;
+  }, 800);
+</script>
+</body>
+</html>

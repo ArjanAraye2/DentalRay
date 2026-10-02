@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><title>smoke3</title></head>
+<body>
+<div id="studiesContainer">
+  <div class="study-scroll-card" data-study-id="1">
+    <div class="study-scroll-body">
+      <div class="study-scroll-images"></div>
+    </div>
+  </div>
+</div>
+<script>
+  // fetch stub: دو آزمایش، سه فیلد — قبل از بارگذاریِ اسکریپت.
+  window.fetch = (url) => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+      success: true,
+      tests: [
+        { extractionID: 5, labName: "آزمایشگاه پارس", sampleDate: "2026-09-20", createdDate: "2026-09-21", status: "confirmed", pageCount: 4,
+          fields: [
+            { row: 1, name: "Hemoglobin", value: "13.2", unit: "g/dL", refText: "13-17", refLow: 13, refHigh: 17, confidence: 91, section: "CBC" },
+            { row: 2, name: "W.B.C", value: "45", unit: "10^3/uL", refText: "4-11", refLow: 4, refHigh: 11, confidence: 88, section: "CBC" }
+          ] },
+        { extractionID: 6, labName: "", sampleDate: null, createdDate: "2026-09-25", status: "draft", pageCount: 1,
+          fields: [ { row: 0, name: "Potassium", value: "4.1", unit: "mEq/L", refText: "", refLow: null, refHigh: null, confidence: 0, section: "" } ] }
+      ]
+    })
+  });
+</script>
+<script src="/study-lab-tests.js"></script>
+<script>
+  // هم‌زمان: Promise.resolve در microtask می‌نشیند و پیش از اجرای این اسکریپتِ
+  // بعدی، render کامل شده است — نیازی به تایمر نیست.
+  const q = (s) => document.querySelectorAll(s);
+  const cards = q(".labtest-card").length;
+  const rows = q(".labtest-row").length;
+  const img = document.querySelector(".labtest-evidence img");
+  const chip = document.querySelector("[data-labtests-summary]");
+  const high = q(".labtest-state.is-high").length;
+  const none = q(".labtest-state.is-none").length;
+  const ok = q(".labtest-state.is-ok").length;
+  const mounted = q(".study-labtests").length;
+  const pass = cards === 2 && rows === 3 && img && img.src.includes("extractionID=5") && img.src.includes("row=1")
+    && chip && chip.textContent.includes("۲") && high === 1 && none === 1 && ok === 1 && mounted === 1;
+  document.title = (pass ? "SMOKE-PASS" : "SMOKE-FAIL")
+    + ` cards=${cards} rows=${rows} img=${img ? img.src : "none"} chip=${chip ? chip.textContent : "none"} hi=${high} ok=${ok} none=${none} mounted=${mounted}`;
+</script>
+</body>
+</html>

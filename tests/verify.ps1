@@ -1,0 +1,37 @@
+# ReSiRai - one-shot verification: build + unit tests + UI smoke prep.
+# Usage: powershell -File tests\verify.ps1
+# Then open http://localhost:8765/smoke2.html .. smoke5.html and check the
+# document titles say PASS (each smoke sets its own verdict in the title).
+$ErrorActionPreference = 'Stop'
+$root = Split-Path $PSScriptRoot -Parent
+$api = Join-Path $root 'ReSiRai.Api'
+$smoke = Join-Path $root 'tests\ui-smoke'
+$fail = 0
+
+Write-Output '== build =='
+dotnet build (Join-Path $api 'ReSiRai.Api.csproj') -c Debug --nologo -t:Compile
+if ($LASTEXITCODE -ne 0) { $fail++ }
+
+Write-Output '== unit tests =='
+dotnet test (Join-Path $root 'ReSiRai.Tests\ReSiRai.Tests.csproj') --nologo
+if ($LASTEXITCODE -ne 0) { $fail++ }
+
+Write-Output '== smoke prep (fresh copies from wwwroot) =='
+Copy-Item (Join-Path $api 'wwwroot\js\study-finance.js') $smoke -Force
+Copy-Item (Join-Path $api 'wwwroot\js\study-lab-tests.js') $smoke -Force
+
+# The fetch-gate lives inline in index.html; extract the real code so smoke5
+# tests exactly what ships (never a stale copy).
+$html = [IO.File]::ReadAllText((Join-Path $api 'wwwroot\index.html'))
+$m = [regex]::Match($html, '(?s)<script>\s*/\* \u0646\u06af\u0647\u0628\u0627\u0646.*?</script>')
+if (-not $m.Success) { Write-Output '!! fetch-gate script not found in index.html'; $fail++ }
+else {
+  $js = $m.Value -replace '^<script>', '' -replace '</script>$', ''
+  [IO.File]::WriteAllText((Join-Path $smoke 'gate-under-test.js'), $js, (New-Object System.Text.UTF8Encoding $false))
+  Write-Output 'gate-under-test.js extracted from index.html'
+}
+
+Write-Output ''
+Write-Output ('== verify summary: ' + $(if ($fail -eq 0) { 'BUILD + TESTS GREEN' } else { "$fail step(s) FAILED" }) + ' ==')
+Write-Output 'Next: powershell -File tests\ui-smoke\serve.ps1'
+Write-Output 'Then check titles of: smoke2 (review render), smoke3 (lab tests), smoke4 (no observer loop), smoke5 (fetch gate)'

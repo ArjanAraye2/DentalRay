@@ -66,7 +66,7 @@
 
   function ensureLoginStyles(){
     if(document.getElementById('reSiRaiFinalLoginCss'))return;
-    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.62';document.head.appendChild(l);
+    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.63';document.head.appendChild(l);
   }
 
   function createLogin(){
@@ -81,7 +81,7 @@
     screen.innerHTML=`
       <div class="login-shell">
         <section class="login-form-panel" aria-label="فرم ورود">
-          <div class="login-form-logo"><img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.18" alt="ReSiRai - Medical Intelligence Platform" /></div>
+          <div class="login-form-logo"><img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.19" alt="ReSiRai - Medical Intelligence Platform" /></div>
           <div class="login-form-heading"><h2>به ReSiRai خوش آمدید</h2><p>ورود به پلتفرم یکپارچه اطلاعات و هوش پزشکی</p></div>
           <div class="login-id-tabs" role="tablist" aria-label="روش ورود">
             <button type="button" class="login-id-tab active" data-mode="mobile" role="tab">با شماره موبایل</button>
@@ -112,7 +112,7 @@
         </section>
 
         <section class="login-brand-panel" aria-label="ReSiRai">
-          <img class="login-brand-logo" src="/images/resirai-logo.svg?v=20261001.18" alt="ReSiRai - Medical Intelligence Platform" />
+          <img class="login-brand-logo" src="/images/resirai-logo.svg?v=20261001.19" alt="ReSiRai - Medical Intelligence Platform" />
           <h1 class="login-brand-title">پلتفرم یکپارچه اطلاعات و هوش پزشکی</h1>
           <p class="login-brand-subtitle">از داده تا تصمیم بهتر</p>
           <div class="login-landscape" aria-hidden="true">
