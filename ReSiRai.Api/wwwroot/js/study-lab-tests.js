@@ -190,11 +190,12 @@
         // است، مثلِ تصویرِ رادیولوژی — پس کنارِ تصاویر می‌نشیند.
         const place = () => {
           const imgs = body.querySelector(".study-scroll-images");
-          const fin = body.querySelector(".study-finance");
-          if (fin) {
-            if (panel.previousElementSibling !== fin || panel.nextElementSibling !== imgs) fin.after(panel);
-          } else if (imgs) {
-            if (panel.nextElementSibling !== imgs || panel.parentElement !== body) body.insertBefore(panel, imgs);
+          // جانمایی فقط «بعد از تصاویر» است. داخلِ بازهٔ «اقدامات ← مالی ←
+          // تصاویر» دست نمی‌زنیم: observerِ study-finance آن بازه را مرتب نگه
+          // می‌دارد و هر جابه‌جاییِ متقابل، حلقهٔ بی‌نهایتِ MutationObserver
+          // می‌ساخت (همان گیرِ «در حال دریافت اطلاعات…» هنگامِ بازکردنِ بیمار).
+          if (imgs) {
+            if (panel.previousElementSibling !== imgs) imgs.after(panel);
           } else if (panel.parentElement !== body) {
             body.appendChild(panel);
           }
