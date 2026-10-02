@@ -134,3 +134,8 @@ linear-gradient(to bottom,#bde4fb 0 42%,#dbe9ef 43% 54%,#a8d9e7 55% 56%,#dff5fb 
 .login-wave i:nth-child(2){top:20px;height:46px;opacity:.7}
 .login-wave i:nth-child(3){top:39px;height:29px;opacity:.5}
 .login-sprout.s1{bottom:34.8%}.login-sprout.s2{bottom:34.4%}.login-sprout.s3{bottom:34%}
+
+/* Production hero artwork: real SVG asset, replacing the temporary CSS landscape. */
+.login-landscape{background:#eaf7fd url('/images/login-hero-final.svg?v=1') center/cover no-repeat;box-shadow:0 18px 50px rgba(47,126,172,.09);border:1px solid rgba(255,255,255,.72)}
+.login-landscape:before,.login-landscape:after,.login-landscape .login-wave,.login-landscape .login-sprout{display:none!important}
+@media(min-width:1051px) and (max-height:900px){.login-landscape{height:275px}}
