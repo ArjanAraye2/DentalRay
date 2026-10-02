@@ -206,3 +206,28 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     display:none!important;
   }
 }
+
+
+/* Design 50 — login card proportions corrected from the approved reference */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-form-panel{
+    width:545px!important;
+    height:min(650px,calc(100vh - 72px))!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:auto!important;
+    padding:24px 38px 20px!important;
+    align-self:center!important;
+    overflow:hidden!important;
+  }
+  #reSiRaiLoginScreen .login-logo-img{width:min(190px,52%)!important}
+  #reSiRaiLoginScreen .login-form-heading{margin-bottom:11px!important}
+  #reSiRaiLoginScreen .login-form-heading h2{font-size:24px!important}
+  #reSiRaiLoginScreen .login-id-tabs{margin-bottom:10px!important}
+  #reSiRaiLoginScreen .login-id-tab{padding:9px!important}
+  #reSiRaiLoginScreen .login-field{margin-bottom:9px!important}
+  #reSiRaiLoginScreen .login-field input{padding-top:10px!important;padding-bottom:10px!important}
+  #reSiRaiLoginScreen .login-options{margin-bottom:7px!important}
+  #reSiRaiLoginScreen .login-submit{padding:11px 18px!important}
+  #reSiRaiLoginScreen .login-footer{padding-top:7px!important}
+}
