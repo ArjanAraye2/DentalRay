@@ -98,3 +98,39 @@ linear-gradient(to bottom,#bde4fb 0 42%,#dbe9ef 43% 54%,#a8d9e7 55% 56%,#dff5fb 
   .login-form-panel{grid-column:2;grid-row:1}
   .login-brand-panel{grid-column:1;grid-row:1}
 }
+
+/* Final viewport-fit pass based on 1536x819 real screenshot. */
+@media(min-width:1051px) and (max-height:900px){
+ .login-shell{min-height:100vh;padding-top:14px;padding-bottom:14px;align-items:center}
+ .login-form-panel{padding:20px 30px 18px;max-height:calc(100vh - 28px);box-sizing:border-box}
+ .login-form-logo{margin-bottom:5px}.login-logo-img{width:min(190px,58%)}
+ .login-form-heading{margin-bottom:12px}.login-form-heading h2{font-size:23px;margin-bottom:3px}.login-form-heading p{font-size:12px}
+ .login-id-tabs{margin-bottom:10px}.login-id-tab{padding:8px}
+ .login-field{margin-bottom:10px}.login-field label{margin-bottom:5px}.login-field input{padding-top:10px;padding-bottom:10px}
+ .login-options{margin:0 0 8px;min-height:24px}
+ .login-status{min-height:16px;margin:-2px 0 4px}
+ .login-submit{padding:11px 16px}
+ .login-footer{margin-top:8px}
+ .login-brand-panel{min-height:0;height:calc(100vh - 28px);justify-content:flex-start;padding-top:6px}
+ .login-brand-logo{width:min(330px,48%);margin-bottom:5px}
+ .login-brand-title{font-size:24px;margin-top:4px}.login-brand-subtitle{font-size:16px;margin-top:4px}
+ .login-landscape{height:250px;margin:14px auto 6px}
+ .login-features{margin-top:8px}.login-feature{padding:7px 14px}.login-feature strong{font-size:13px;margin-bottom:3px}.login-feature span{font-size:10px}
+}
+.login-landscape{
+ background:
+ radial-gradient(circle at 73% 51%,rgba(255,205,104,.96) 0 2.5%,rgba(255,210,125,.35) 6%,transparent 16%),
+ linear-gradient(to bottom,rgba(255,255,255,.16),rgba(255,255,255,.02)),
+ linear-gradient(to bottom,#c6e9fb 0 42%,#e8f2f1 43% 53%,#b5dce7 54% 55%,#e5f7fb 56% 100%);
+}
+.login-landscape:before{
+ bottom:44%;height:38%;filter:blur(3px);opacity:.52;
+ background:
+ linear-gradient(166deg,transparent 0 31%,rgba(85,142,175,.36) 32% 38%,transparent 39%),
+ linear-gradient(196deg,transparent 0 40%,rgba(117,165,188,.28) 41% 48%,transparent 49%);
+}
+.login-wave{bottom:34%;height:96px}
+.login-wave i{height:62px;border-radius:46% 54% 49% 51%;opacity:.72}
+.login-wave i:nth-child(2){top:20px;height:46px;opacity:.7}
+.login-wave i:nth-child(3){top:39px;height:29px;opacity:.5}
+.login-sprout.s1{bottom:34.8%}.login-sprout.s2{bottom:34.4%}.login-sprout.s3{bottom:34%}
