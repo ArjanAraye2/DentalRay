@@ -358,3 +358,62 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     padding-top:6px!important;
   }
 }
+
+/* Design 50 — half-scale login card (2026-10-03). The winning geometry above
+   (545px x 86.5vh) filled the viewport and overflowed it. Halve the card and
+   the right rail, and let the card scroll internally if content ever exceeds. */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-shell{grid-template-columns:minmax(0,1fr) 320px!important}
+  #reSiRaiLoginScreen .login-form-panel{
+    width:min(430px,44vh)!important;
+    height:auto!important;
+    min-width:0!important;max-width:none!important;
+    min-height:0!important;
+    max-height:min(540px,62vh)!important;
+    margin:auto!important;
+    align-self:center!important;justify-self:center!important;
+    padding:clamp(16px,1.9vh,24px) clamp(20px,2.4vh,30px)!important;
+    overflow:auto!important;
+  }
+  #reSiRaiLoginScreen .login-logo-img{width:min(120px,36%)!important}
+  #reSiRaiLoginScreen .login-form-heading h2{font-size:21px!important}
+  #reSiRaiLoginScreen .login-field input{height:38px!important}
+  #reSiRaiLoginScreen .login-submit{min-height:40px!important}
+}
+
+/* Design 50 — compact/centered login for narrow viewports (2026-10-03).
+   At <=1050px the single-column layout stacked a full-height hero above the
+   card, so the card sat below the fold and the login screen had to scroll.
+   Center a compact card instead and shrink the hero to a slim band. */
+@media(max-width:1050px){
+  #reSiRaiLoginScreen .login-shell{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:100vh!important;
+    padding:16px!important;
+    gap:12px!important;
+  }
+  #reSiRaiLoginScreen .login-brand-panel{
+    min-height:0!important;height:auto!important;
+    padding:0!important;
+    background:none!important;
+  }
+  #reSiRaiLoginScreen .login-brand-logo,
+  #reSiRaiLoginScreen .login-brand-title,
+  #reSiRaiLoginScreen .login-brand-subtitle,
+  #reSiRaiLoginScreen .login-features,
+  #reSiRaiLoginScreen .login-version{display:none!important}
+  #reSiRaiLoginScreen .login-form-panel{
+    width:min(430px,94%)!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    margin:0!important;padding:22px 24px!important;
+    border-radius:22px!important;
+    overflow:visible!important;
+  }
+  #reSiRaiLoginScreen .login-logo-img{width:min(150px,44%)!important}
+  #reSiRaiLoginScreen .login-form-heading h2{font-size:22px!important}
+  #reSiRaiLoginScreen .login-field input{height:40px!important}
+  #reSiRaiLoginScreen .login-submit{min-height:42px!important}
+}
