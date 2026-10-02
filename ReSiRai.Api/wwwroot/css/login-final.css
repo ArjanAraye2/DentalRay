@@ -127,3 +127,26 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     overflow:visible!important;
   }
 }
+
+
+/* Design 50 — finalize login card box before other visual work */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-form-panel{
+    box-sizing:border-box!important;
+    width:500px!important;
+    height:calc(100vh - 96px)!important;
+    min-height:680px!important;
+    max-height:820px!important;
+    margin:auto!important;
+    align-self:center!important;
+    justify-self:center!important;
+    padding:30px 34px 24px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-start!important;
+    overflow:hidden!important;
+    border-radius:28px!important;
+    background:rgba(255,255,255,.90)!important;
+  }
+  #reSiRaiLoginScreen .login-footer{margin-top:auto!important;padding-top:12px!important}
+}
