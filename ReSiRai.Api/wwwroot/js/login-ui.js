@@ -129,7 +129,12 @@
         </section>
       </div>`;
 
-    document.body.prepend(screen);\n    // Always open the authentication screen at its real top; the application may have been scrolled before login.\n    window.scrollTo(0,0); screen.scrollTop=0; document.documentElement.scrollTop=0; document.body.scrollTop=0;
+    document.body.prepend(screen);
+    // Always open the authentication screen at its real top; the application may have been scrolled before login.
+    window.scrollTo(0,0);
+    screen.scrollTop=0;
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
     const form=document.getElementById('reSiRaiLoginForm'),userName=document.getElementById('loginUserName'),password=document.getElementById('loginPassword');
     const toggle=document.getElementById('toggleLoginPassword'),status=document.getElementById('loginStatus'),submit=document.getElementById('loginSubmit');
     const label=document.getElementById('loginIdentifierLabel'),icon=document.getElementById('loginIdentifierIcon'),remember=document.getElementById('loginRememberMe');
