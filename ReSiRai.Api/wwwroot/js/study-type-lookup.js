@@ -8,10 +8,18 @@
 
     async function loadStudyTypes() {
         const response = await fetch('/api/studytypes');
-        const result = await response.json();
+        // پیش از ورود (صفحهٔ ورود) پاسخِ 401 و بدونِ بدنه است؛ json() با
+        // «Unexpected end of JSON input» منفجر می‌شود و انتخابگرها غیرفعال
+        // می‌شدند. نبودِ ورود خطا نیست — بی‌صدا رد می‌شویم؛ بعد از ورود
+        // (reload) دوباره بارگذاری می‌شود.
+        if (response.status === 401 || response.status === 403) return false;
+        let result = null;
+        try { result = await response.json(); } catch { return false; }
+        if (!result) return false;
         if (!response.ok || result.success === false)
             throw new Error(result.message || 'دریافت انواع Study انجام نشد.');
         studyTypes = result.studyTypes || [];
+        return true;
     }
 
     function replaceWithSelect(inputId) {
@@ -48,12 +56,18 @@
     }
 
     async function init() {
+        // پیش از ورود (فرمِ ورود روی صفحه است) اصلاً درخواست نمی‌زنیم؛ نه خطا
+        // در کنسول می‌نشیند و نه انتخابگری غیرفعال می‌شود.
+        if (document.querySelector('.login-shell')) return;
         const newSelect = replaceWithSelect('newStudyType');
         const editSelect = replaceWithSelect('editStudyType');
         if (!newSelect && !editSelect) return;
 
         try {
-            await loadStudyTypes();
+            const loaded = await loadStudyTypes();
+            // پیش از ورود بارگذاری انجام نشده؛ این خطا نیست و بعد از ورود
+            // (reload) دوباره اجرا می‌شود. انتخابگرها نباید غیرفعال شوند.
+            if (!loaded) return;
             fill(newSelect);
             fill(editSelect);
         } catch (error) {
