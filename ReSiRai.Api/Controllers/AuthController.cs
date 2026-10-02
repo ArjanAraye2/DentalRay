@@ -125,10 +125,13 @@ namespace ReSiRai.Api.Controllers
 
         // Used by the browser on page reload. The password is never needed again;
         // the server validates the protected HttpOnly cookie.
-        [Authorize]
+        // بدونِ [Authorize]: مهمان‌بودن خطا نیست و 200 با success=false برمی‌گردد
+        // تا صفحهٔ ورود با پیامِ «Failed to load resource: 401» کثیف نشود.
         [HttpGet("me")]
         public IActionResult Me()
         {
+            if (User.Identity?.IsAuthenticated != true)
+                return Ok(new { success = false, authenticated = false });
             return Ok(new { success = true, user = IdentityFromClaims() });
         }
 

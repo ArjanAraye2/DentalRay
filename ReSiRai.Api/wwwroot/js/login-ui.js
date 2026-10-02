@@ -47,13 +47,15 @@
 
   async function restoreSession(){
     setLoginMode(true);
+    const gate=window.__resiraiAuthGate;
     try{
       const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
-      if(!r.ok)return false;
+      if(!r.ok){ gate&&gate.guest(); return false; }
       const d=await r.json();
-      if(!d.success||!d.user)return false;
+      if(!d.success||!d.user){ gate&&gate.guest(); return false; }
+      gate&&gate.authed();
       showApplication(d.user); return true;
-    }catch(_){return false;}
+    }catch(_){ gate&&gate.guest(); return false; }
   }
 
   function createLogin(){
@@ -68,7 +70,7 @@
       <div class="login-shell">
         <section class="login-form-panel" aria-label="فرم ورود">
           <div class="login-form-logo">
-            <img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.15" alt="ReSiRai - Medical Intelligence Platform" />
+            <img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.16" alt="ReSiRai - Medical Intelligence Platform" />
           </div>
           <div class="login-form-heading">
             <h2>ورود به ReSiRai</h2>
