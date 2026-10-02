@@ -150,3 +150,30 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
   }
   #reSiRaiLoginScreen .login-footer{margin-top:auto!important;padding-top:12px!important}
 }
+
+
+/* Design 50 — hero positioning only; login card dimensions stay locked */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-brand-panel{
+    position:relative!important;
+    height:100vh!important;
+    min-height:100vh!important;
+    overflow:hidden!important;
+    background-image:url('/images/design50-hero.jpg?v=55')!important;
+    background-size:cover!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+  }
+
+  /* The current Design 50 raster already contains the brand/title.
+     Hide duplicate HTML branding until the clean scenic master replaces it. */
+  #reSiRaiLoginScreen .login-brand-logo,
+  #reSiRaiLoginScreen .login-brand-title,
+  #reSiRaiLoginScreen .login-brand-subtitle{
+    visibility:hidden!important;
+  }
+
+  #reSiRaiLoginScreen .login-features{
+    bottom:3.5vh!important;
+  }
+}
