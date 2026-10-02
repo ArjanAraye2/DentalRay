@@ -177,3 +177,17 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     bottom:3.5vh!important;
   }
 }
+
+
+/* Design 50 — grid row fix: keep hero and login card in the same viewport row */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-brand-panel{
+    grid-column:1!important;
+    grid-row:1!important;
+    align-self:stretch!important;
+  }
+  #reSiRaiLoginScreen .login-form-panel{
+    grid-column:2!important;
+    grid-row:1!important;
+  }
+}
