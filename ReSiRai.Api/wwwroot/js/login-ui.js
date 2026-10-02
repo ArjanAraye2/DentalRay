@@ -10,6 +10,7 @@
 
   const iconSvg=type=>{
     if(type==='id') return '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3.5" width="14" height="17" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9" r="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 16c1.1-2 5.9-2 7 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    if(type==='mobile') return '<svg viewBox="0 0 24 24" fill="none"><rect x="6.5" y="2.5" width="11" height="19" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M10 18.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
     if(type==='lock') return '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
     if(type==='eye') return '<svg viewBox="0 0 24 24" fill="none"><path d="M2.5 12s3.4-5 9.5-5 9.5 5 9.5 5-3.4 5-9.5 5-9.5-5-9.5-5Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg>';
     return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.4-2.9 7.9-7 10-4.1-2.1-7-5.6-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.7"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -58,7 +59,13 @@
     }catch(_){ gate&&gate.guest(); return false; }
   }
 
+  function ensureLoginStyles(){
+    if(document.getElementById('reSiRaiFinalLoginCss'))return;
+    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.1';document.head.appendChild(l);
+  }
+
   function createLogin(){
+    ensureLoginStyles();
     if(document.getElementById('reSiRaiLoginScreen'))return;
     setLoginMode(true);
     const control=document.getElementById('reSiRaiUserControl'); if(control)control.classList.add('hidden');
@@ -69,18 +76,17 @@
     screen.innerHTML=`
       <div class="login-shell">
         <section class="login-form-panel" aria-label="فرم ورود">
-          <div class="login-form-logo">
-            <img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.18" alt="ReSiRai - Medical Intelligence Platform" />
-          </div>
-          <div class="login-form-heading">
-            <h2>ورود به ReSiRai</h2>
-            <p>برای ورود، اطلاعات حساب خود را وارد کنید.</p>
+          <div class="login-form-logo"><img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.18" alt="ReSiRai - Medical Intelligence Platform" /></div>
+          <div class="login-form-heading"><h2>به ReSiRai خوش آمدید</h2><p>ورود به پلتفرم یکپارچه اطلاعات و هوش پزشکی</p></div>
+          <div class="login-id-tabs" role="tablist" aria-label="روش ورود">
+            <button type="button" class="login-id-tab active" data-mode="mobile" role="tab">با شماره موبایل</button>
+            <button type="button" class="login-id-tab" data-mode="national" role="tab">با کد ملی</button>
           </div>
           <form id="reSiRaiLoginForm" autocomplete="on">
             <div class="login-field">
-              <label for="loginUserName">کد ملی</label>
-              <span class="login-field-icon">${iconSvg('id')}</span>
-              <input id="loginUserName" name="username" type="text" inputmode="numeric" autocomplete="username" maxlength="10" pattern="[0-9]{10}" required placeholder="کد ملی خود را وارد کنید" />
+              <label id="loginIdentifierLabel" for="loginUserName">شماره موبایل</label>
+              <span id="loginIdentifierIcon" class="login-field-icon">${iconSvg('mobile')}</span>
+              <input id="loginUserName" name="username" type="text" inputmode="tel" autocomplete="username" maxlength="11" required placeholder="شماره موبایل خود را وارد کنید" />
             </div>
             <div class="login-field">
               <label for="loginPassword">رمز عبور</label>
@@ -90,64 +96,66 @@
                 <button id="toggleLoginPassword" type="button" class="login-password-toggle" aria-label="نمایش رمز عبور">${iconSvg('eye')}</button>
               </div>
             </div>
+            <div class="login-options">
+              <label class="login-remember"><input id="loginRememberMe" type="checkbox" /> مرا به خاطر بسپار</label>
+              <button id="forgotPasswordButton" type="button" class="login-recovery-link">رمز عبور را فراموش کرده‌ام</button>
+            </div>
             <div id="loginStatus" class="login-status" role="status"></div>
             <button id="loginSubmit" class="login-submit" type="submit"><span>ورود</span><span class="login-submit-arrow">←</span></button>
           </form>
-          <button id="forgotPasswordButton" type="button" class="login-recovery-link"><span class="login-recovery-help">؟</span><span>رمز عبور را فراموش کرده‌اید؟</span></button>
-          <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود شما به معنای پذیرش قوانین و مقررات ReSiRai است.</p>
+          <p class="login-footer"><span class="login-shield">${iconSvg('shield')}</span>ورود امن به سامانه ReSiRai</p>
         </section>
 
         <section class="login-brand-panel" aria-label="ReSiRai">
-          <div class="login-brand-top">
-            <span class="login-logo-tooth"><img src="/images/resirai-icon.svg?v=20260929.1" alt="" /></span>
-            <span class="login-logo-name"><strong><span style="color:#2f3e4e">Re</span><span style="color:#2b9fd6">Si</span><span style="color:#f4511e">Rai</span></strong><small>Medical Intelligence Platform</small></span>
+          <img class="login-brand-logo" src="/images/resirai-logo.svg?v=20261001.18" alt="ReSiRai - Medical Intelligence Platform" />
+          <h1 class="login-brand-title">پلتفرم یکپارچه اطلاعات و هوش پزشکی</h1>
+          <p class="login-brand-subtitle">از داده تا تصمیم بهتر</p>
+          <div class="login-landscape" aria-hidden="true">
+            <div class="login-wave"><i></i><i></i><i></i></div>
+            <b class="login-sprout s1"></b><b class="login-sprout s2"></b><b class="login-sprout s3"></b>
           </div>
-          <img class="login-clinic-art" src="/images/login-prosthodontic-visual.svg?v=20260920.3" alt="محیط حرفه‌ای دندانپزشکی و کار با تصاویر دندانی" />
-          <div class="login-brand-footer">
-            <span class="login-logo-name"><strong><span style="color:#2f3e4e">Re</span><span style="color:#2b9fd6">Si</span><span style="color:#f4511e">Rai</span></strong><small>Medical Intelligence Platform</small></span>
-            <span class="login-logo-tooth"><img src="/images/resirai-icon.svg?v=20260929.1" alt="" /></span>
+          <div class="login-features">
+            <div class="login-feature"><strong>اطلاعات یکپارچه</strong><span>دسترسی سریع و امن به داده‌های پزشکی</span></div>
+            <div class="login-feature"><strong>تحلیل هوشمند</strong><span>کمک به تشخیص و تصمیم‌گیری بهتر</span></div>
+            <div class="login-feature"><strong>پشتیبانی تصمیم‌گیری</strong><span>گزارش‌های ساخت‌یافته و پیشنهادات هوشمند</span></div>
+            <div class="login-feature"><strong>امن و قابل اعتماد</strong><span>حفظ محرمانگی و رعایت استانداردها</span></div>
           </div>
+          <span class="login-version">نسخه 1.0.0</span>
         </section>
       </div>`;
 
     document.body.prepend(screen);
-
-    const form=document.getElementById('reSiRaiLoginForm');
-    const userName=document.getElementById('loginUserName');
-    const password=document.getElementById('loginPassword');
-    const toggle=document.getElementById('toggleLoginPassword');
-    const status=document.getElementById('loginStatus');
-    const submit=document.getElementById('loginSubmit');
-
-    userName.addEventListener('input',()=>userName.value=userName.value.replace(/\D/g,'').slice(0,10));
-    toggle.onclick=()=>{
-      const show=password.type==='password';
-      password.type=show?'text':'password';
-      toggle.innerHTML=iconSvg('eye');
-      toggle.setAttribute('aria-label',show?'پنهان کردن رمز عبور':'نمایش رمز عبور');
-    };
-
+    const form=document.getElementById('reSiRaiLoginForm'),userName=document.getElementById('loginUserName'),password=document.getElementById('loginPassword');
+    const toggle=document.getElementById('toggleLoginPassword'),status=document.getElementById('loginStatus'),submit=document.getElementById('loginSubmit');
+    const label=document.getElementById('loginIdentifierLabel'),icon=document.getElementById('loginIdentifierIcon'),remember=document.getElementById('loginRememberMe');
+    let mode='mobile';
+    function applyMode(next){
+      mode=next; document.querySelectorAll('.login-id-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+      userName.value='';
+      if(mode==='mobile'){label.textContent='شماره موبایل';icon.innerHTML=iconSvg('mobile');userName.inputMode='tel';userName.maxLength=11;userName.placeholder='شماره موبایل خود را وارد کنید';}
+      else{label.textContent='کد ملی';icon.innerHTML=iconSvg('id');userName.inputMode='numeric';userName.maxLength=10;userName.placeholder='کد ملی خود را وارد کنید';}
+      status.textContent=''; userName.focus();
+    }
+    document.querySelectorAll('.login-id-tab').forEach(b=>b.onclick=()=>applyMode(b.dataset.mode));
+    userName.addEventListener('input',()=>{userName.value=userName.value.replace(/\D/g,'').slice(0,mode==='mobile'?11:10);});
+    toggle.onclick=()=>{const show=password.type==='password';password.type=show?'text':'password';toggle.setAttribute('aria-label',show?'پنهان کردن رمز عبور':'نمایش رمز عبور');};
     form.onsubmit=async e=>{
-      e.preventDefault();
-      if(submit.disabled)return;
-      status.className='login-status info';
-      status.textContent='در حال ورود...';
-      submit.disabled=true;
+      e.preventDefault(); if(submit.disabled)return;
+      const identifier=userName.value.trim();
+      if((mode==='mobile'&&!/^09\d{9}$/.test(identifier))||(mode==='national'&&!/^\d{10}$/.test(identifier))){
+        status.textContent=mode==='mobile'?'شماره موبایل معتبر وارد کنید.':'کد ملی ۱۰ رقمی وارد کنید.';status.className='login-status error';return;
+      }
+      status.className='login-status info';status.textContent='در حال ورود...';submit.disabled=true;
       try{
-        const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:userName.value.trim(),password:password.value})});
-        const d=await r.json();
-        if(!r.ok||!d.success)throw new Error(d?.message||'کد ملی یا رمز عبور صحیح نیست.');
-        password.value=''; showApplication(d.user);
-      }catch(err){
-        password.value=''; password.focus();
-        status.textContent=err.message||'ورود انجام نشد.';
-        status.className='login-status error';
-      }finally{submit.disabled=false;}
+        const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({userName:identifier,password:password.value,rememberMe:remember.checked})});
+        const d=await r.json(); if(!r.ok||!d.success)throw new Error('شماره موبایل/کد ملی یا رمز عبور صحیح نیست.');
+        password.value='';showApplication(d.user);
+      }catch(err){password.value='';password.focus();status.textContent=err.message||'ورود انجام نشد.';status.className='login-status error';}
+      finally{submit.disabled=false;}
     };
-    document.getElementById('forgotPasswordButton').onclick=()=>showRecovery(screen,userName.value.trim());
+    document.getElementById('forgotPasswordButton').onclick=()=>showRecovery(screen,mode==='national'?userName.value.trim():'');
     userName.focus();
   }
-
   function showRecovery(screen,nationalCode){
     const panel=screen.querySelector('.login-form-panel');
     panel.innerHTML=`
