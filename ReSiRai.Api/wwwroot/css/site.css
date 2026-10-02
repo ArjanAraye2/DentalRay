@@ -206,20 +206,42 @@ textarea:focus-visible,
     border-radius: inherit;
 }
 
-/* The approved logo file (mark + three equal-width lines), used as-is. */
+/* --- استانداردِ لوگوی رسیرای (برگهٔ هویت) — اندازهٔ دلخواه در کد ممنوع ------
+   فایل‌ها: اصلی 1200×720 · هدر 600×360 · ورود 400×240 · سایدبار 260×156 ·
+   موبایل 180×108 · فشرده 120×72 · آیکن‌ها 512/256/128/64/32 — نسبتِ ۵:۳ ثابت.
+   هر لوگو فقط از همین اندازه‌ها: یا ارتفاع از متغیرها، یا عرضِ چاپ (mm).
+   object-fit:contain تا نسبتِ تصویر هرگز کشیده/بریده نشود. */
+:root {
+    --logo-h-sidebar: 156px;
+    --logo-h-header: 90px;
+    --logo-w-login: 400px;
+    --logo-w-login-mobile: 280px;
+    --logo-h-mobile: 54px;
+    --logo-h-compact: 36px;
+    --logo-print-head: 36mm;
+    --logo-print-foot: 20mm;
+}
+
 .sidebar-brand-logo {
-    height: 150px;
+    height: var(--logo-h-sidebar);
     width: auto;
     max-width: 100%;
+    object-fit: contain;
     display: block;
     margin: 8px auto;
 }
 
 .header-brand-logo {
-    height: 92px;
+    height: var(--logo-h-header);
     width: auto;
     max-width: 100%;
+    object-fit: contain;
     display: block;
+}
+
+@media (max-width: 768px) {
+    .header-brand-logo { height: var(--logo-h-mobile); }
+    .sidebar-brand-logo { height: var(--logo-h-compact); }
 }
 
 

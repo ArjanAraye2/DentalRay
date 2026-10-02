@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ReSiRai.Api.Controllers;
 
-// نوعِ تصویر را خودِ رسیرا تشخیص می‌دهد: نامِ فارسیِ کوتاه و آزاد، بدونِ نیاز
+// نوعِ تصویر را خودِ رسیرای تشخیص می‌دهد: نامِ فارسیِ کوتاه و آزاد، بدونِ نیاز
 // به جدولِ انواع. فهرستِ واژگان در پرامپت فقط برایِ یکدستی است تا گروه‌های
 // نمایشِ تصاویر شلوغ نشوند (مثلاً «سی تی» و «CT» و «سیتی‌اسکن» یکی شوند).
 // تشخیص مشورتی است؛ دکمهٔ «تعیین نوع تصویر» برایِ اصلاحِ دستی می‌ماند.
@@ -53,7 +53,7 @@ public sealed class AiImageTypeController : ControllerBase
         return Ok(new { success = true, imageID, imageTypeName = picked, reason });
     }
 
-    // مراجعاتِ قدیمی: تصاویرِ بدونِ نوع، یک‌جا به تشخیصِ رسیرا سپرده می‌شوند.
+    // مراجعاتِ قدیمی: تصاویرِ بدونِ نوع، یک‌جا به تشخیصِ رسیرای سپرده می‌شوند.
     [HttpPost("classify-pending")]
     public async Task<IActionResult> ClassifyPending(CancellationToken cancellationToken = default)
     {
