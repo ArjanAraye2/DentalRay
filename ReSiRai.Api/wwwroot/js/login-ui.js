@@ -41,6 +41,11 @@
 
   function showApplication(user){
     window.reSiRaiCurrentUser=user;
+    // The fetch gate starts each visit as guest (the login form is shown even
+    // when an old cookie exists). A successful sign-in must flip it to authed,
+    // otherwise every /api request keeps returning a synthetic 401 and the
+    // application never loads its data.
+    const gate=window.__resiraiAuthGate; gate&&gate.authed();
     document.getElementById('reSiRaiLoginScreen')?.remove();
     setLoginMode(false);
     ensureLogoutControl(user);
@@ -66,7 +71,7 @@
 
   function ensureLoginStyles(){
     if(document.getElementById('reSiRaiFinalLoginCss'))return;
-    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261003.1';document.head.appendChild(l);
+    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261003.8';document.head.appendChild(l);
   }
 
   function createLogin(){
