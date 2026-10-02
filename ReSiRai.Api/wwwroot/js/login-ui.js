@@ -61,7 +61,7 @@
 
   function ensureLoginStyles(){
     if(document.getElementById('reSiRaiFinalLoginCss'))return;
-    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.10';document.head.appendChild(l);
+    const l=document.createElement('link');l.id='reSiRaiFinalLoginCss';l.rel='stylesheet';l.href='/css/login-final.css?v=20261002.11';document.head.appendChild(l);
   }
 
   function createLogin(){
@@ -124,7 +124,7 @@
         </section>
       </div>`;
 
-    document.body.prepend(screen);
+    document.body.prepend(screen);\n    // Always open the authentication screen at its real top; the application may have been scrolled before login.\n    window.scrollTo(0,0); screen.scrollTop=0; document.documentElement.scrollTop=0; document.body.scrollTop=0;
     const form=document.getElementById('reSiRaiLoginForm'),userName=document.getElementById('loginUserName'),password=document.getElementById('loginPassword');
     const toggle=document.getElementById('toggleLoginPassword'),status=document.getElementById('loginStatus'),submit=document.getElementById('loginSubmit');
     const label=document.getElementById('loginIdentifierLabel'),icon=document.getElementById('loginIdentifierIcon'),remember=document.getElementById('loginRememberMe');
