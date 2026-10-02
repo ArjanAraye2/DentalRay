@@ -95,3 +95,18 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
   #reSiRaiLoginScreen .login-submit{padding:clamp(11px,1.45vh,15px) 18px!important}
   #reSiRaiLoginScreen .login-footer{margin-top:clamp(7px,1.2vh,11px)!important}
 }
+
+
+/* Design 50 — login card size correction */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-form-panel{
+    width:min(88%,500px)!important;
+    height:min(86vh,780px)!important;
+    max-height:calc(100vh - 72px)!important;
+    align-self:center!important;
+    padding:clamp(22px,2.5vh,30px) 34px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+  }
+}
