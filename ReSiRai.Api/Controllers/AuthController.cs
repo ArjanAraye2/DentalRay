@@ -24,7 +24,7 @@ namespace ReSiRai.Api.Controllers
         private static readonly ConcurrentDictionary<string, ResetCode> ResetCodes = new(StringComparer.OrdinalIgnoreCase);
         public AuthController(ReSiRaiDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration, ICommunicationService communication, AppEventLogger events) { _context = context; _passwordHasher = passwordHasher; _configuration = configuration; _communication = communication; _events = events; }
 
-        public sealed class LoginRequest { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
+        public sealed class LoginRequest { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public bool RememberMe { get; set; } }
 
         [AllowAnonymous]
         [HttpPost("login")]
@@ -43,7 +43,7 @@ namespace ReSiRai.Api.Controllers
                     if (result != PasswordVerificationResult.Failed)
                     {
                         var identity = new LoginIdentity(0, userName, 0, "مدیر", "سیستم", 0, true, true);
-                        await SignInAsync(identity);
+                        await SignInAsync(identity, request.RememberMe);
                         await _events.LogAsync("login", detail: "ورود موفق — مدیر سیستم", userName: userName);
                         return Ok(new { success = true, user = identity });
                     }
@@ -59,7 +59,7 @@ namespace ReSiRai.Api.Controllers
                     account => account.StaffID,
                     staffMember => staffMember.StaffID,
                     (account, staffMember) => new { Account = account, Staff = staffMember })
-                .Where(x => x.Staff.NationalCode == userName)
+                .Where(x => x.Staff.NationalCode == userName || x.Staff.Mobile == userName)
                 .Select(x => x.Account)
                 .FirstOrDefaultAsync();
             if (user == null || !user.IsActive || (user.StartDate.HasValue && user.StartDate.Value.Date > DateTime.Today) || (user.EndDate.HasValue && user.EndDate.Value.Date < DateTime.Today) || string.IsNullOrWhiteSpace(user.PasswordHash))
@@ -80,7 +80,7 @@ namespace ReSiRai.Api.Controllers
                 return Unauthorized(new { success = false, message = "Invalid username or password." });
             }
             var normalIdentity = new LoginIdentity(user.UserID, staff.NationalCode, staff.StaffID, staff.FirstName, staff.LastName, staff.StaffType, false, user.ViewReports);
-            await SignInAsync(normalIdentity);
+            await SignInAsync(normalIdentity, request.RememberMe);
             await _events.LogAsync("login", detail: "ورود موفق", userID: user.UserID, userName: staff.NationalCode);
             return Ok(new { success = true, user = normalIdentity });
         }
@@ -143,7 +143,7 @@ namespace ReSiRai.Api.Controllers
             return Ok(new { success = true });
         }
 
-        private async Task SignInAsync(LoginIdentity identity)
+        private async Task SignInAsync(LoginIdentity identity, bool rememberMe = false)
         {
             var claims = new List<Claim>
             {
@@ -157,7 +157,7 @@ namespace ReSiRai.Api.Controllers
                 new("ViewReports", identity.ViewReports ? "true" : "false")
             };
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties { IsPersistent = false, AllowRefresh = true });
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties { IsPersistent = rememberMe, AllowRefresh = true, ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null });
         }
 
         private LoginIdentity IdentityFromClaims()
