@@ -170,3 +170,33 @@ linear-gradient(to bottom,#bde4fb 0 42%,#dbe9ef 43% 54%,#a8d9e7 55% 56%,#dff5fb 
  .login-features{position:absolute;left:3%;right:3%;bottom:18px;width:auto;margin:0;background:rgba(245,251,254,.58);backdrop-filter:blur(5px)}
  .login-form-panel{position:relative;z-index:4}
 }
+
+/* CLEAN DESIGN-50 HERO RESET — neutralize every legacy decoration/mask. */
+@media(min-width:1051px){
+ .login-brand-panel{
+   isolation:isolate!important; overflow:hidden!important;
+   background:transparent!important; border-radius:0!important;
+ }
+ .login-brand-panel:before{
+   inset:0!important; width:auto!important; height:auto!important;
+   border:0!important; border-radius:0!important;
+   clip-path:none!important; mask:none!important;
+   transform:none!important; filter:none!important;
+   opacity:1!important;
+   background-size:cover!important;
+   background-position:center center!important;
+   background-repeat:no-repeat!important;
+ }
+ .login-brand-panel:after{display:none!important}
+ .login-brand-panel .login-landscape,
+ .login-brand-panel .login-wave,
+ .login-brand-panel .login-sprout{display:none!important}
+ .login-brand-panel > *:not(.login-brand-logo):not(.login-brand-title):not(.login-brand-subtitle):not(.login-features){
+   clip-path:none!important; mask:none!important;
+ }
+ .login-brand-logo,.login-brand-title,.login-brand-subtitle,.login-features{z-index:3!important}
+ .login-brand-logo{margin-top:8px!important}
+ .login-brand-title{margin-top:5px!important}
+ .login-brand-subtitle{margin-top:4px!important}
+ .login-features{bottom:24px!important}
+}
