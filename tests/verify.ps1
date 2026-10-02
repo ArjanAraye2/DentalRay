@@ -19,6 +19,7 @@ if ($LASTEXITCODE -ne 0) { $fail++ }
 Write-Output '== smoke prep (fresh copies from wwwroot) =='
 Copy-Item (Join-Path $api 'wwwroot\js\study-finance.js') $smoke -Force
 Copy-Item (Join-Path $api 'wwwroot\js\study-lab-tests.js') $smoke -Force
+Copy-Item (Join-Path $api 'wwwroot\js\login-ui.js') $smoke -Force
 
 # The fetch-gate lives inline in index.html; extract the real code so smoke5
 # tests exactly what ships (never a stale copy).

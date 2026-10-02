@@ -1,7 +1,7 @@
 /* ReSiRai CBCT view - the "CBCT" view.
    A CBCT study is read on a dark screen, so this view is deliberately dark like the
    imaging software a doctor already knows, not like the light clinical UI.
-   The teeth are painted in teeth-graphic.css, which every view shares. */
+   The teeth are painted in dental-graphic.css, which every view shares. */
 
 .cbct-odontogram {
     /* The panels are laid out left to right, so the svg must not be mirrored by the

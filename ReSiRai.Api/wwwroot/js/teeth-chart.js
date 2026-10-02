@@ -232,5 +232,5 @@
   // index.html loads the tooth library directly; ensureAssets() lazily injects it on
   // any page that only includes this file, so there is no unconditional load here
   // (which would add a second tag when the library is already present).
-  load("link", "teethGraphicStyles", "/css/teeth-graphic.css");
+  load("link", "teethGraphicStyles", "/css/dental-graphic.css");
   load("script", "resiraiTerminology", "/js/frontend-terminology.js?v=20260926.2");})();

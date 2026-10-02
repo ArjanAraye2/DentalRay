@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><title>smoke6</title></head>
+<body>
+<!-- نگهبانِ «ورود → داده»: باگِ ۱۴۰۵/۰۷/۱۲ این بود که بعد از ورودِ موفق،
+     دروازهٔ fetch همچنان «مهمان» می‌ماند و همهٔ /apiها پاسخِ جعلیِ 401
+     می‌گرفتند؛ پس داشبورد و بیماران هیچ‌وقت داده نمی‌آوردند. این آزمون
+     بررسی می‌کند که showApplication دروازه را authed می‌کند.
+     gate-under-test.js توسط verify.ps1 از index.html استخراج می‌شود. -->
+<script>
+  // ۱) استابِ شبکه پیش از بارگذاریِ دروازه نصب می‌شود تا دروازه آن را بپیچد.
+  window.__apiHits = 0;
+  (function(){
+    const json = (obj, status) => new Response(JSON.stringify(obj), { status: status||200, headers: { 'Content-Type': 'application/json' } });
+    const realFetch = window.fetch.bind(window);
+    window.fetch = function(url, opts){
+      const u = String(url);
+      if (u.indexOf('/api/auth/me') >= 0) return Promise.resolve(new Response('', { status: 401 }));
+      if (u.indexOf('/api/auth/login') >= 0) return Promise.resolve(json({ success: true, user: { userID: 7, userName: '1234567890', staffID: 7, firstName: 'ت', lastName: 'آ', staffType: 1, isSuperAdmin: false, viewReports: false } }));
+      if (u.indexOf('/api/') >= 0) { window.__apiHits++; return Promise.resolve(json({ success: true, patients: [] })); }
+      return realFetch(url, opts);
+    };
+  })();
+</script>
+<script src="/gate-under-test.js"></script>
+<script src="/login-ui.js"></script>
+<script>
+(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const out = {};
+
+  // فرصت بده initialize و createLogin تمام شوند.
+  await wait(600);
+  out.loginShown = !!document.getElementById('reSiRaiLoginScreen');
+
+  // کد ملی را انتخاب کن و فرم را پر کن.
+  document.querySelector('.login-id-tab[data-mode="national"]')?.click();
+  const u = document.getElementById('loginUserName');
+  const p = document.getElementById('loginPassword');
+  u.value = '1234567890';
+  p.value = 'TestPass123!';
+  document.getElementById('loginSubmit').click();
+  await wait(600);
+
+  out.loginGone = !document.getElementById('reSiRaiLoginScreen');
+  out.hasUser = !!(window.reSiRaiCurrentUser && window.reSiRaiCurrentUser.userName === '1234567890');
+
+  // اگر دروازه authed نشده باشد، این درخواست به استاب نمی‌رسد و 401 جعلی می‌گیرد.
+  const before = window.__apiHits;
+  const r = await fetch('/api/dashboard', { cache: 'no-store' });
+  out.status = r.status;
+  out.reachedNetwork = window.__apiHits > before;
+
+  const pass = out.loginShown && out.loginGone && out.hasUser && out.status === 200 && out.reachedNetwork;
+  document.title = (pass ? 'SMOKE6-PASS' : 'SMOKE6-FAIL')
+    + ' shown=' + out.loginShown + ' gone=' + out.loginGone + ' user=' + out.hasUser
+    + ' status=' + out.status + ' net=' + out.reachedNetwork;
+})();
+</script>
+</body>
+</html>
