@@ -91,3 +91,10 @@ linear-gradient(to bottom,#bde4fb 0 42%,#dbe9ef 43% 54%,#a8d9e7 55% 56%,#dff5fb 
 .login-options{min-height:28px}
 .login-options *::selection{background:rgba(19,144,222,.18);color:inherit}
 @media(min-width:1051px){.login-form-panel{align-self:center}.login-submit{padding-top:13px;padding-bottom:13px}.login-landscape{margin-top:22px}}
+
+/* RTL product layout: authentication card belongs on the right side. */
+@media(min-width:1051px){
+  .login-shell{grid-template-columns:minmax(560px,1fr) minmax(340px,470px)}
+  .login-form-panel{grid-column:2;grid-row:1}
+  .login-brand-panel{grid-column:1;grid-row:1}
+}
