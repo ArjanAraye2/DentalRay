@@ -36,3 +36,62 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
 #reSiRaiLoginScreen .login-shell{width:100vw!important;max-width:none!important;min-height:100vh!important;height:100vh!important;margin:0!important;padding:0!important;gap:0!important;border:0!important;border-radius:0!important;transform:none!important}
 #reSiRaiLoginScreen .login-brand-panel{margin:0!important;border-radius:0!important;height:100vh!important}
 #reSiRaiLoginScreen .login-form-panel{margin:auto!important;transform:none!important}
+
+
+/* Design 50 visual calibration — 2026-10-02 */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-shell{grid-template-columns:minmax(0,64%) minmax(430px,36%)!important}
+  #reSiRaiLoginScreen .login-brand-panel{
+    padding:0 4.8% 0!important;
+    background:
+      linear-gradient(to bottom,rgba(224,244,255,.02),rgba(255,247,232,.02) 55%,rgba(226,244,253,.10)),
+      url('/images/design50-hero.jpg?v=51') center center/cover no-repeat!important
+  }
+  #reSiRaiLoginScreen .login-brand-logo{
+    width:min(355px,39%)!important;
+    margin:7.5vh auto 0!important;
+  }
+  #reSiRaiLoginScreen .login-brand-title{
+    margin-top:1.8vh!important;
+    font-size:clamp(21px,1.65vw,29px)!important;
+    color:#075596!important
+  }
+  #reSiRaiLoginScreen .login-brand-subtitle{
+    margin-top:.8vh!important;
+    font-size:clamp(14px,1.05vw,18px)!important
+  }
+  #reSiRaiLoginScreen .login-features{
+    left:5.5%!important;right:5.5%!important;bottom:3.2vh!important;
+    background:rgba(248,252,255,.26)!important;
+    border:0!important;border-radius:0!important;
+    backdrop-filter:blur(2px)!important
+  }
+  #reSiRaiLoginScreen .login-feature{
+    min-height:96px;padding:15px 12px 10px!important;
+    border-left:1px solid rgba(48,104,148,.18)!important
+  }
+  #reSiRaiLoginScreen .login-feature:last-child{border-left:0!important}
+  #reSiRaiLoginScreen .login-feature strong{font-size:14px!important;margin-bottom:8px!important}
+  #reSiRaiLoginScreen .login-feature span{font-size:11px!important;line-height:1.8!important}
+
+  #reSiRaiLoginScreen .login-form-panel{
+    width:min(88%,545px)!important;
+    max-height:calc(100vh - 64px);
+    overflow:hidden;
+    padding:clamp(20px,2.7vh,31px) 38px!important;
+    background:rgba(255,255,255,.88)!important;
+    border-radius:28px!important;
+    box-shadow:0 24px 70px rgba(31,87,126,.14)!important
+  }
+  #reSiRaiLoginScreen .login-logo-img{width:min(205px,58%)!important}
+  #reSiRaiLoginScreen .login-form-logo{margin-bottom:clamp(6px,1vh,10px)!important}
+  #reSiRaiLoginScreen .login-form-heading{margin-bottom:clamp(11px,1.5vh,17px)!important}
+  #reSiRaiLoginScreen .login-form-heading h2{font-size:clamp(22px,1.6vw,27px)!important;margin-bottom:5px!important}
+  #reSiRaiLoginScreen .login-id-tabs{margin-bottom:clamp(10px,1.4vh,14px)!important}
+  #reSiRaiLoginScreen .login-id-tab{padding:clamp(9px,1.15vh,12px)!important}
+  #reSiRaiLoginScreen .login-field{margin-bottom:clamp(9px,1.35vh,13px)!important}
+  #reSiRaiLoginScreen .login-field input{padding-top:clamp(10px,1.25vh,14px)!important;padding-bottom:clamp(10px,1.25vh,14px)!important}
+  #reSiRaiLoginScreen .login-options{margin-bottom:clamp(7px,1.2vh,12px)!important}
+  #reSiRaiLoginScreen .login-submit{padding:clamp(11px,1.45vh,15px) 18px!important}
+  #reSiRaiLoginScreen .login-footer{margin-top:clamp(7px,1.2vh,11px)!important}
+}
