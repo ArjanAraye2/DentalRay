@@ -70,3 +70,24 @@ linear-gradient(to bottom,#bde4fb 0 42%,#dbe9ef 43% 54%,#a8d9e7 55% 56%,#dff5fb 
 .login-sprout{bottom:31%;width:9px;height:9px}
 .login-sprout:before,.login-sprout:after{width:9px;height:5px;top:-7px}
 .login-sprout.s1{bottom:32%;}.login-sprout.s2{bottom:31.5%;}.login-sprout.s3{bottom:31%}
+
+/* Design 50 visual refinement — wave resolves from complexity to calm; sprouts grow from data strands. */
+.login-landscape{overflow:hidden}
+.login-landscape:after{content:"";position:absolute;inset:56% 0 0;background:linear-gradient(to bottom,rgba(255,255,255,.04),rgba(255,255,255,.38));pointer-events:none}
+.login-wave{left:-9%;right:-4%;bottom:29%;height:112px;opacity:.9;z-index:3;overflow:visible}
+.login-wave i{left:0;right:0;height:72px;border-top:3px solid rgba(28,79,132,.76);border-radius:48% 52% 45% 55%;transform-origin:left center;transform:rotate(-.8deg) scaleY(1);filter:drop-shadow(0 0 5px rgba(255,255,255,.55))}
+.login-wave i:nth-child(2){top:21px;height:55px;border-color:rgba(26,166,216,.72);transform:rotate(.5deg) scaleY(.72)}
+.login-wave i:nth-child(3){top:42px;height:36px;border-color:rgba(244,101,35,.54);transform:rotate(-.2deg) scaleY(.46)}
+.login-sprout{z-index:5;bottom:29%;width:8px;height:8px}
+.login-sprout:after{box-shadow:0 11px 0 -3px rgba(71,134,81,.68)}
+.login-sprout.s1{left:25%;bottom:29.8%;transform:scale(.84)}
+.login-sprout.s2{left:50%;bottom:29.4%;transform:scale(.96)}
+.login-sprout.s3{left:75%;bottom:29%;transform:scale(1.08)}
+.login-sprout.s1:before,.login-sprout.s1:after{transform-origin:bottom center}
+.login-sprout.s1:before{transform:rotate(-18deg) scale(.78)}.login-sprout.s1:after{transform:scaleX(-1) rotate(-18deg) scale(.72)}
+.login-sprout.s2:before{transform:rotate(-29deg)}.login-sprout.s2:after{transform:scaleX(-1) rotate(-29deg)}
+.login-sprout.s3:before{transform:rotate(-38deg) scale(1.12)}.login-sprout.s3:after{transform:scaleX(-1) rotate(-38deg) scale(1.08)}
+.login-submit{margin-top:2px}
+.login-options{min-height:28px}
+.login-options *::selection{background:rgba(19,144,222,.18);color:inherit}
+@media(min-width:1051px){.login-form-panel{align-self:center}.login-submit{padding-top:13px;padding-bottom:13px}.login-landscape{margin-top:22px}}
