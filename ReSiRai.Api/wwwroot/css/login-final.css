@@ -110,3 +110,20 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     justify-content:center!important;
   }
 }
+
+
+/* Design 50 — card size/position hotfix: override legacy auto margin */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-form-panel{
+    width:500px!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:calc(100vh - 64px)!important;
+    margin:32px auto!important;
+    align-self:stretch!important;
+    justify-self:center!important;
+    padding:28px 34px!important;
+    display:block!important;
+    overflow:visible!important;
+  }
+}
