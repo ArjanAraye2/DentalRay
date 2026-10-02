@@ -193,7 +193,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/events-ui.js?v=20261001.18\"></script>\n" +
                 "<script src=\"/js/backup-settings.js?v=20261001.18\"></script>\n" +
                 "<script src=\"/js/reports-ui.js?v=20261001.18\"></script>\n" +
-                "<script src=\"/js/login-ui.js?v=20261001.18\"></script>";
+                "<script src=\"/js/login-ui.js?v=20261002.2\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             // The entry page is rewritten on every request (feature scripts are
