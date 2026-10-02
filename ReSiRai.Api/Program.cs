@@ -182,6 +182,9 @@ app.Use(async (context, next) =>
             const string loginStyle = "<link rel=\"stylesheet\" href=\"/css/login.css?v=20261001.18\" />";
             const string cardExtractionStyle = "<link rel=\"stylesheet\" href=\"/css/card-extraction.css?v=20261001.18\" />";
             html = html.Replace("</head>", $"{loginStyle}{Environment.NewLine}{cardExtractionStyle}{Environment.NewLine}</head>", StringComparison.OrdinalIgnoreCase);
+            // login-ui.js is declared in index.html before app.js. Do not inject it here:
+            // loading the authentication bootstrap twice creates two independent initializers
+            // and makes login/logout behavior unpredictable.
             const string featureScripts =
                 "<script src=\"/js/mobile-camera-loader.js?v=20261001.18\"></script>\n" +
                 "<script src=\"/js/study-type-lookup.js?v=20261001.18\"></script>\n" +
@@ -192,8 +195,7 @@ app.Use(async (context, next) =>
                 "<script src=\"/js/dictation.js?v=20261001.18\"></script>\n" +
                 "<script src=\"/js/events-ui.js?v=20261001.18\"></script>\n" +
                 "<script src=\"/js/backup-settings.js?v=20261001.18\"></script>\n" +
-                "<script src=\"/js/reports-ui.js?v=20261001.18\"></script>\n" +
-                "<script src=\"/js/login-ui.js?v=20261002.2\"></script>";
+                "<script src=\"/js/reports-ui.js?v=20261001.18\"></script>";
             html = html.Replace("</body>", $"{featureScripts}{Environment.NewLine}</body>", StringComparison.OrdinalIgnoreCase);
             context.Response.ContentType = "text/html; charset=utf-8";
             // The entry page is rewritten on every request (feature scripts are
