@@ -32,3 +32,41 @@ linear-gradient(to bottom,#bde4fb 0 42%,#dbe9ef 43% 54%,#a8d9e7 55% 56%,#dff5fb 
 .login-version{position:absolute;bottom:2px;left:22px;font-size:10px;color:#7d8b99}
 @media(max-width:1050px){.login-shell{grid-template-columns:1fr;max-width:720px;padding:28px}.login-form-panel{grid-column:1;grid-row:2}.login-brand-panel{grid-column:1;grid-row:1;min-height:auto;padding:12px}.login-landscape{height:190px}.login-features{display:none}.login-brand-logo{width:min(320px,58%)}}
 @media(max-width:600px){.login-shell{padding:14px;gap:14px}.login-form-panel{padding:24px 20px;border-radius:20px}.login-brand-panel{padding:0}.login-brand-logo{width:210px;margin:0}.login-brand-title{font-size:19px}.login-brand-subtitle{font-size:13px}.login-landscape{height:105px;margin:12px 0 0}.login-form-heading h2{font-size:23px}.login-options{align-items:flex-start;flex-direction:column}.login-version{display:none}}
+
+/* Visual QA pass after first real-screen test — keep Design 50, fix scale/RTL/nature softness. */
+@media(min-width:1051px){
+  .login-shell{grid-template-columns:minmax(340px,470px) minmax(560px,1fr);padding-top:28px;padding-bottom:28px}
+  .login-form-panel{padding:26px 34px;border-radius:26px}
+  .login-form-logo{margin-bottom:10px}.login-logo-img{width:min(215px,64%)}
+  .login-form-heading{margin-bottom:17px}.login-form-heading h2{font-size:25px;margin-bottom:5px}.login-form-heading p{font-size:13px}
+  .login-id-tabs{margin-bottom:14px}.login-id-tab{padding:9px 8px}
+  .login-field{margin-bottom:13px}.login-field input{padding-top:11px;padding-bottom:11px}
+  .login-options{margin:0 0 13px}
+  .login-footer{margin-top:14px}
+  .login-brand-panel{min-height:620px}
+  .login-landscape{height:250px}
+}
+.login-remember{white-space:nowrap;flex:0 0 auto;direction:rtl}
+.login-remember input{width:16px;height:16px;margin:0;flex:0 0 16px}
+.login-options{direction:rtl}
+.login-recovery-link{white-space:nowrap}
+.login-landscape{
+ background:
+ radial-gradient(circle at 73% 49%,rgba(255,213,139,.95) 0 3.2%,rgba(255,213,139,.34) 5%,transparent 15%),
+ linear-gradient(to bottom,rgba(255,255,255,.24),rgba(255,255,255,.05)),
+ linear-gradient(to bottom,#c8e9fb 0 44%,#e9f2f2 45% 54%,#bce2eb 55% 56%,#e6f7fb 57% 100%);
+}
+.login-landscape:before{
+ left:-10%;right:-10%;bottom:43%;height:34%;
+ background:
+ linear-gradient(166deg,transparent 0 28%,rgba(112,163,191,.40) 29% 35%,transparent 36%),
+ linear-gradient(198deg,transparent 0 39%,rgba(133,178,198,.30) 40% 47%,transparent 48%);
+ filter:blur(2px);opacity:.68
+}
+.login-wave{bottom:31%;height:82px;opacity:.82;filter:blur(.05px)}
+.login-wave i{border-top-width:2px;transform:rotate(-1deg) scaleY(.78)}
+.login-wave i:nth-child(2){top:19px;transform:rotate(1deg) scaleY(.65)}
+.login-wave i:nth-child(3){top:38px;transform:rotate(-.5deg) scaleY(.55)}
+.login-sprout{bottom:31%;width:9px;height:9px}
+.login-sprout:before,.login-sprout:after{width:9px;height:5px;top:-7px}
+.login-sprout.s1{bottom:32%;}.login-sprout.s2{bottom:31.5%;}.login-sprout.s3{bottom:31%}
