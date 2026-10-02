@@ -231,3 +231,16 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
   #reSiRaiLoginScreen .login-submit{padding:11px 18px!important}
   #reSiRaiLoginScreen .login-footer{padding-top:7px!important}
 }
+
+
+/* Design 50 — final card size calibration from current 1648x928 screenshot */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-form-panel{
+    width:545px!important;
+    height:610px!important;
+    min-height:610px!important;
+    max-height:610px!important;
+    margin:auto!important;
+    padding:22px 38px 18px!important;
+  }
+}
