@@ -70,7 +70,7 @@
       <div class="login-shell">
         <section class="login-form-panel" aria-label="فرم ورود">
           <div class="login-form-logo">
-            <img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.16" alt="ReSiRai - Medical Intelligence Platform" />
+            <img class="login-logo-img" src="/images/resirai-logo.svg?v=20261001.17" alt="ReSiRai - Medical Intelligence Platform" />
           </div>
           <div class="login-form-heading">
             <h2>ورود به ReSiRai</h2>
