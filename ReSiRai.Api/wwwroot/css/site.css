@@ -214,8 +214,8 @@ textarea:focus-visible,
 :root {
     --logo-h-sidebar: 156px;
     --logo-h-header: 90px;
-    --logo-w-login: 400px;
-    --logo-w-login-mobile: 280px;
+    --logo-w-login: 260px;
+    --logo-w-login-mobile: 220px;
     --logo-h-mobile: 54px;
     --logo-h-compact: 36px;
     --logo-print-head: 36mm;

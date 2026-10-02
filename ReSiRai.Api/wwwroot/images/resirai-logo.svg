@@ -11,7 +11,6 @@
   </defs>
 
   <!-- square tile -->
-  <rect width="600" height="600" rx="64" fill="#f7fafc"/>
 
   <!-- line 1: the mark (63 .. 537) - damped wave, three crests, into the dots -->
   <path d="M63 215

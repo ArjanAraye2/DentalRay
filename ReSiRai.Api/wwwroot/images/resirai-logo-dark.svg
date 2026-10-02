@@ -11,7 +11,6 @@
   </defs>
 
   <!-- square tile on the deep teal ground -->
-  <rect width="600" height="600" rx="64" fill="#123844"/>
 
   <!-- line 1: the mark (63 .. 537) - light stroke so nothing disappears on dark -->
   <path d="M63 215

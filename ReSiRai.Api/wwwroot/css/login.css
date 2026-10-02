@@ -42,7 +42,8 @@ body.resirai-login-active .app-sidebar{display:none!important}
   display:flex;
   flex-direction:column;
   justify-content:flex-start;
-  padding:62px 92px 34px;
+  padding:40px 92px 28px;
+  overflow-y:auto;
   background:#fff;
   position:relative;
   min-height:0;
@@ -100,8 +101,10 @@ body.resirai-login-active .app-sidebar{display:none!important}
 .login-logo-tooth{width:43px;height:49px;flex:0 0 auto}
 .login-logo-tooth svg{width:100%;height:100%;display:block}
 .login-logo-tooth img{width:100%;height:100%;object-fit:contain;display:block}
-.login-logo-img{width:var(--logo-w-login,400px);max-width:100%;height:auto;object-fit:contain;display:block}
-@media (max-width:480px){.login-logo-img{width:var(--logo-w-login-mobile,280px)}}
+.login-logo-img{width:var(--logo-w-login,260px);max-width:100%;height:auto;object-fit:contain;display:block}
+@media (max-width:480px){.login-logo-img{width:var(--logo-w-login-mobile,220px)}}
+/* نمایِ کوتاه: لوگو کوچک می‌شود تا فرم هرگز اسکرول نگیرد. */
+@media (max-height:740px){.login-logo-img{width:200px}}
 .login-logo-name{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
 .login-logo-name strong{color:#123e61;font-size:27px;letter-spacing:-.7px}
 .login-logo-name strong::first-letter{ }
@@ -147,7 +150,7 @@ body.resirai-login-active .app-sidebar{display:none!important}
   align-items:center;
   justify-content:flex-start;
   gap:10px;
-  margin-bottom:48px;
+  margin-bottom:22px;
   position:relative;
   z-index:2;
 }
