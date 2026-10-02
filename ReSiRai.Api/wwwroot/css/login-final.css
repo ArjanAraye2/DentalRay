@@ -263,3 +263,24 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     overflow:hidden!important;
   }
 }
+
+
+/* Design 50 — measured card geometry, not aspect-ratio scaling.
+   Reference: right rail ≈576px, card ≈545px wide, height ≈85.5% of viewport. */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-shell{
+    grid-template-columns:minmax(0,1fr) 590px!important;
+  }
+  #reSiRaiLoginScreen .login-form-panel{
+    grid-column:2!important;
+    width:545px!important;
+    height:min(875px,86.5vh)!important;
+    min-width:545px!important;
+    max-width:545px!important;
+    min-height:0!important;
+    max-height:calc(100vh - 36px)!important;
+    margin:auto!important;
+    align-self:center!important;
+    justify-self:center!important;
+  }
+}
