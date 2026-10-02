@@ -244,3 +244,22 @@ url('/images/login-hero-final.svg?v=1') center 56%/100% auto no-repeat,#e6f6fc}
     padding:22px 38px 18px!important;
   }
 }
+
+
+/* Design 50 — card box scaled from the original 1536×1024 reference.
+   Reference card ≈545×875, so preserve that aspect on shorter browser viewports. */
+@media(min-width:1051px){
+  #reSiRaiLoginScreen .login-form-panel{
+    width:min(545px,53.2vh)!important;
+    height:min(875px,85.5vh)!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    margin:auto!important;
+    align-self:center!important;
+    justify-self:center!important;
+    padding:clamp(18px,2.35vh,30px) clamp(24px,3.7vh,38px)!important;
+    overflow:hidden!important;
+  }
+}
