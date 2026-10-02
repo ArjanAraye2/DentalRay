@@ -23,6 +23,7 @@
 
   function ensureLogoutControl(user){
     const header=appHeader(); if(!header)return;
+    // Re-create the logout control every time the authenticated application is shown.
     let control=document.getElementById('reSiRaiUserControl');
     if(!control){
       control=document.createElement('div');
@@ -48,6 +49,10 @@
 
   async function restoreSession(){
     setLoginMode(true);
+    // During login-page development, never bypass the form because of an old auth cookie.
+    // A successful login in this tab still opens the application normally.
+    const forceLoginOnStartup=true;
+    if(forceLoginOnStartup){ const gate=window.__resiraiAuthGate; gate&&gate.guest(); return false; }
     const gate=window.__resiraiAuthGate;
     try{
       const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
