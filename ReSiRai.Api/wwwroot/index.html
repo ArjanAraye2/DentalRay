@@ -38,7 +38,7 @@
     <link rel="stylesheet" href="/css/fonts.css?v=20261001.19" />
     <link rel="stylesheet" href="/css/site.css?v=20261001.19" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20261001.19" />
-<link rel="stylesheet" href="/css/factors.css?v=20261001.19" />
+<link rel="stylesheet" href="/css/factors.css?v=20261004.2" />
     <!-- Loaded up-front so Study/Teeth forms never flash unstyled; the JS
          helpers use these ids and therefore skip injecting them again. -->
     <link id="studyTeethStylesheet" rel="stylesheet" href="/css/study-teeth.css?v=20261001.19" />
@@ -81,6 +81,7 @@
     <button id="backToPatientsButton" type="button" class="secondary-button">← بازگشت</button>
     <button id="editPatientButton" type="button" class="secondary-button">ویرایش بیمار</button>
     <button id="printPatientButton" type="button" class="secondary-button">چاپ اطلاعات</button>
+    <button id="patientFactorsReportButton" type="button" class="secondary-button">روند فاکتورها</button>
     <button id="deactivatePatientButton" type="button" class="danger-button">غیرفعال کردن</button>
     <button id="mergePatientButton" type="button" class="warning-button">ادغام بیمار</button>
   </div>
@@ -259,14 +260,15 @@
 <link id="odontogramCbctCss" rel="stylesheet" href="/css/odontogram-cbct.css?v=20261001.19" />
 <script id="resiraiTerminology" src="/js/frontend-terminology.js?v=20261001.19"></script>
 <script>
-/* Login bootstrap fail-safe: login must be visible during authentication UI development. */
+/* Login bootstrap fail-safe: if neither the login screen nor an authenticated
+   session appeared, the auth UI failed to initialize - say so once. */
 document.documentElement.classList.add('resirai-login-boot');
 window.addEventListener('DOMContentLoaded',function(){
   setTimeout(function(){
-    if(!document.getElementById('reSiRaiLoginScreen')){
+    if(!document.getElementById('reSiRaiLoginScreen') && !window.reSiRaiCurrentUser){
       console.error('ReSiRai login bootstrap did not create the login screen.');
     }
-  },800);
+  },2000);
 });
 </script>
 <script src="/js/login-ui.js?v=20261003.10"></script>
@@ -274,7 +276,8 @@ window.addEventListener('DOMContentLoaded',function(){
 <script src="/js/study-delete.js?v=20261001.19"></script>
 <script src="/js/study-finance.js?v=20261001.19"></script>
 <script src="/js/study-lab-tests.js?v=20261001.19"></script>
-<script src="/js/factors-ui.js?v=20261001.19"></script>
+<script src="/js/factors-ui.js?v=20261004.1"></script>
+<script src="/js/factors-history.js?v=20261004.2"></script>
 <script src="/js/lab-extract-ui.js?v=20261001.19"></script>
 <script src="/js/consult-ui.js?v=20261001.19"></script>
 <script src="/js/staff-ui.js?v=20261001.19"></script>

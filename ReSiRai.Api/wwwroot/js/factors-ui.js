@@ -425,7 +425,23 @@
                     trend.textContent = (arrow + " " + past.slice(-3).join("، ")).trim();
                     trend.title = "مقادیر قبلی (قدیمی → جدید): " + past.join("، ");
                 }
-                row.append(label, input, ref, flag, trend);
+
+                // دکمهٔ تاریخچه: پنل «سابقهٔ فاکتور» را با جدول و نمودار باز می‌کند.
+                // در فرم مراجعهٔ جدید، بیمار را مستقیم می‌فرستیم چون StudyID هنوز نیست.
+                const historyBtn = document.createElement("button");
+                historyBtn.type = "button";
+                historyBtn.className = "factor-history-button";
+                historyBtn.textContent = "سابقه";
+                historyBtn.title = "مشاهدهٔ همهٔ مقادیر این فاکتور با تاریخ و نمودار";
+                historyBtn.addEventListener("click", () => {
+                    const currentStudyID = Number(host.dataset.studyId) || 0;
+                    window.ReSiRaiFactorsHistory?.openFactor(
+                        f.factorID,
+                        currentStudyID ? { studyID: currentStudyID } : { patientID: window.selectedPatientID || 0 }
+                    );
+                });
+
+                row.append(label, input, ref, flag, trend, historyBtn);
                 group.appendChild(row);
             }
 

@@ -297,10 +297,137 @@ namespace ReSiRai.Api.Controllers
                 join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
                 where factorIds.Contains(v.FactorID) && v.StudyID != studyID && s.PatientID == patientID
                 orderby v.ObservedAt descending
-                select new { v.FactorID, v.StudyID, v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate, v.ObservedAt, v.Source }
+                select new { v.FactorID, v.StudyID, v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate, v.ObservedAt, v.Source, v.UnitText, v.RefText }
             ).Take(60).ToListAsync();
 
             return Ok(new { success = true, count = rows.Count, values = rows, history });
+        }
+
+        /// <summary>
+        /// Every recorded value of one factor for the patient of a visit, oldest
+        /// first — one continuous series across all their visits. This is the single
+        /// source of the history panel and its line chart; each point carries its own
+        /// date, unit and printed reference range, because those may differ between
+        /// labs and must never be compared blindly.
+        /// </summary>
+        [HttpGet("history")]
+        public async Task<IActionResult> History([FromQuery] int? studyID, [FromQuery] int? patientID, [FromQuery] int factorID)
+        {
+            if (factorID <= 0)
+                return BadRequest(new { success = false, message = "فاکتور لازم است." });
+
+            var factor = await _db.ClinicalFactors.AsNoTracking()
+                .Where(x => x.FactorID == factorID)
+                .Select(x => new
+                {
+                    x.FactorID, x.FactorCode, x.NameFa, x.NameEn, x.ShortCode,
+                    x.DataType, x.UnitUCUM, x.RefLow, x.RefHigh, x.RefText,
+                    x.RefSource, x.RefPopulation, x.AbnormalDirection, x.Category
+                })
+                .FirstOrDefaultAsync();
+            if (factor == null)
+                return NotFound(new { success = false, message = "فاکتور پیدا نشد." });
+
+            // A saved visit resolves its patient; the new-visit draft passes the
+            // selected patient directly because the visit row does not exist yet.
+            int resolvedPatientID = patientID ?? 0;
+            if (resolvedPatientID <= 0 && studyID.HasValue && studyID.Value > 0)
+            {
+                resolvedPatientID = await _db.RadiologyStudies.AsNoTracking()
+                    .Where(x => x.StudyID == studyID.Value)
+                    .Select(x => x.PatientID)
+                    .FirstOrDefaultAsync();
+            }
+            if (resolvedPatientID <= 0)
+                return NotFound(new { success = false, message = "مراجعه یا بیمار پیدا نشد." });
+
+            var points = await (
+                from v in _db.StudyFactorValues.AsNoTracking()
+                join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
+                where v.FactorID == factorID && s.PatientID == resolvedPatientID
+                orderby v.ObservedAt
+                select new
+                {
+                    v.FactorValueID, v.StudyID, StudyDate = s.StudyDate,
+                    v.ObservedAt, v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate,
+                    v.UnitText, v.RefText, v.Source, v.ExtractionID, v.Confidence
+                }).ToListAsync();
+
+            return Ok(new { success = true, patientID = resolvedPatientID, factor, count = points.Count, points });
+        }
+
+        /// <summary>
+        /// The patient's factor ledger as a matrix: rows are the measured factors,
+        /// columns are the measurement dates, and the crossing cell carries the
+        /// latest value of that day plus its unit. This is what the tabular factor
+        /// report prints; factors never measured are simply absent.
+        /// </summary>
+        [HttpGet("matrix")]
+        public async Task<IActionResult> Matrix([FromQuery] int patientID)
+        {
+            if (patientID <= 0)
+                return BadRequest(new { success = false, message = "بیمار لازم است." });
+
+            bool patientExists = await _db.Patients.AsNoTracking().AnyAsync(x => x.PatientID == patientID);
+            if (!patientExists) return NotFound(new { success = false, message = "بیمار پیدا نشد." });
+
+            var raw = await (
+                from v in _db.StudyFactorValues.AsNoTracking()
+                join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
+                join f in _db.ClinicalFactors.AsNoTracking() on v.FactorID equals f.FactorID
+                where s.PatientID == patientID
+                select new
+                {
+                    f.FactorID, f.NameFa, f.NameEn, f.ShortCode, f.Category, f.DataType,
+                    f.UnitUCUM, f.RefLow, f.RefHigh, f.AbnormalDirection,
+                    v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate, v.ObservedAt,
+                    v.UnitText, v.Source
+                }).ToListAsync();
+
+            // One cell per factor per day: the latest observation of that day wins.
+            var day = raw.GroupBy(x => (x.FactorID, x.ObservedAt.Date));
+            var dates = raw.Select(x => x.ObservedAt.Date).Distinct().OrderBy(d => d).ToList();
+
+            var factors = raw
+                .GroupBy(x => new { x.FactorID, x.NameFa, x.NameEn, x.ShortCode, x.Category, x.DataType, x.UnitUCUM, x.RefLow, x.RefHigh, x.AbnormalDirection })
+                .Select(g =>
+                {
+                    var cells = new List<object>();
+                    foreach (var d in dates)
+                    {
+                        var cell = day.FirstOrDefault(k => k.Key.FactorID == g.Key.FactorID && k.Key.Date == d);
+                        if (cell == null) { cells.Add(new { date = d.ToString("yyyy-MM-dd"), value = (object?)null }); continue; }
+                        var latest = cell.OrderByDescending(x => x.ObservedAt).First();
+                        object? value = latest.DataType == 2 || latest.DataType == 4
+                            ? latest.ValueText
+                            : (object?)latest.ValueNumber;
+                        cells.Add(new
+                        {
+                            date = d.ToString("yyyy-MM-dd"),
+                            value,
+                            valueText = latest.ValueText,
+                            valueNumber = latest.ValueNumber,
+                            unit = string.IsNullOrWhiteSpace(latest.UnitText) ? latest.UnitUCUM : latest.UnitText,
+                            source = latest.Source
+                        });
+                    }
+                    return new
+                    {
+                        g.Key.FactorID, g.Key.NameFa, g.Key.NameEn, g.Key.ShortCode, g.Key.Category,
+                        g.Key.DataType, g.Key.UnitUCUM, g.Key.RefLow, g.Key.RefHigh, g.Key.AbnormalDirection,
+                        cells
+                    };
+                })
+                .OrderBy(x => x.Category).ThenBy(x => x.NameFa)
+                .ToList();
+
+            return Ok(new
+            {
+                success = true,
+                patientID,
+                dates = dates.Select(d => d.ToString("yyyy-MM-dd")).ToList(),
+                factors
+            });
         }
 
         /// <summary>
