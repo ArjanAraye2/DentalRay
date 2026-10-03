@@ -3517,8 +3517,15 @@ table button {
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width {
     grid-column: auto;
-    min-height: 39px;
 }
+
+/* سنِ محاسبه‌شده، هم‌رنگِ مقدار و کنارِ تاریخِ تولد؛ نه فریاد، فقط در دسترس. */
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-age {
+    color: #55707e;
+    font-size: 11px;
+    font-weight: 700;
+}
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-age:empty { display: none; }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-label {
     flex: 0 0 auto;
@@ -3531,6 +3538,16 @@ table button {
     min-width: 0;
     overflow-wrap: anywhere;
     text-align: left;
+}
+
+/* آدرس و توضیحات: جعبه به‌اندازهٔ لازم باز می‌شود — نه ارتفاعِ ثابتِ غول‌آسا.
+   متن کوتاه مثل بقیهٔ ردیف‌ها یک‌خطی می‌ماند؛ متن بلند فقط تا جایی رشد می‌کند
+   که واقعاً لازم است. */
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width {
+    align-items: flex-start;
+}
+#patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width .info-label {
+    padding-top: 2px;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(4) {
