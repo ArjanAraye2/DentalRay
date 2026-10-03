@@ -77,23 +77,40 @@ function createPatientIdentityCell(patient){
  avatar.appendChild(img);
  const text=document.createElement("span");text.className="patient-row-name";
  const name=document.createElement("strong");name.textContent=`${patient.firstName||""} ${patient.lastName||""}`.trim()||"-";
- const code=document.createElement("small");code.textContent=formatPatientCode(patient.patientID);
- text.append(name,code);td.append(avatar,text);return td;
+ const meta=document.createElement("small");meta.textContent=patientAgeText(patient.birthDate);
+ text.append(name,meta);td.append(avatar,text);return td;
 }
-// Two cells: how many Studies are still open and how many are finished. An open
-// count above zero is tinted so the eye lands on the patients with work left.
-function createStudyCountCell(open,completed){
- const openCell=document.createElement("td");
- const openValue=Number(open||0);
- openCell.textContent=String(openValue);
- if(openValue>0){
-  openCell.classList.add("study-count-open");
-  openCell.title=`${openValue} مطالعه باز`;
- }
- const doneCell=document.createElement("td");
- doneCell.textContent=String(Number(completed||0));
- doneCell.classList.add("study-count-done");
- return [openCell,doneCell];
+// سن از تاریخ تولد محاسبه می‌شود؛ اگر تاریخ نباشد، کد پرونده نمایش داده می‌شود.
+function patientAgeText(birthDate){
+ if(!birthDate)return "";
+ try{const b=new Date(birthDate);if(isNaN(b.getTime()))return "";
+  let age=Math.floor((Date.now()-b.getTime())/(365.25*24*3600*1000));
+  if(age<0)return "";let extra="";if(age<2){const months=Math.floor((Date.now()-b.getTime())/(30.44*24*3600*1000));extra=`${months} ماهه`;}return extra?`${extra}`:`${age} ساله`;}catch{return "";}
+}
+// «۳ روز پیش» با فارسی‌سازی؛ صریح‌تر از تاریخ خالی برای نگاه سریع پذیرش.
+function relativeDayText(value){
+ if(!value)return "-";
+ const d=new Date(value);if(isNaN(d.getTime()))return formatPersianDate(value);
+ const days=Math.floor((Date.now()-d.getTime())/(24*3600*1000));
+ if(days<=0)return "امروز";
+ if(days===1)return "دیروز";
+ if(days<30)return `${days.toLocaleString("fa-IR")} روز پیش`;
+ if(days<365)return `${Math.floor(days/30).toLocaleString("fa-IR")} ماه پیش`;
+ return `${Math.floor(days/365).toLocaleString("fa-IR")} سال پیش`;
+}
+// سلول تماس: موبایل درشت و کد ملی ریز زیرش.
+function createPatientContactCell(p){
+ const td=document.createElement("td");td.className="patient-contact-cell";
+ const m=document.createElement("span");m.textContent=p.mobile||"—";td.appendChild(m);
+ const n=document.createElement("small");n.textContent=p.nationalCode||"";td.appendChild(n);return td;
+}
+// سلول مراجعات: تعداد کل + بجِ باز.
+function createStudyCountCell(total,open){
+ const td=document.createElement("td");td.className="patient-studies-cell";
+ const t=document.createElement("strong");t.textContent=String(Number(total||0));td.appendChild(t);
+ const o=Number(open||0);
+ if(o>0){const badge=document.createElement("span");badge.className="study-count-open";badge.textContent=`${o} باز`;badge.title=`${o} مطالعه باز`;td.appendChild(badge);}
+ return [td];
 }
 function createPatientStatusCell(patient){
  const td=document.createElement("td"),badge=document.createElement("span");
@@ -111,29 +128,28 @@ async function loadPatients(search=""){
   E.patientsTableBody.replaceChildren();
   (x.patients||x||[]).forEach(p=>{
    const tr=document.createElement("tr");tr.tabIndex=0;tr.className="patient-list-row";tr.title="نمایش پرونده و مطالعات بیمار";
+   const insurance = p.baseInsuranceName ? p.baseInsuranceName : (p.baseInsuranceTypeID ? "دارد" : "—");
+   const insCell=createCell(insurance);
+   const followCell=document.createElement("td");
+   if(Number(p.dueFollowUpCount||0)>0){followCell.innerHTML='<span class="followup-due-badge">سررسیده</span>';}
+   else { followCell.textContent = p.nextFollowUpDate ? formatPersianDate(p.nextFollowUpDate) : "—"; }
    tr.append(
     createPatientIdentityCell(p),
-    createCell(formatPatientCode(p.patientID)),
-    createCell(formatPatientGender(p.gender)),
-    createCell(formatPersianDate(p.birthDate)),
-    createCell(p.nationalCode||"-"),
-    createCell(p.mobile||"-"),
-    createCell(p.studyCount??0),
-    // Open and completed counts, colour-coded so outstanding work stands out.
-    // The helper returns two cells, so they are spread into append().
-    ...createStudyCountCell(p.openStudyCount,p.completedStudyCount),
-    createCell(formatPersianDate(p.lastStudyDate)),
+    createPatientContactCell(p),
+    insCell,
+    ...createStudyCountCell(p.studyCount,p.openStudyCount),
+    createCell(p.lastStudyDate ? `${formatPersianDate(p.lastStudyDate)} — ${relativeDayText(p.lastStudyDate)}` : "—"),
+    followCell,
     createPatientStatusCell(p)
    );
    const td=document.createElement("td");td.className="patient-row-actions";
+   const open=document.createElement("button");open.type="button";open.className="patient-open-button secondary-button";open.textContent="پرونده";
    const edit=document.createElement("button");edit.type="button";edit.className="patient-edit-button secondary-button";edit.textContent="ویرایش";
-   const remove=document.createElement("button");remove.type="button";remove.className="patient-delete-button danger-button";remove.textContent="حذف";
-   const hasStudies=Number(p.studyCount||0)>0;remove.disabled=hasStudies;remove.title=hasStudies?"بیمار دارای مطالعه قابل حذف نیست.":"حذف دائمی بیمار";
    edit.addEventListener("click",async e=>{e.stopPropagation();try{if(await openPatientInline(p.patientID,tr))openEditPatientForm();}catch(err){showToast(err.message||"پرونده بیمار دریافت نشد.","error");}});
-   remove.addEventListener("click",async e=>{e.stopPropagation();if(!remove.disabled)await deletePatient(p);});
-   td.append(edit,remove);tr.appendChild(td);
+   open.addEventListener("click",async e=>{e.stopPropagation();try{await openPatientInline(p.patientID,tr);}catch(err){showToast(err.message||"پرونده بیمار دریافت نشد.","error");}});
+   td.append(open,edit);tr.appendChild(td);
    const select=async()=>{try{await openPatientInline(p.patientID,tr);}catch(e){showToast(e.message||"پرونده بیمار دریافت نشد.","error");}};
-   tr.onclick=e=>{if(e.target.closest("button"))e.stopPropagation();select();};tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select();}};
+   tr.onclick=e=>{if(e.target.closest("button"))return;select();};tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select();}};
    E.patientsTableBody.appendChild(tr);
   });
   setFormStatus(E.statusMessage,"",false);

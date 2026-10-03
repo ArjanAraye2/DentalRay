@@ -1,5 +1,6 @@
 using ReSiRai.Api.Data;
 using ReSiRai.Api.Models;
+using ReSiRai.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,12 @@ namespace ReSiRai.Api.Controllers
     public class ClinicalFactorsController : ControllerBase
     {
         private readonly ReSiRaiDbContext _db;
-        public ClinicalFactorsController(ReSiRaiDbContext db) => _db = db;
+        private readonly StudyAccessService _studyAccess;
+        public ClinicalFactorsController(ReSiRaiDbContext db, StudyAccessService studyAccess)
+        {
+            _db = db;
+            _studyAccess = studyAccess;
+        }
 
         public sealed class FactorValueItem
         {
@@ -268,6 +274,11 @@ namespace ReSiRai.Api.Controllers
         [HttpGet("values")]
         public async Task<IActionResult> Values([FromQuery] int studyID)
         {
+            // دسترسی مراجعه‌محور: دانشِ هر پزشک فقط از مراجعاتِ خودش می‌آید.
+            // بدونِ این گارد، دکتر ب می‌توانست مقادیر ثبت‌شده توسط دکتر الف را ببیند.
+            if (!await _studyAccess.CanAccessStudyAsync(studyID, User))
+                return Forbid();
+
             var rows = await (
                 from v in _db.StudyFactorValues.AsNoTracking()
                 join f in _db.ClinicalFactors.AsNoTracking() on v.FactorID equals f.FactorID
@@ -286,16 +297,19 @@ namespace ReSiRai.Api.Controllers
                 }).ToListAsync();
 
             // Earlier values of the same factors from this patient's other visits,
-            // newest first - the raw material of the trend line.
+            // newest first - the raw material of the trend line. Scoped to the visits
+            // this user may access, so the history never crosses doctor boundaries.
             int patientID = await _db.RadiologyStudies.AsNoTracking()
                 .Where(x => x.StudyID == studyID)
                 .Select(x => x.PatientID)
                 .FirstOrDefaultAsync();
             var factorIds = rows.Select(x => x.FactorID).Distinct().ToList();
+            var accessibleStudies = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User).Select(s => s.StudyID);
             var history = await (
                 from v in _db.StudyFactorValues.AsNoTracking()
                 join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
                 where factorIds.Contains(v.FactorID) && v.StudyID != studyID && s.PatientID == patientID
+                    && accessibleStudies.Contains(v.StudyID)
                 orderby v.ObservedAt descending
                 select new { v.FactorID, v.StudyID, v.ValueNumber, v.ValueText, v.ValueBit, v.ValueDate, v.ObservedAt, v.Source, v.UnitText, v.RefText }
             ).Take(60).ToListAsync();
@@ -341,10 +355,13 @@ namespace ReSiRai.Api.Controllers
             if (resolvedPatientID <= 0)
                 return NotFound(new { success = false, message = "مراجعه یا بیمار پیدا نشد." });
 
+            // فقط مراجعاتی که این کاربر مجاز به دیدن است؛ سابقهٔ پزشکان دیگر افشا نمی‌شود.
+            var accessibleStudyIDs = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User).Select(s => s.StudyID);
             var points = await (
                 from v in _db.StudyFactorValues.AsNoTracking()
                 join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
                 where v.FactorID == factorID && s.PatientID == resolvedPatientID
+                    && accessibleStudyIDs.Contains(v.StudyID)
                 orderby v.ObservedAt
                 select new
                 {
@@ -371,11 +388,13 @@ namespace ReSiRai.Api.Controllers
             bool patientExists = await _db.Patients.AsNoTracking().AnyAsync(x => x.PatientID == patientID);
             if (!patientExists) return NotFound(new { success = false, message = "بیمار پیدا نشد." });
 
+            // ماتریس روند نیز فقط از مراجعاتِ قابل‌دسترسیِ همین کاربر ساخته می‌شود.
+            var accessibleStudyIDs = _studyAccess.ApplyAccess(_db.RadiologyStudies.AsNoTracking(), User).Select(s => s.StudyID);
             var raw = await (
                 from v in _db.StudyFactorValues.AsNoTracking()
                 join s in _db.RadiologyStudies.AsNoTracking() on v.StudyID equals s.StudyID
                 join f in _db.ClinicalFactors.AsNoTracking() on v.FactorID equals f.FactorID
-                where s.PatientID == patientID
+                where s.PatientID == patientID && accessibleStudyIDs.Contains(v.StudyID)
                 select new
                 {
                     f.FactorID, f.NameFa, f.NameEn, f.ShortCode, f.Category, f.DataType,
@@ -439,6 +458,8 @@ namespace ReSiRai.Api.Controllers
         public async Task<IActionResult> Save(SaveValuesRequest request)
         {
             if (request.StudyID <= 0) return BadRequest(new { success = false, message = "مراجعه مشخص نیست." });
+            // فقط پزشکی که مراجعه در محدودهٔ دسترسی‌اش است می‌تواند مقدار ثبت کند.
+            if (!await _studyAccess.CanAccessStudyAsync(request.StudyID, User)) return Forbid();
             if (request.Items == null || request.Items.Count == 0)
                 return BadRequest(new { success = false, message = "هیچ مقداری برای ثبت ارسال نشده است." });
 

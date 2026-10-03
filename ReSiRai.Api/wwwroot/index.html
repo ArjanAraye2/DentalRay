@@ -75,7 +75,8 @@
         <div class="patient-reminder-filters">
           <label class="checkbox-row"><input id="openStudiesOnly" type="checkbox" /><span>فقط بیماران با مطالعه باز</span></label>
           <label class="checkbox-row"><input id="dueFollowUpOnly" type="checkbox" /><span>فقط پیگیری‌های سررسیده</span></label>
-        </div></div><div id="statusMessage" class="status-message">در حال دریافت اطلاعات...</div><div class="table-container"><table class="patient-table"><thead><tr><th>بیمار</th><th>کد پرونده</th><th>جنسیت</th><th>تاریخ تولد</th><th>کد ملی</th><th>موبایل</th><th>مراجعات</th><th>باز</th><th>بسته</th><th>آخرین مراجعه</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="patientsTableBody"></tbody></table></div></section>
+        </div></div><div id="statusMessage" class="status-message">در حال دریافت اطلاعات...</div><!--- نمای فشردهٔ بیماران: نام+سن، تماس+کد ملی، بیمه، مراجعات (باز/بسته)، آخرین مراجعه، پیگیری، وضعیت، عملیات -->
+<div class="table-container"><table class="patient-table patient-table-compact"><thead><tr><th>بیمار</th><th>تماس</th><th>بیمه</th><th>مراجعات</th><th>آخرین مراجعه</th><th>پیگیری</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="patientsTableBody"></tbody></table></div></section>
 <section id="patientDetailsSection" class="card hidden">
   <div class="details-toolbar" aria-label="عملیات پرونده بیمار">
     <button id="backToPatientsButton" type="button" class="secondary-button">← بازگشت</button>
@@ -277,7 +278,7 @@ window.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <script src="/js/login-ui.js?v=20261003.10"></script>
-<script src="/js/app.js?v=20261004.3"></script>
+<script src="/js/app.js?v=20261004.4"></script>
 <script src="/js/study-delete.js?v=20261001.19"></script>
 <script src="/js/study-finance.js?v=20261001.19"></script>
 <script src="/js/study-lab-tests.js?v=20261001.19"></script>

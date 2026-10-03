@@ -84,7 +84,10 @@ namespace ReSiRai.Api.Controllers
                     LastStudyDate = _context.RadiologyStudies
                         .Where(s => s.PatientID == p.PatientID)
                         .Select(s => (DateTime?)s.StudyDate)
-                        .Max()
+                        .Max(),
+                    BaseInsuranceName = _context.InsuranceTypes.AsNoTracking()
+                        .Where(t => t.InsuranceTypeID == p.BaseInsuranceTypeID)
+                        .Select(t => t.InsuranceTypeName).FirstOrDefault()
                 })
                 .ToListAsync();
 

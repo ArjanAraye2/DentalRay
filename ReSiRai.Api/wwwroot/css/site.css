@@ -5571,3 +5571,12 @@ body { line-height: 1.75; }
 .patient-extra-details>summary{cursor:pointer;font-weight:700;color:#215a86;padding:4px 0}
 .patient-extra-details[open]>summary{margin-bottom:10px;border-bottom:1px solid #e3edf5;padding-bottom:7px}
 
+
+/* ???? ?????? ???????: ???????? ????????? ? ????? */
+.patient-table-compact td,.patient-table-compact th{vertical-align:middle}
+.patient-contact-cell small{display:block;color:#8496a6;font-size:11px;direction:ltr;text-align:right}
+.patient-studies-cell strong{font-size:15px}
+.patient-studies-cell .study-count-open{display:inline-block;margin-inline-start:6px;background:#fff0e2;color:#b4530a;border-radius:9px;padding:1px 7px;font-size:11px;font-weight:700}
+.followup-due-badge{display:inline-block;background:#fdecea;color:#b42318;border-radius:9px;padding:2px 8px;font-size:11px;font-weight:700}
+.patient-open-button{margin-inline-end:5px}
+
