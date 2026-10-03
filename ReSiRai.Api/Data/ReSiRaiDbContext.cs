@@ -37,6 +37,7 @@ namespace ReSiRai.Api.Data
         public DbSet<SpecialtyFactorSet> SpecialtyFactorSets { get; set; }
         public DbSet<StudyFactorValue> StudyFactorValues { get; set; }
         public DbSet<LabReportExtraction> LabReportExtractions { get; set; }
+        public DbSet<InsuranceType> InsuranceTypes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -95,6 +96,15 @@ namespace ReSiRai.Api.Data
             // One lab-report extraction batch belongs to one visit; the raw model
             // output is kept as the audit trail of every extracted number.
             modelBuilder.Entity<LabReportExtraction>().HasOne<RadiologyStudy>().WithMany().HasForeignKey(x => x.StudyID).OnDelete(DeleteBehavior.NoAction);
+
+            // Patient insurance points at the shared insurance dictionary; a type
+            // in use is deactivated, never deleted, so these links stay valid.
+            modelBuilder.Entity<Patient>().HasOne<InsuranceType>().WithMany()
+                .HasForeignKey(x => x.BaseInsuranceTypeID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Patient>().HasOne<InsuranceType>().WithMany()
+                .HasForeignKey(x => x.Supp1InsuranceTypeID).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Patient>().HasOne<InsuranceType>().WithMany()
+                .HasForeignKey(x => x.Supp2InsuranceTypeID).OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

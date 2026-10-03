@@ -101,6 +101,65 @@ using (var scope = app.Services.CreateScope())
     // دسترسیِ «گزارش‌ها»: برای کاربرانِ عادی یک پرچمِ جدا تا حسابدار/منشیٔ مالی
     // بتواند گزارش ببیند بی‌آنکه مدیرِ سیستم شود.
     try { await db.Database.ExecuteSqlRawAsync("IF COL_LENGTH('tblUsers', 'ViewReports') IS NULL ALTER TABLE tblUsers ADD ViewReports bit NOT NULL CONSTRAINT DF_tblUsers_ViewReports DEFAULT (0)"); } catch { }
+
+    // ---- پروندهٔ بیمار: «اطلاعات تکمیلی» (همه اختیاری) ---------------------
+    // یک‌بار ساخته می‌شود؛ نصب‌های موجود هم بدون مهاجرت دستی به‌روز می‌شوند.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('tblPatients', 'BloodType') IS NULL ALTER TABLE tblPatients ADD BloodType nvarchar(5) NULL;
+            IF COL_LENGTH('tblPatients', 'Mobile2') IS NULL ALTER TABLE tblPatients ADD Mobile2 nvarchar(30) NULL;
+            IF COL_LENGTH('tblPatients', 'EmergencyContactName') IS NULL ALTER TABLE tblPatients ADD EmergencyContactName nvarchar(100) NULL;
+            IF COL_LENGTH('tblPatients', 'EmergencyContactRelation') IS NULL ALTER TABLE tblPatients ADD EmergencyContactRelation nvarchar(50) NULL;
+            IF COL_LENGTH('tblPatients', 'EmergencyContactPhone') IS NULL ALTER TABLE tblPatients ADD EmergencyContactPhone nvarchar(30) NULL;
+            IF COL_LENGTH('tblPatients', 'BaseInsuranceTypeID') IS NULL ALTER TABLE tblPatients ADD BaseInsuranceTypeID int NULL;
+            IF COL_LENGTH('tblPatients', 'BaseInsuranceNo') IS NULL ALTER TABLE tblPatients ADD BaseInsuranceNo nvarchar(50) NULL;
+            IF COL_LENGTH('tblPatients', 'Supp1InsuranceTypeID') IS NULL ALTER TABLE tblPatients ADD Supp1InsuranceTypeID int NULL;
+            IF COL_LENGTH('tblPatients', 'Supp1InsuranceNo') IS NULL ALTER TABLE tblPatients ADD Supp1InsuranceNo nvarchar(50) NULL;
+            IF COL_LENGTH('tblPatients', 'Supp2InsuranceTypeID') IS NULL ALTER TABLE tblPatients ADD Supp2InsuranceTypeID int NULL;
+            IF COL_LENGTH('tblPatients', 'Supp2InsuranceNo') IS NULL ALTER TABLE tblPatients ADD Supp2InsuranceNo nvarchar(50) NULL;
+            IF COL_LENGTH('tblPatients', 'FileNumber') IS NULL ALTER TABLE tblPatients ADD FileNumber nvarchar(50) NULL;
+            IF COL_LENGTH('tblPatients', 'ContactPreference') IS NULL ALTER TABLE tblPatients ADD ContactPreference nvarchar(20) NULL;
+            """);
+    }
+    catch { }
+
+    // ---- دیکشنری بیمه + دیتای اولیهٔ رایج ---------------------------------
+    // پایه و تکمیلی در یک جدول‌اند و با IsSupplementary تفکیک می‌شوند. نگهداری
+    // فقط در اختیار مدیر سیستم است. فقط زمانی درج اولیه انجام می‌شود که جدول خالی باشد.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID(N'dbo.tblInsuranceTypes', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.tblInsuranceTypes (
+                    InsuranceTypeID int IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblInsuranceTypes PRIMARY KEY,
+                    InsuranceTypeName nvarchar(100) NOT NULL,
+                    IsSupplementary bit NOT NULL CONSTRAINT DF_tblInsuranceTypes_IsSupplementary DEFAULT (0),
+                    IsActive bit NOT NULL CONSTRAINT DF_tblInsuranceTypes_IsActive DEFAULT (1)
+                );
+                CREATE UNIQUE INDEX UX_tblInsuranceTypes_Name_Kind ON dbo.tblInsuranceTypes (InsuranceTypeName, IsSupplementary);
+            END;
+            IF NOT EXISTS (SELECT 1 FROM dbo.tblInsuranceTypes)
+            BEGIN
+                INSERT INTO dbo.tblInsuranceTypes (InsuranceTypeName, IsSupplementary) VALUES
+                    (N'آزاد / بدون بیمه', 0),
+                    (N'تأمین اجتماعی', 0),
+                    (N'خدمات درمانی', 0),
+                    (N'نیروهای مسلح', 0),
+                    (N'آسیا', 1),
+                    (N'پاسارگاد', 1),
+                    (N'دانا', 1),
+                    (N'البرز', 1),
+                    (N'سامان', 1),
+                    (N'ملت', 1),
+                    (N'فولاد', 1),
+                    (N'بانک ملی', 1),
+                    (N'بانک صادرات', 1);
+            END;
+            """);
+    }
+    catch { }
     // نتیجهٔ تحلیلِ AI تصویر، تا تصویرِ بیمار فقط یک بار از مطب خارج شود و
     // بازدیدهای بعدی بدون هزینه و بدونِ ارسالِ دوباره انجام شود.
     try

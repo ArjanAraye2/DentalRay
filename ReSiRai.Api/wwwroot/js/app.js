@@ -19,6 +19,9 @@ const ids=["newStatus","newFollowUpDate","newFollowUpNote","newFollowUpBox","ope
 const E={}; ids.forEach(id=>E[id]=byId(id));
 E.lastStudyDateSummary=byId("lastStudyDateSummary");
 E.recentStudiesSummary=byId("recentStudiesSummary");
+// فیلدهای «اطلاعات تکمیلی» بیمار (کشو و ورودی) — به‌صورت صریح به E اضافه می‌شوند
+// چون فهرست ids فقط شناسه‌های موجود در نسخه‌های قدیمی را پوشش می‌دهد.
+["newPatientExtraDetails","editPatientExtraDetails","newBloodType","editBloodType","newMobile2","editMobile2","newFileNumber","editFileNumber","newContactPreference","editContactPreference","newEmergencyContactName","editEmergencyContactName","newEmergencyContactRelation","editEmergencyContactRelation","newEmergencyContactPhone","editEmergencyContactPhone","newBaseInsuranceType","editBaseInsuranceType","newBaseInsuranceNo","editBaseInsuranceNo","newSupp1InsuranceType","editSupp1InsuranceType","newSupp1InsuranceNo","editSupp1InsuranceNo","newSupp2InsuranceType","editSupp2InsuranceType","newSupp2InsuranceNo","editSupp2InsuranceNo","detailBloodType","detailMobile2","detailBaseInsurance","detailSuppInsurance","detailEmergencyContact"].forEach(id=>E[id]=byId(id));
 
 function hideMainSections(){[E.patientsSection,E.patientDetailsSection,E.studyDetailsSection,E.studyImagesSection,E.newPatientSection,E.editPatientSection,E.newStudySection,E.uploadImageSection,E.mergePatientSection].forEach(x=>x?.classList.add("hidden"));}
 function showPatientsScreen(){hideMainSections();E.patientsSection.classList.remove("hidden");window.scrollTo(0,0);}
@@ -64,7 +67,7 @@ window.formatPersianDateTimeForInput=formatPersianDateTimeForInput;
 window.openPatientInline=openPatientInline;
 // The dashboard reuses the application image viewer instead of opening a bare URL.
 window.openLargeImage=openLargeImage;
-function validatePatientFields(f,l,n,m){if(!f)throw new Error("نام بیمار را وارد کنید.");if(!l)throw new Error("نام خانوادگی بیمار را وارد کنید.");if(!/^\d{10}$/.test(n))throw new Error("کد ملی باید دقیقاً ۱۰ رقم باشد.");if(m&&!/^\+?\d+$/.test(m))throw new Error("شماره موبایل معتبر نیست.");}
+function validatePatientFields(f,l,n,m,g){if(!f)throw new Error("نام بیمار را وارد کنید.");if(!l)throw new Error("نام خانوادگی بیمار را وارد کنید.");if(!/^\d{10}$/.test(n))throw new Error("کد ملی باید دقیقاً ۱۰ رقم باشد.");if(m&&!/^\+?\d+$/.test(m))throw new Error("شماره موبایل معتبر نیست.");if(g===""||g===null||g===undefined)throw new Error("جنسیت را انتخاب کنید.");}
 
 function createPatientIdentityCell(patient){
  const td=document.createElement("td");td.className="patient-identity-cell";
@@ -169,7 +172,7 @@ async function openPatient(id){selectedPatientID=id;const request=beginPatientOp
 // Publishing it here keeps one source of truth: whenever the record renders,
 // window.selectedPatient matches what is on screen.
 function publishSelectedPatient(p){window.selectedPatient=p||null;window.selectedPatientID=Number(p?.patientID)||null;}
-function renderPatientDetails(x){const p=x.patient,patientCode=formatPatientCode(p.patientID),studies=x.studies||[];E.patientFullName.textContent=`${p.firstName} ${p.lastName}`;E.patientDisplayCode.textContent=`شناسه پرونده: ${patientCode}`;E.patientNationalCode.textContent=`کد ملی: ${p.nationalCode}`;E.detailPatientCode.textContent=patientCode;E.detailFirstName.textContent=p.firstName||"-";E.detailLastName.textContent=p.lastName||"-";E.detailNationalCode.textContent=p.nationalCode||"-";E.detailMobile.textContent=p.mobile||"-";E.detailBirthDate.textContent=formatPersianDate(p.birthDate);E.detailGender.textContent=formatPatientGender(p.gender);E.detailIsActive.textContent=p.isActive?"فعال":"غیرفعال";E.detailAddress.textContent=p.address||"-";E.detailDescription.textContent=p.description||"-";E.studyCount.textContent=x.studyCount;E.totalImageCount.textContent=x.totalImageCount;applyAttachAvailability(Number(x.totalImageCount)||0>0);E.lastStudyDateSummary.textContent=studies.length?formatPersianDate(studies[0].studyDate):"-";E.patientStatusBadge.textContent=p.isActive?"فعال":"غیرفعال";E.patientStatusBadge.className=`status-badge ${p.isActive?"active":"inactive"}`;E.deactivatePatientButton.textContent=p.isActive?"غیرفعال کردن":"فعال کردن";if(E.patientProfilePhoto){E.patientProfilePhoto.src=`/api/patients/${p.patientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.onerror=()=>{E.patientProfilePhoto.removeAttribute("src");E.patientProfilePhoto.classList.add("empty");};E.patientProfilePhoto.classList.remove("empty");}renderRecentStudiesSummary(studies);renderStudiesSafe(studies);
+function renderPatientDetails(x){const p=x.patient,patientCode=formatPatientCode(p.patientID),studies=x.studies||[];E.patientFullName.textContent=`${p.firstName} ${p.lastName}`;E.patientDisplayCode.textContent=`شناسه پرونده: ${patientCode}`;E.patientNationalCode.textContent=`کد ملی: ${p.nationalCode}`;E.detailPatientCode.textContent=patientCode;E.detailFirstName.textContent=p.firstName||"-";E.detailLastName.textContent=p.lastName||"-";E.detailNationalCode.textContent=p.nationalCode||"-";E.detailMobile.textContent=p.mobile||"-";E.detailBirthDate.textContent=formatPersianDate(p.birthDate);E.detailGender.textContent=formatPatientGender(p.gender);E.detailIsActive.textContent=p.isActive?"فعال":"غیرفعال";E.detailAddress.textContent=p.address||"-";E.detailDescription.textContent=p.description||"-";if(E.detailBloodType)E.detailBloodType.textContent=p.bloodType||"ثبت نشده";if(E.detailMobile2)E.detailMobile2.textContent=p.mobile2||"-";if(E.detailBaseInsurance)E.detailBaseInsurance.textContent=p.baseInsuranceName?(p.baseInsuranceName+(p.baseInsuranceNo?` — ${p.baseInsuranceNo}`:"")):"ثبت نشده";if(E.detailSuppInsurance){const supp=[p.supp1InsuranceName,p.supp2InsuranceName].filter(Boolean);E.detailSuppInsurance.textContent=supp.length?supp.join(" ، "):"ثبت نشده";}if(E.detailEmergencyContact)E.detailEmergencyContact.textContent=(p.emergencyContactName||p.emergencyContactPhone)?`${p.emergencyContactName||""}${p.emergencyContactRelation?` (${p.emergencyContactRelation})`:""}${p.emergencyContactPhone?` — ${p.emergencyContactPhone}`:""}`.trim():"ثبت نشده";E.studyCount.textContent=x.studyCount;E.totalImageCount.textContent=x.totalImageCount;applyAttachAvailability(Number(x.totalImageCount)||0>0);E.lastStudyDateSummary.textContent=studies.length?formatPersianDate(studies[0].studyDate):"-";E.patientStatusBadge.textContent=p.isActive?"فعال":"غیرفعال";E.patientStatusBadge.className=`status-badge ${p.isActive?"active":"inactive"}`;E.deactivatePatientButton.textContent=p.isActive?"غیرفعال کردن":"فعال کردن";if(E.patientProfilePhoto){E.patientProfilePhoto.src=`/api/patients/${p.patientID}/photo?v=${Date.now()}`;E.patientProfilePhoto.onerror=()=>{E.patientProfilePhoto.removeAttribute("src");E.patientProfilePhoto.classList.add("empty");};E.patientProfilePhoto.classList.remove("empty");}renderRecentStudiesSummary(studies);renderStudiesSafe(studies);
 // بعد از ساخت کارت‌ها، چون خودِ کارت‌ها هم دکمهٔ «الصاق» دارند.
 applyAttachAvailability(Number(x.totalImageCount)||0>0);}
 
@@ -717,10 +720,64 @@ syncFilePickerNames();
 E.retakeCameraButton?.addEventListener("click",()=>{resetCameraCapture();E.cameraFileInput.click();});
 async function uploadImage(){try{if(!selectedStudyID)throw new Error("مراجعه انتخاب نشده است.");/* نوع تصویر را هوش مصنوعی پس از آپلود تعیین می‌کند */const file=pendingCameraFile||E.imageFileInput.files?.[0];if(!file)throw new Error("یک فایل یا تصویر دوربین انتخاب کنید.");const isImage=(file.type||"").toLowerCase().startsWith("image/"),isPdf=(file.type||"").toLowerCase()==="application/pdf"||(file.name||"").toLowerCase().endsWith(".pdf");if(!isImage&&!isPdf)throw new Error("فایل انتخاب‌شده باید تصویر یا PDF باشد.");const send=(allowDuplicate)=>{const fd=new FormData();fd.append("file",file);return fetch(`/api/radiologyimages?studyID=${selectedStudyID}${allowDuplicate?"&allowDuplicate=true":""}`,{method:"POST",body:fd});};setFormStatus(E.uploadImageStatus,"در حال ذخیره و اتصال فایل...",false);let r=await send(false),x=await readApiJson(r);if(r.status===409&&x&&x.duplicate){/* The same picture was already stored for this patient. The server stopped before saving; only the operator can decide it is not a mistake. */const when=x.existing?.createdDate?new Date(x.existing.createdDate).toLocaleDateString("fa-IR"):"";const go=await askConfirmation({title:"تصویر تکراری",message:`${x.message}${when?` تاریخ ثبت قبلی: ${when}.`: ""} آیا می‌خواهید با این حال ذخیره شود؟`,confirmText:"ذخیره شود",danger:false});if(!go){setFormStatus(E.uploadImageStatus,"ذخیره لغو شد؛ تصویر تکراری ثبت نشد.",false);return;}r=await send(true);x=await readApiJson(r);}if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ذخیره فایل انجام نشد."));resetCameraCapture();if(x.imageID&&!x.converted){setFormStatus(E.uploadImageStatus,"در حال تشخیص نوع تصویر با هوش مصنوعی...",false);try{const cr=await fetch(`/api/ai/images/${x.imageID}/classify`,{method:"POST"}),cx=await readApiJson(cr);if(cr.ok&&cx.success&&cx.imageTypeName)x.aiTypeName=cx.imageTypeName;}catch{/* تشخیصِ نوع اختیاری است؛ تصویر بدونِ نوع هم ذخیره می‌ماند */}}if(selectedStudy){selectedStudy.imageCount=(selectedStudy.imageCount||0)+1;applyAttachAvailability(true);openStudyImages(selectedStudy);}else await openPatient(selectedPatientID);showToast(x.converted?`PDF به ${x.imageCount} تصویر تبدیل و ذخیره شد.`:`فایل با موفقیت ذخیره شد: ${x.fileName}`);}catch(e){setFormStatus(E.uploadImageStatus,e.message,true);/* The status line sits above the buttons and is easy to miss on a phone, so failures are repeated as a toast. */showToast(e.message,"error");}}
 
-function patientPayload(prefix){const f=E[`${prefix}FirstName`].value.trim(),l=E[`${prefix}LastName`].value.trim(),n=normalizeDigits(E[`${prefix}NationalCode`].value.trim()),m=normalizePhone(E[`${prefix}Mobile`].value);validatePatientFields(f,l,n,m);return{nationalCode:n,firstName:f,lastName:l,birthDate:parsePersianDateForBackend(E[`${prefix}BirthDate`].value,false),gender:E[`${prefix}Gender`].value===""?null:+E[`${prefix}Gender`].value,mobile:m,address:emptyToNull(E[`${prefix}Address`].value),description:emptyToNull(E[`${prefix}Description`].value)};}
-function openNewPatientForm(){E.newPatientForm.reset();setFormStatus(E.newPatientStatus,"",false);hideMainSections();E.newPatientSection.classList.remove("hidden");E.newFirstName.focus();}
-async function createPatient(){try{const r=await fetch("/api/patients",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(patientPayload("new"))}),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ثبت بیمار انجام نشد."));await loadPatients();showPatientsScreen();showToast("بیمار ثبت شد.");}catch(e){setFormStatus(E.newPatientStatus,e.message,true);}}
-function openEditPatientForm(){if(!selectedPatient)return;const p=selectedPatient;E.editFirstName.value=p.firstName||"";E.editLastName.value=p.lastName||"";E.editNationalCode.value=p.nationalCode||"";E.editMobile.value=p.mobile||"";E.editBirthDate.value=formatPersianDateForInput(p.birthDate);E.editGender.value=p.gender??"";E.editAddress.value=p.address||"";E.editDescription.value=p.description||"";hideMainSections();E.editPatientSection.classList.remove("hidden");}
+function patientExtraPayload(prefix){
+ const val=key=>{const el=byId(prefix+key);return el?el.value:"";};
+ const insType=key=>{const v=val(key);return v===""?null:Number(v);};
+ const base=insType("BaseInsuranceType"),s1=insType("Supp1InsuranceType"),s2=insType("Supp2InsuranceType");
+ // بیمهٔ تکمیلی تکراری ممنوع است (فقط وقتی هر دو پرشدهاند).
+ const supp1=byId(prefix+"Supp1InsuranceType"),supp2=byId(prefix+"Supp2InsuranceType");
+ supp1?.setCustomValidity("");supp2?.setCustomValidity("");
+ if(s1&&s2&&s1===s2){supp1?.setCustomValidity("بیمهٔ تکمیلی تکراری است.");throw new Error("بیمهٔ تکمیلی ۱ و ۲ نباید یکسان باشند.");}
+ return{
+  bloodType:emptyToNull(val("BloodType")),
+  mobile2:normalizePhone(val("Mobile2")),
+  emergencyContactName:emptyToNull(val("EmergencyContactName")),
+  emergencyContactRelation:emptyToNull(val("EmergencyContactRelation")),
+  emergencyContactPhone:normalizePhone(val("EmergencyContactPhone")),
+  baseInsuranceTypeID:base,baseInsuranceNo:emptyToNull(val("BaseInsuranceNo")),
+  supp1InsuranceTypeID:s1,supp1InsuranceNo:emptyToNull(val("Supp1InsuranceNo")),
+  supp2InsuranceTypeID:s2,supp2InsuranceNo:emptyToNull(val("Supp2InsuranceNo")),
+  fileNumber:emptyToNull(val("FileNumber")),
+  contactPreference:emptyToNull(val("ContactPreference"))
+ };
+}
+function patientPayload(prefix){const f=E[`${prefix}FirstName`].value.trim(),l=E[`${prefix}LastName`].value.trim(),n=normalizeDigits(E[`${prefix}NationalCode`].value.trim()),m=normalizePhone(E[`${prefix}Mobile`].value);validatePatientFields(f,l,n,m,E[`${prefix}Gender`].value);return{nationalCode:n,firstName:f,lastName:l,birthDate:parsePersianDateForBackend(E[`${prefix}BirthDate`].value,false),gender:E[`${prefix}Gender`].value===""?null:+E[`${prefix}Gender`].value,mobile:m,address:emptyToNull(E[`${prefix}Address`].value),description:emptyToNull(E[`${prefix}Description`].value),...patientExtraPayload(prefix)};}
+
+// ---- دیکشنری بیمه (کشوها) -------------------------------------------------
+// پایه و تکمیلی از یک دیکشنری می‌آیند ولی در کشوهای جدا نشان داده می‌شوند.
+// تکمیلی‌ها نامزدِ دیگری را حذف می‌کنند تا یک نوع دو بار انتخاب نشود.
+let insuranceCache={base:[],supplementary:[]};
+async function loadInsuranceOptions(){
+ try{
+  const r=await fetch("/api/insurances",{cache:"no-store"}),x=await readApiJson(r);
+  if(r.ok&&x.success){insuranceCache={base:x.baseInsurances||[],supplementary:x.supplementaryInsurances||[]};}
+ }catch(_){/* کشو خالی می‌ماند؛ بیمه اختیاری است */}
+ ["new","edit"].forEach(prefix=>{
+  const base=E[prefix+"BaseInsuranceType"];if(base){const cur=base.value;base.replaceChildren(new Option("ثبت نشده",""));insuranceCache.base.forEach(i=>base.appendChild(new Option(i.insuranceTypeName,String(i.insuranceTypeID))));if(cur&&[...base.options].some(o=>o.value===cur))base.value=cur;}
+  ["Supp1","Supp2"].forEach((slot,idx)=>{
+   const sel=E[prefix+slot+"InsuranceType"];if(!sel)return;
+   const other=E[prefix+(idx===0?"Supp2":"Supp1")+"InsuranceType"];
+   const cur=sel.value,otherVal=other?other.value:"";
+   sel.replaceChildren(new Option("ثبت نشده",""));
+   insuranceCache.supplementary.forEach(i=>{if(String(i.insuranceTypeID)===otherVal)return;sel.appendChild(new Option(i.insuranceTypeName,String(i.insuranceTypeID)));});
+   if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;else sel.value="";
+  });
+ });
+ ["new","edit"].forEach(prefix=>{
+  ["Supp1","Supp2"].forEach(slot=>{
+   const sel=E[prefix+slot+"InsuranceType"];if(!sel||sel.dataset.bound==="1")return;sel.dataset.bound="1";
+   sel.addEventListener("change",()=>loadInsuranceOptions());
+  });
+ });
+}
+function fillPatientExtras(prefix,p){const set=(key,value)=>{const el=E[prefix+key];if(el)el.value=value??"";};const setSel=(key,value)=>{const el=E[prefix+key];if(el)el.value=value==null?"":String(value);};setSel("BloodType",p.bloodType);set("Mobile2",p.mobile2);set("EmergencyContactName",p.emergencyContactName);set("EmergencyContactRelation",p.emergencyContactRelation);set("EmergencyContactPhone",p.emergencyContactPhone);setSel("BaseInsuranceType",p.baseInsuranceTypeID);set("BaseInsuranceNo",p.baseInsuranceNo);setSel("Supp1InsuranceType",p.supp1InsuranceTypeID);set("Supp1InsuranceNo",p.supp1InsuranceNo);setSel("Supp2InsuranceType",p.supp2InsuranceTypeID);set("Supp2InsuranceNo",p.supp2InsuranceNo);set("FileNumber",p.fileNumber);setSel("ContactPreference",p.contactPreference);const details=E[prefix+"PatientExtraDetails"];if(details)details.open=!!(p.bloodType||p.mobile2||p.emergencyContactName||p.emergencyContactPhone||p.baseInsuranceTypeID||p.supp1InsuranceTypeID||p.supp2InsuranceTypeID||p.fileNumber||p.contactPreference);}
+
+function openNewPatientForm(){E.newPatientForm.reset();setFormStatus(E.newPatientStatus,"",false);fillPatientExtras("new",{});loadInsuranceOptions();hideMainSections();E.newPatientSection.classList.remove("hidden");E.newFirstName.focus();}
+async function createPatient(){try{const r=await fetch("/api/patients",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(patientPayload("new"))}),x=await readApiJson(r);
+ // بازشناسی: کد ملی از قبل هست. به‌جای خطای خشک، پروندهٔ موجود را نشان می‌دهیم.
+ if(r.status===409&&x.duplicate){const ex=x.existing||{};const name=`${ex.firstName||""} ${ex.lastName||""}`.trim()||"این بیمار";const go=await askConfirmation({title:"بیمار موجود است",message:`بیمار «${name}» با این کد ملی از قبل در سامانه ثبت شده است. آیا پروندهٔ موجود باز شود؟ (برای ثبت مراجعهٔ جدید همین پرونده را باز کنید.)`,confirmText:"باز کردن پرونده",danger:false});if(go&&ex.patientID){await loadPatients();await openPatient(ex.patientID);}return;}
+ if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ثبت بیمار انجام نشد."));await loadPatients();showPatientsScreen();showToast("بیمار ثبت شد.");}catch(e){setFormStatus(E.newPatientStatus,e.message,true);}}
+function openEditPatientForm(){if(!selectedPatient)return;const p=selectedPatient;E.editFirstName.value=p.firstName||"";E.editLastName.value=p.lastName||"";E.editNationalCode.value=p.nationalCode||"";E.editMobile.value=p.mobile||"";E.editBirthDate.value=formatPersianDateForInput(p.birthDate);E.editGender.value=p.gender??"";E.editAddress.value=p.address||"";E.editDescription.value=p.description||"";fillPatientExtras("edit",p);loadInsuranceOptions().then(()=>fillPatientExtras("edit",p));hideMainSections();E.editPatientSection.classList.remove("hidden");}
 async function updatePatient(){try{const r=await fetch(`/api/patients/${selectedPatientID}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(patientPayload("edit"))}),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ویرایش بیمار انجام نشد."));await openPatient(selectedPatientID);showToast("اطلاعات بیمار ذخیره شد.");}catch(e){setFormStatus(E.editPatientStatus,e.message,true);}}
 function printPatientInformation(){
  if(!selectedPatient){showToast("ابتدا یک بیمار را انتخاب کنید.","error");return;}

@@ -97,5 +97,19 @@ namespace ReSiRai.Api.Models
 
         [MaxLength(1000)]
         public string? Description { get; set; }
+        // ---- «اطلاعات تکمیلی» — همه اختیاری ---------------------------------
+        [MaxLength(5)] public string? BloodType { get; set; }
+        [MaxLength(30)] public string? Mobile2 { get; set; }
+        [MaxLength(100)] public string? EmergencyContactName { get; set; }
+        [MaxLength(50)] public string? EmergencyContactRelation { get; set; }
+        [MaxLength(30)] public string? EmergencyContactPhone { get; set; }
+        public int? BaseInsuranceTypeID { get; set; }
+        [MaxLength(50)] public string? BaseInsuranceNo { get; set; }
+        public int? Supp1InsuranceTypeID { get; set; }
+        [MaxLength(50)] public string? Supp1InsuranceNo { get; set; }
+        public int? Supp2InsuranceTypeID { get; set; }
+        [MaxLength(50)] public string? Supp2InsuranceNo { get; set; }
+        [MaxLength(50)] public string? FileNumber { get; set; }
+        [MaxLength(20)] public string? ContactPreference { get; set; }
     }
 }

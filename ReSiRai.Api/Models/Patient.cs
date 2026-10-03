@@ -100,5 +100,48 @@ namespace ReSiRai.Api.Models
         // برای بیمارها حذف فیزیکی را انجام نمی‌دهیم؛
         // در صورت نیاز بیمار را غیرفعال می‌کنیم.
         public bool IsActive { get; set; }
+
+
+        // ---- «اطلاعات تکمیلی» پرونده — همه اختیاری ----------------------------
+        //
+        // این فیلدها در سطح بیمار و مشترک‌اند (نه در سطح مراجعه). هیچ‌کدام برای
+        // ثبت بیمار الزامی نیستند؛ پزشک/منشی هر زمان خواست کامل می‌کند.
+
+        /// <summary>گروه خونی، یکی از A+/A-/B+/B-/AB+/AB-/O+/O-. خالی = ثبت‌نشده.</summary>
+        [MaxLength(5)]
+        public string? BloodType { get; set; }
+
+        /// <summary>موبایل دوم / شمارهٔ تماس جایگزین.</summary>
+        [MaxLength(30)]
+        public string? Mobile2 { get; set; }
+
+        // تماس اضطراری: نام، نسبت و شماره.
+        [MaxLength(100)]
+        public string? EmergencyContactName { get; set; }
+        [MaxLength(50)]
+        public string? EmergencyContactRelation { get; set; }
+        [MaxLength(30)]
+        public string? EmergencyContactPhone { get; set; }
+
+        // بیمهٔ پایه. نوع از دیکشنری بیمه (IsSupplementary = false) می‌آید.
+        public int? BaseInsuranceTypeID { get; set; }
+        [MaxLength(50)]
+        public string? BaseInsuranceNo { get; set; }
+
+        // دو بیمهٔ تکمیلی؛ بیمار می‌تواند هیچ‌کدام، یکی یا هر دو را داشته باشد.
+        public int? Supp1InsuranceTypeID { get; set; }
+        [MaxLength(50)]
+        public string? Supp1InsuranceNo { get; set; }
+        public int? Supp2InsuranceTypeID { get; set; }
+        [MaxLength(50)]
+        public string? Supp2InsuranceNo { get; set; }
+
+        /// <summary>شمارهٔ پروندهٔ کاغذی مطب، برای تطبیق با بایگانی سنتی.</summary>
+        [MaxLength(50)]
+        public string? FileNumber { get; set; }
+
+        /// <summary>sms / call / none — ترجیح بیمار برای آگاهی‌رسانی.</summary>
+        [MaxLength(20)]
+        public string? ContactPreference { get; set; }
     }
 }

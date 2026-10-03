@@ -156,6 +156,43 @@ GO
 IF COL_LENGTH(N'dbo.tblPatients',N'PhotoRelativePath') IS NULL
     ALTER TABLE dbo.tblPatients ADD PhotoRelativePath NVARCHAR(500) NULL;
 GO
+
+/* اطلاعات تکمیلی پروندهٔ بیمار — همه اختیاری. نصب‌های موجود امن ارتقا می‌یابند. */
+IF COL_LENGTH(N'dbo.tblPatients',N'BloodType') IS NULL ALTER TABLE dbo.tblPatients ADD BloodType NVARCHAR(5) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'Mobile2') IS NULL ALTER TABLE dbo.tblPatients ADD Mobile2 NVARCHAR(30) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'EmergencyContactName') IS NULL ALTER TABLE dbo.tblPatients ADD EmergencyContactName NVARCHAR(100) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'EmergencyContactRelation') IS NULL ALTER TABLE dbo.tblPatients ADD EmergencyContactRelation NVARCHAR(50) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'EmergencyContactPhone') IS NULL ALTER TABLE dbo.tblPatients ADD EmergencyContactPhone NVARCHAR(30) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'BaseInsuranceTypeID') IS NULL ALTER TABLE dbo.tblPatients ADD BaseInsuranceTypeID INT NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'BaseInsuranceNo') IS NULL ALTER TABLE dbo.tblPatients ADD BaseInsuranceNo NVARCHAR(50) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'Supp1InsuranceTypeID') IS NULL ALTER TABLE dbo.tblPatients ADD Supp1InsuranceTypeID INT NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'Supp1InsuranceNo') IS NULL ALTER TABLE dbo.tblPatients ADD Supp1InsuranceNo NVARCHAR(50) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'Supp2InsuranceTypeID') IS NULL ALTER TABLE dbo.tblPatients ADD Supp2InsuranceTypeID INT NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'Supp2InsuranceNo') IS NULL ALTER TABLE dbo.tblPatients ADD Supp2InsuranceNo NVARCHAR(50) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'FileNumber') IS NULL ALTER TABLE dbo.tblPatients ADD FileNumber NVARCHAR(50) NULL;
+IF COL_LENGTH(N'dbo.tblPatients',N'ContactPreference') IS NULL ALTER TABLE dbo.tblPatients ADD ContactPreference NVARCHAR(20) NULL;
+GO
+
+/* دیکشنری بیمه‌ها: یک جدول برای پایه و تکمیلی، تفکیک با IsSupplementary. */
+IF OBJECT_ID(N'dbo.tblInsuranceTypes',N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.tblInsuranceTypes(
+        InsuranceTypeID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_tblInsuranceTypes PRIMARY KEY,
+        InsuranceTypeName NVARCHAR(100) NOT NULL,
+        IsSupplementary BIT NOT NULL CONSTRAINT DF_tblInsuranceTypes_IsSupplementary DEFAULT(0),
+        IsActive BIT NOT NULL CONSTRAINT DF_tblInsuranceTypes_IsActive DEFAULT(1)
+    );
+    CREATE UNIQUE INDEX UX_tblInsuranceTypes_Name_Kind ON dbo.tblInsuranceTypes(InsuranceTypeName, IsSupplementary);
+END;
+GO
+IF NOT EXISTS(SELECT 1 FROM dbo.tblInsuranceTypes)
+BEGIN
+    INSERT INTO dbo.tblInsuranceTypes(InsuranceTypeName, IsSupplementary) VALUES
+        (N'آزاد / بدون بیمه',0),(N'تأمین اجتماعی',0),(N'خدمات درمانی',0),(N'نیروهای مسلح',0),
+        (N'آسیا',1),(N'پاسارگاد',1),(N'دانا',1),(N'البرز',1),(N'سامان',1),(N'ملت',1),(N'فولاد',1),
+        (N'بانک ملی',1),(N'بانک صادرات',1);
+END;
+GO
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'UX_tblPatients_NationalCode' AND object_id=OBJECT_ID(N'dbo.tblPatients'))
     CREATE UNIQUE INDEX UX_tblPatients_NationalCode ON dbo.tblPatients(NationalCode);
 GO

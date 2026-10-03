@@ -5566,3 +5566,8 @@ body { line-height: 1.75; }
         background: #ffffff;
     }
 }
+/* ??????? ????? — ??? «??????? ??????» (????? ? ???????) */
+.patient-extra-details{margin-top:14px;border:1px solid #dbe7f1;border-radius:12px;background:#f8fbfe;padding:7px 12px}
+.patient-extra-details>summary{cursor:pointer;font-weight:700;color:#215a86;padding:4px 0}
+.patient-extra-details[open]>summary{margin-bottom:10px;border-bottom:1px solid #e3edf5;padding-bottom:7px}
+

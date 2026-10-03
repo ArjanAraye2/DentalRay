@@ -48,12 +48,16 @@ namespace ReSiRai.Api.Controllers
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                string text = search.Trim();
+                // جستجوی فارسی باید نرم باشد: ارقام فارسی/عربی، ی/ي و ک/ك و
+                // فاصلهٔ نیم‌فاصله همه معادل گرفته می‌شوند تا منشی با هر تایپی بیمار را بیابد.
+                string text = NormalizeSearch(search);
                 query = query.Where(p =>
                     p.NationalCode.Contains(text) ||
-                    p.FirstName.Contains(text) ||
-                    p.LastName.Contains(text) ||
-                    (p.Mobile != null && p.Mobile.Contains(text)));
+                    p.FirstName.Replace("ي", "ی").Replace("ك", "ک").Replace("\u200c", " ").Contains(text) ||
+                    p.LastName.Replace("ي", "ی").Replace("ك", "ک").Replace("\u200c", " ").Contains(text) ||
+                    (p.Mobile != null && p.Mobile.Contains(text)) ||
+                    (p.Mobile2 != null && p.Mobile2.Contains(text)) ||
+                    (p.FileNumber != null && p.FileNumber.Contains(text)));
             }
 
             var patients = await query
@@ -123,7 +127,20 @@ namespace ReSiRai.Api.Controllers
                 });
 
             if (await _context.Patients.AnyAsync(p => p.NationalCode == patient.NationalCode))
-                return Conflict(new { success = false, message = "A patient with this NationalCode already exists." });
+                return Conflict(new
+                {
+                    success = false,
+                    duplicate = true,
+                    existing = await _context.Patients.AsNoTracking()
+                        .Where(p => p.NationalCode == patient.NationalCode)
+                        .Select(p => new { p.PatientID, p.NationalCode, p.FirstName, p.LastName, p.BirthDate, p.Gender, p.Mobile, p.Address, p.Description })
+                        .FirstOrDefaultAsync(),
+                    message = "این بیمار از قبل در سامانه ثبت شده است؛ از پروندهٔ موجود استفاده کنید.",
+                    messageEn = "A patient with this NationalCode already exists."
+                });
+
+            var insuranceError = await ValidateInsuranceAsync(patient.BaseInsuranceTypeID, patient.Supp1InsuranceTypeID, patient.Supp2InsuranceTypeID);
+            if (insuranceError != null) return BadRequest(new { success = false, message = insuranceError });
 
             patient.PatientID = 0;
             patient.CreatedDate = DateTime.Now;
@@ -158,6 +175,9 @@ namespace ReSiRai.Api.Controllers
             if (codeChanged && await _context.Patients.AnyAsync(p => p.PatientID != patientID && p.NationalCode == newCode))
                 return Conflict(new { success = false, message = "The new NationalCode already belongs to another patient. Use the Merge operation if these records represent the same patient." });
 
+            var insuranceError = await ValidateInsuranceAsync(request.BaseInsuranceTypeID, request.Supp1InsuranceTypeID, request.Supp2InsuranceTypeID);
+            if (insuranceError != null) return BadRequest(new { success = false, message = insuranceError });
+
             var moved = new List<(string OldRelativePath, string NewRelativePath)>();
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -188,6 +208,19 @@ namespace ReSiRai.Api.Controllers
                 patient.Mobile = request.Mobile;
                 patient.Address = request.Address;
                 patient.Description = request.Description;
+                patient.BloodType = request.BloodType;
+                patient.Mobile2 = request.Mobile2;
+                patient.EmergencyContactName = request.EmergencyContactName;
+                patient.EmergencyContactRelation = request.EmergencyContactRelation;
+                patient.EmergencyContactPhone = request.EmergencyContactPhone;
+                patient.BaseInsuranceTypeID = request.BaseInsuranceTypeID;
+                patient.BaseInsuranceNo = request.BaseInsuranceNo;
+                patient.Supp1InsuranceTypeID = request.Supp1InsuranceTypeID;
+                patient.Supp1InsuranceNo = request.Supp1InsuranceNo;
+                patient.Supp2InsuranceTypeID = request.Supp2InsuranceTypeID;
+                patient.Supp2InsuranceNo = request.Supp2InsuranceNo;
+                patient.FileNumber = request.FileNumber;
+                patient.ContactPreference = request.ContactPreference;
                 patient.ModifiedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
@@ -352,7 +385,19 @@ namespace ReSiRai.Api.Controllers
                 {
                     patient.PatientID, patient.NationalCode, patient.FirstName, patient.LastName,
                     patient.BirthDate, patient.Gender, patient.Mobile, patient.Address,
-                    patient.Description, patient.CreatedDate, patient.ModifiedDate, patient.IsActive
+                    patient.Description, patient.CreatedDate, patient.ModifiedDate, patient.IsActive,
+                    patient.BloodType, patient.Mobile2,
+                    patient.EmergencyContactName, patient.EmergencyContactRelation, patient.EmergencyContactPhone,
+                    patient.BaseInsuranceTypeID, patient.BaseInsuranceNo,
+                    patient.Supp1InsuranceTypeID, patient.Supp1InsuranceNo,
+                    patient.Supp2InsuranceTypeID, patient.Supp2InsuranceNo,
+                    patient.FileNumber, patient.ContactPreference,
+                    BaseInsuranceName = _context.InsuranceTypes.AsNoTracking()
+                        .Where(t => t.InsuranceTypeID == patient.BaseInsuranceTypeID).Select(t => t.InsuranceTypeName).FirstOrDefault(),
+                    Supp1InsuranceName = _context.InsuranceTypes.AsNoTracking()
+                        .Where(t => t.InsuranceTypeID == patient.Supp1InsuranceTypeID).Select(t => t.InsuranceTypeName).FirstOrDefault(),
+                    Supp2InsuranceName = _context.InsuranceTypes.AsNoTracking()
+                        .Where(t => t.InsuranceTypeID == patient.Supp2InsuranceTypeID).Select(t => t.InsuranceTypeName).FirstOrDefault()
                 },
                 studyCount = studyList.Count,
                 totalImageCount,
@@ -532,6 +577,56 @@ namespace ReSiRai.Api.Controllers
             var fullPath = Path.Combine(_storageService.GetRootPath(), path);
             if (!System.IO.File.Exists(fullPath)) return NotFound();
             return PhysicalFile(fullPath, "image/jpeg");
+        }
+
+        // جستجوی نرمِ فارسی: ارقام فارسی/عربی به لاتین، ی/ي و ک/ك یکسان، نیم‌فاصله به فاصله.
+        private static string NormalizeSearch(string value)
+        {
+            var sb = new System.Text.StringBuilder((value ?? string.Empty).Trim().Length);
+            foreach (char ch in (value ?? string.Empty).Trim())
+            {
+                char c = ch switch
+                {
+                    '۰' or '٠' => '0', '۱' or '١' => '1', '۲' or '٢' => '2', '۳' or '٣' => '3',
+                    '۴' or '٤' => '4', '۵' or '٥' => '5', '۶' or '٦' => '6', '۷' or '٧' => '7',
+                    '۸' or '٨' => '8', '۹' or '٩' => '9',
+                    'ي' => 'ی', 'ك' => 'ک', '\u200c' => ' ',
+                    _ => ch
+                };
+                sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        // چهار قانون بیمه: پایه باید پایه باشد، تکمیلی باید تکمیلی باشد،
+        // دو تکمیلی یکسان نباشند و هر نوع فعال باشد.
+        private async Task<string?> ValidateInsuranceAsync(int? baseID, int? supp1ID, int? supp2ID)
+        {
+            if (supp1ID.HasValue && supp2ID.HasValue && supp1ID.Value == supp2ID.Value)
+                return "بیمهٔ تکمیلی ۱ و ۲ نباید یکسان باشند.";
+
+            var ids = new List<int>();
+            if (baseID.HasValue) ids.Add(baseID.Value);
+            if (supp1ID.HasValue) ids.Add(supp1ID.Value);
+            if (supp2ID.HasValue) ids.Add(supp2ID.Value);
+            if (ids.Count == 0) return null;
+
+            var types = await _context.InsuranceTypes.AsNoTracking()
+                .Where(t => ids.Contains(t.InsuranceTypeID))
+                .Select(t => new { t.InsuranceTypeID, t.IsSupplementary, t.IsActive })
+                .ToListAsync();
+
+            if (types.Count != ids.Distinct().Count())
+                return "نوع بیمهٔ انتخاب‌شده معتبر نیست.";
+            if (types.Any(t => !t.IsActive))
+                return "نوع بیمهٔ انتخاب‌شده غیرفعال است.";
+            if (baseID.HasValue && types.First(t => t.InsuranceTypeID == baseID.Value).IsSupplementary)
+                return "بیمهٔ پایه باید از نوع پایه باشد.";
+            if (supp1ID.HasValue && !types.First(t => t.InsuranceTypeID == supp1ID.Value).IsSupplementary)
+                return "بیمهٔ تکمیلی ۱ باید از نوع تکمیلی باشد.";
+            if (supp2ID.HasValue && !types.First(t => t.InsuranceTypeID == supp2ID.Value).IsSupplementary)
+                return "بیمهٔ تکمیلی ۲ باید از نوع تکمیلی باشد.";
+            return null;
         }
 
     }
