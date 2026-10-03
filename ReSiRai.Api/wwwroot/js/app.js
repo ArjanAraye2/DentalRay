@@ -21,7 +21,7 @@ E.lastStudyDateSummary=byId("lastStudyDateSummary");
 E.recentStudiesSummary=byId("recentStudiesSummary");
 // فیلدهای «اطلاعات تکمیلی» بیمار (کشو و ورودی) — به‌صورت صریح به E اضافه می‌شوند
 // چون فهرست ids فقط شناسه‌های موجود در نسخه‌های قدیمی را پوشش می‌دهد.
-["newPatientExtraDetails","editPatientExtraDetails","newBloodType","editBloodType","newMobile2","editMobile2","newFileNumber","editFileNumber","newContactPreference","editContactPreference","newEmergencyContactName","editEmergencyContactName","newEmergencyContactRelation","editEmergencyContactRelation","newEmergencyContactPhone","editEmergencyContactPhone","newBaseInsuranceType","editBaseInsuranceType","newBaseInsuranceNo","editBaseInsuranceNo","newSupp1InsuranceType","editSupp1InsuranceType","newSupp1InsuranceNo","editSupp1InsuranceNo","newSupp2InsuranceType","editSupp2InsuranceType","newSupp2InsuranceNo","editSupp2InsuranceNo","detailBloodType","detailMobile2","detailBaseInsurance","detailSuppInsurance","detailEmergencyContact"].forEach(id=>E[id]=byId(id));
+["newPatientExtraDetails","editPatientExtraDetails","newBloodType","editBloodType","newMobile2","editMobile2","newFileNumber","editFileNumber","newContactPreference","editContactPreference","newEmergencyContactName","editEmergencyContactName","newEmergencyContactRelation","editEmergencyContactRelation","newEmergencyContactPhone","editEmergencyContactPhone","newBaseInsuranceType","editBaseInsuranceType","newBaseInsuranceNo","editBaseInsuranceNo","newSupp1InsuranceType","editSupp1InsuranceType","newSupp1InsuranceNo","editSupp1InsuranceNo","newSupp2InsuranceType","editSupp2InsuranceType","newSupp2InsuranceNo","editSupp2InsuranceNo","detailBloodType","detailMobile2","detailBaseInsurance","detailSuppInsurance","detailEmergencyContact","deletePatientButton"].forEach(id=>E[id]=byId(id));
 
 function hideMainSections(){[E.patientsSection,E.patientDetailsSection,E.studyDetailsSection,E.studyImagesSection,E.newPatientSection,E.editPatientSection,E.newStudySection,E.uploadImageSection,E.mergePatientSection].forEach(x=>x?.classList.add("hidden"));}
 function showPatientsScreen(){hideMainSections();E.patientsSection.classList.remove("hidden");window.scrollTo(0,0);}
@@ -159,7 +159,8 @@ async function deletePatient(patient){
  const fullName=`${patient.firstName||""} ${patient.lastName||""}`.trim();
  if(!await askConfirmation({title:"حذف دائمی بیمار",message:`آیا بیمار «${fullName}» برای همیشه حذف شود؟ این عملیات قابل بازگشت نیست.`,confirmText:"حذف بیمار"}))return;
  try{const r=await fetch(`/api/patients/${patient.patientID}`,{method:"DELETE"});let x={};try{x=await r.json();}catch{}if(!r.ok||!x.success)throw new Error(getApiError(x,"حذف بیمار انجام نشد."));
-  if(selectedPatientID===patient.patientID){selectedPatientID=null;selectedPatient=null;selectedStudyID=null;selectedStudy=null;E.patientDetailsSection.classList.add("hidden");}
+  showPatientsScreen();
+  if(selectedPatientID===patient.patientID){selectedPatientID=null;selectedPatient=null;selectedStudyID=null;selectedStudy=null;}
   await loadPatients(E.patientSearch.value);showToast("بیمار با موفقیت حذف شد.","success");
  }catch(e){showToast(e.message||"حذف بیمار انجام نشد.","error");}
 }
@@ -959,6 +960,7 @@ E.studyDetailsUploadButton?.addEventListener("click",()=>{if(selectedStudy)openU
 E.editPatientButton?.addEventListener("click",openEditPatientForm);
 E.printPatientButton?.addEventListener("click",printPatientInformation);
 E.deactivatePatientButton?.addEventListener("click",togglePatientActiveStatus);
+E.deletePatientButton?.addEventListener("click",()=>{if(selectedPatient)deletePatient(selectedPatient);});
 E.mergePatientButton?.addEventListener("click",openMergePatientForm);
 E.editPatientForm?.addEventListener("submit",e=>{e.preventDefault();updatePatient();});
 E.newStudyForm?.addEventListener("submit",e=>{e.preventDefault();createStudy();});
