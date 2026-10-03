@@ -125,9 +125,10 @@ async function loadPatients(search="",{append=false}={}){
   // Reminder filters: patients with work outstanding, and follow-ups that are due.
   if(E.openStudiesOnly?.checked)q.set("openOnly","true");
   if(E.dueFollowUpOnly?.checked)q.set("dueOnly","true");
-  if(patientListState.offset>0&&!append)q.set("offset",String(patientListState.offset));
-  else if(append)q.set("offset",String(patientListState.offset));
   if(patientListState.sortBy){q.set("sortBy",patientListState.sortBy);q.set("sortDir",patientListState.sortDir);}
+  // «بیشتر»: صفحهٔ بعد از offsetِ قبلی ادامه می‌دهد؛ هر فراخوانیِ تازه از صفر می‌آید.
+  if(append)q.set("offset",String(patientListState.offset));
+  else patientListState.offset=0;
   const myToken=++patientListState.searchToken;
   const r=await fetch(`/api/patients?${q}`),x=await readApiJson(r);if(!r.ok)throw new Error(apiErrorMessage(r,x,"خطا در دریافت بیماران."));
   if(myToken!==patientListState.searchToken)return; // پاسخِ یک درخواست قدیمی؛ نادیده.
