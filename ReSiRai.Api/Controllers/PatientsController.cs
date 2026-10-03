@@ -348,6 +348,20 @@ namespace ReSiRai.Api.Controllers
 
             Console.WriteLine($"[ReSiRai PatientDetails] STUDIES loaded Count={studies.Count}");
             var studyIDs = studies.Select(s => s.StudyID).ToList();
+
+            // نمای مشتق: بارداری/شیردهی در سطحِ مراجعه ثبت می‌شود (فاکتور HIST.PREG).
+            // پروندهٔ بیمار فقط «آخرین وضعیتِ قابل‌دیدنِ همین کاربر» را به‌عنوان نما
+            // با تاریخ ثبتش نشان می‌دهد؛ منبعِ حقیقت همان مقدارِ مراجعه است و اینجا
+            // چیزی مستقل ذخیره نمی‌شود. کوئری از accessibleStudies می‌آید، پس هرگز
+            // مقدارِ مراجعهٔ پزشکِ دیگری به این نما راه نمی‌یابد.
+            var pregnancy = await (
+                from v in _context.StudyFactorValues.AsNoTracking()
+                join f in _context.ClinicalFactors.AsNoTracking() on v.FactorID equals f.FactorID
+                join s in accessibleStudies on v.StudyID equals s.StudyID
+                where f.FactorCode == "HIST.PREG"
+                orderby v.ObservedAt descending
+                select new { v.ValueNumber, v.ValueText, v.ObservedAt, s.StudyDate }
+            ).FirstOrDefaultAsync();
             // «کارت سابقه» سند است: هنگامِ ثبتِ مراجعه اسکن می‌شود، در گریدِ تصاویر
             // دیده نمی‌شود و جزءِ شمارشِ تصاویر هم نیست.
             const string cardImageTypeName = "کارت سابقه";
@@ -425,6 +439,16 @@ namespace ReSiRai.Api.Controllers
                     patient.Supp1InsuranceTypeID, patient.Supp1InsuranceNo,
                     patient.Supp2InsuranceTypeID, patient.Supp2InsuranceNo,
                     patient.FileNumber, patient.ContactPreference,
+                    PregnancyStatus = pregnancy == null || pregnancy.ValueNumber == null
+                        ? null
+                        : pregnancy.ValueNumber.Value switch
+                        {
+                            1 => "باردار",
+                            2 => "شیرده",
+                            _ => null
+                        },
+                    PregnancyObservedAt = pregnancy?.ObservedAt,
+                    PregnancyStudyDate = pregnancy?.StudyDate,
                     BaseInsuranceName = _context.InsuranceTypes.AsNoTracking()
                         .Where(t => t.InsuranceTypeID == patient.BaseInsuranceTypeID).Select(t => t.InsuranceTypeName).FirstOrDefault(),
                     Supp1InsuranceName = _context.InsuranceTypes.AsNoTracking()

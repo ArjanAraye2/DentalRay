@@ -36,7 +36,7 @@
 })();
 </script>
     <link rel="stylesheet" href="/css/fonts.css?v=20261001.19" />
-    <link rel="stylesheet" href="/css/site.css?v=20261001.19" />
+    <link rel="stylesheet" href="/css/site.css?v=20261004.1" />
     <link rel="stylesheet" href="/css/study-finance.css?v=20261001.19" />
 <link rel="stylesheet" href="/css/factors.css?v=20261004.2" />
     <!-- Loaded up-front so Study/Teeth forms never flash unstyled; the JS
@@ -94,6 +94,9 @@
         <div class="patient-identity-copy"><h2 id="patientFullName">پرونده بیمار</h2><p id="patientDisplayCode" class="patient-identity-line">شناسه پرونده: -</p><span id="patientStatusBadge" class="status-badge"></span></div>
         <div class="patient-photo-action"><p id="patientNationalCode">کد ملی: -</p><input id="patientPhotoInput" type="file" accept="image/*" capture="environment" class="hidden" /><button id="patientPhotoButton" type="button">تغییر تصویر</button></div>
       </div>
+      <!-- بنر ایمنی: گروه خونیِ ثبت‌شده همان‌جایی می‌درخشد که چشمِ پزشک اول می‌افتد؛
+           نه برایِ قشنگی، برایِ اینکه در لحظهٔ تصاحب پرونده دیده شود. -->
+      <div id="patientSafetyBanner" class="patient-safety-banner hidden"><span class="patient-safety-icon">🩸</span><div><strong id="patientSafetyBloodType">-</strong><small id="patientSafetyHint">گروه خونی ثبت‌شدهٔ بیمار</small></div></div>
       <details class="patient-info-more">
         <summary>اطلاعات کامل بیمار</summary>
         <div class="patient-info-grid">
@@ -109,6 +112,9 @@
           <div class="info-item"><span class="info-label">بیمهٔ پایه:</span><span id="detailBaseInsurance">-</span></div>
           <div class="info-item"><span class="info-label">بیمهٔ تکمیلی:</span><span id="detailSuppInsurance">-</span></div>
           <div class="info-item"><span class="info-label">تماس اضطراری:</span><span id="detailEmergencyContact">-</span></div>
+          <div class="info-item"><span class="info-label">شماره پروندهٔ مطب:</span><span id="detailFileNumber">-</span></div>
+          <div class="info-item"><span class="info-label">ترجیح اطلاع‌رسانی:</span><span id="detailContactPreference">-</span></div>
+          <div class="info-item"><span class="info-label">بارداری/شیردهی:</span><span id="detailPregnancyStatus">-</span></div>
           <div class="info-item patient-detail-hidden"><span class="info-label">وضعیت:</span><span id="detailIsActive">-</span></div>
           <div class="info-item full-width"><span class="info-label">آدرس:</span><span id="detailAddress">-</span></div>
           <div class="info-item full-width"><span class="info-label">توضیحات:</span><span id="detailDescription">-</span></div>
@@ -279,7 +285,7 @@ window.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <script src="/js/login-ui.js?v=20261003.10"></script>
-<script src="/js/app.js?v=20261004.7"></script>
+<script src="/js/app.js?v=20261004.8"></script>
 <script src="/js/study-delete.js?v=20261001.19"></script>
 <script src="/js/study-finance.js?v=20261001.19"></script>
 <script src="/js/study-lab-tests.js?v=20261001.19"></script>

@@ -3414,6 +3414,25 @@ table button {
     background: linear-gradient(135deg, #eef8fb 0%, #eef8fb 52%, #e8f8f0 100%);
 }
 
+/* بنر ایمنی گروه خونی: بلافاصله زیر هویت بیمار؛ رنگ قرمزِ آرام، نه فریادی. */
+#patientsSection + #patientDetailsSection .patient-safety-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 1px solid #e7c3c8;
+    border-radius: 12px;
+    background: #fdf1f2;
+}
+#patientsSection + #patientDetailsSection .patient-safety-banner.hidden { display: none; }
+#patientsSection + #patientDetailsSection .patient-safety-banner .patient-safety-icon { font-size: 22px; line-height: 1; }
+#patientsSection + #patientDetailsSection .patient-safety-banner strong { display: block; color: #8d2d38; font-size: 16px; }
+#patientsSection + #patientDetailsSection .patient-safety-banner small { display: block; color: #96555e; font-size: 12px; margin-top: 2px; }
+#patientsSection + #patientDetailsSection .patient-safety-banner.unknown { border-color: #d9d3c3; background: #faf6e9; }
+#patientsSection + #patientDetailsSection .patient-safety-banner.unknown strong { color: #8a7330; }
+#patientsSection + #patientDetailsSection .patient-safety-banner.unknown small { color: #968450; }
+
 #patientsSection + #patientDetailsSection .patient-identity-hero .patient-photo-frame {
     grid-area: photo;
     width: 126px;
@@ -5566,7 +5585,7 @@ body { line-height: 1.75; }
         background: #ffffff;
     }
 }
-/* ??????? ????? � ??? �??????? ??????� (????? ? ???????) */
+/* ??????? ????? � ??? �??????? ??????� (????? ? ???????) */
 .patient-extra-details{margin-top:14px;border:1px solid #dbe7f1;border-radius:12px;background:#f8fbfe;padding:7px 12px}
 .patient-extra-details>summary{cursor:pointer;font-weight:700;color:#215a86;padding:4px 0}
 .patient-extra-details[open]>summary{margin-bottom:10px;border-bottom:1px solid #e3edf5;padding-bottom:7px}
