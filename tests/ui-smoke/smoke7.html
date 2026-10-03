@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><title>smoke7</title></head>
+<body>
+<!-- رگرسیونِ باگِ ۱۴۰۵/۰۷/۱۲ «فهرستِ خالیِ بیماران»: offsetِ به‌جامانده از
+     فراخوانیِ قبلی در state می‌ماند و در فراخوانیِ تازه هم به سرور فرستاده
+     می‌شد؛ سرور Skip(offset) می‌زد و وقتی تعدادِ بیماران ≤ offset بود، فهرستِ
+     خالی برمی‌گشت. این آزمون قراردادِ UI↔API را قفل می‌کند:
+       ۱) فراخوانیِ تازه (بدونِ append) هرگز پارامترِ offset ندارد.
+       ۲) فقط «نمایش بیشتر» است که offset را ادامه می‌دهد.
+     app.js در این صفحه واقعاً اجرا می‌شود (کپیِ تازه از wwwroot توسط
+     verify.ps1) و استابِ fetch، درخواست‌ها را ضبط می‌کند. -->
+<script>
+  // استابِ fetch: پاسخِ صفحهٔ اول و صفحهٔ دومِ ساختگی؛ URLها ضبط می‌شوند.
+  window.__requests = [];
+  (function(){
+    const json = obj => new Response(JSON.stringify(obj), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const realFetch = window.fetch.bind(window);
+    window.fetch = function(url, opts){
+      const u = String(url);
+      if (u.indexOf('/api/patients') >= 0) {
+        window.__requests.push(u);
+        // صفحهٔ اول: دو بیمار؛ صفحهٔ بعدی: یک بیمار.
+        const secondPage = u.indexOf('offset=') >= 0 && u.indexOf('offset=0') < 0;
+        const patients = secondPage
+          ? [{ patientID: 3, firstName: 'ج', lastName: 'د', mobile: '3', nationalCode: '3', birthDate: null, studyCount: 0, openStudyCount: 0, dueFollowUpCount: 0 }]
+          : [{ patientID: 1, firstName: 'ا', lastName: 'ب', mobile: '1', nationalCode: '1', birthDate: null, studyCount: 0, openStudyCount: 0, dueFollowUpCount: 0 },
+             { patientID: 2, firstName: 'ب', lastName: 'پ', mobile: '2', nationalCode: '2', birthDate: null, studyCount: 0, openStudyCount: 0, dueFollowUpCount: 0 }];
+        return Promise.resolve(json({ success: true, count: patients.length, totalCount: 3, offset: secondPage ? 2 : 0, pageSize: 100, hasMore: !secondPage, statistics: {}, patients }));
+      }
+      if (u.indexOf('/api/auth/me') >= 0)
+        return Promise.resolve(json({ success: true, user: { userID: 1, userName: '0010000001', staffID: 1, firstName: 'ت', lastName: 'آ', staffType: 1, isSuperAdmin: false, viewReports: false } }));
+      return realFetch(url, opts);
+    };
+  })();
+</script>
+<!-- DOM باید قبل از app.js ساخته شود؛ app.js هنگامِ بارگذاری به دکمه‌ها می‌چسبد. -->
+<section id="patientsSection"><table class="patient-table patient-table-compact"><thead><tr><th>بیمار</th><th>تماس</th><th>بیمه</th><th>مراجعات</th><th>آخرین مراجعه</th><th>پیگیری</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="patientsTableBody"></tbody></table></section>
+<div id="statusMessage" class="status-message"></div>
+<div class="search-panel"><input id="patientSearch" type="text" /><button id="searchButton" type="button"></button><button id="clearSearchButton" type="button"></button><button id="newPatientButton" type="button"></button></div>
+<label class="checkbox-row"><input id="includeInactivePatients" type="checkbox" /></label>
+<label class="checkbox-row"><input id="openStudiesOnly" type="checkbox" /></label>
+<label class="checkbox-row"><input id="dueFollowUpOnly" type="checkbox" /></label>
+<span id="statTotalPatients"></span><span id="statActivePatients"></span><span id="statInactivePatients"></span><span id="statPatientsWithStudies"></span><span id="statPatientsWithOpenStudies"></span>
+<!-- فرم‌ها و بخش‌هایی که app.js در راه‌اندازی به آن‌ها می‌چسبد -->
+<form id="newPatientForm"></form><form id="editPatientForm"></form><form id="newStudyForm"></form><form id="uploadImageForm"></form><form id="mergePatientForm"></form>
+<button id="backToPatientsButton" type="button"></button><button id="cancelNewPatientButton" type="button"></button><button id="cancelNewPatientButtonBottom" type="button"></button><button id="cancelEditPatientButton" type="button"></button><button id="cancelEditPatientButtonBottom" type="button"></button><button id="cancelNewStudyButton" type="button"></button><button id="cancelNewStudyButtonBottom" type="button"></button><button id="cancelUploadImageButton" type="button"></button><button id="cancelUploadImageButtonBottom" type="button"></button><button id="cancelMergePatientButton" type="button"></button><button id="cancelMergePatientButtonBottom" type="button"></button>
+<section id="patientDetailsSection" class="hidden"></section><section id="newPatientSection" class="hidden"></section><section id="newStudySection" class="hidden"></section><section id="uploadImageSection" class="hidden"></section><section id="mergePatientSection" class="hidden"></section><section id="studyDetailsSection" class="hidden"></section><section id="studyImagesSection" class="hidden"></section>
+<input id="imageFileInput" type="file" /><input id="cameraFileInput" type="file" /><div id="cameraPreviewPanel" class="hidden"></div>
+<!-- نمایشگر تصویر و دکمه‌های کنترل -->
+<div id="imageModal"><img id="largeImage" /></div>
+<button id="zoomInImageButton" type="button"></button><button id="zoomOutImageButton" type="button"></button><button id="rotateLeftImageButton" type="button"></button><button id="rotateRightImageButton" type="button"></button><button id="flipHorizontalImageButton" type="button"></button><button id="resetImageViewButton" type="button"></button><button id="closeImageModalButton" type="button"></button>
+<div id="toastContainer"></div>
+<script src="/app.js"></script>
+<script>
+(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const out = {};
+  // شبیه‌سازی ورود: smoke مستقل از login-ui است؛ کاربر را مستقیم می‌گذاریم و
+  // همان رویدادی را می‌زنیم که app.js به آن گوش می‌دهد (loadApplicationData).
+  window.reSiRaiCurrentUser = { userID: 1, userName: '0010000001', staffID: 1, firstName: 'ت', lastName: 'آ', staffType: 1, isSuperAdmin: false, viewReports: false };
+  window.dispatchEvent(new CustomEvent('resirai-auth-changed', { detail: window.reSiRaiCurrentUser }));
+  await wait(800);
+
+  // ۱) فراخوانیِ تازهٔ اول: باید بدونِ offset باشد و ردیف‌ها را بسازد.
+  window.__requests.length = 0;
+  await wait(1500);
+  out.firstRows = document.querySelectorAll('#patientsTableBody tr').length;
+  out.firstHadOffset = window.__requests.some(u => u.indexOf('offset=') >= 0);
+
+  // ۲) فراخوانیِ «نمایش بیشتر»: باید offset داشته باشد و ردیف سومی را بچسباند.
+  const more = document.getElementById('patientsLoadMoreBox')?.querySelector('button');
+  out.moreButtonExists = !!more;
+  if (more) { window.__requests.length = 0; more.click(); await wait(600); }
+  out.moreRows = document.querySelectorAll('#patientsTableBody tr').length;
+  out.moreHadOffset = window.__requests.some(u => u.indexOf('offset=') >= 0);
+
+  // ۳) همان سناریوی باگ: فراخوانیِ «تازه» پس از فراخوانیِ «بیشتر».
+  //    state.offset حالا ۳ است؛ فراخوانیِ تازه نباید آن را بفرستد و باید
+  //    دوباره از اول بسازد (نه فهرستِ خالی).
+  const search = document.getElementById('patientSearch');
+  window.__requests.length = 0;
+  search.value = 'ب';
+  search.dispatchEvent(new Event('input'));
+  await wait(900);
+  out.freshAfterMoreHadOffset = window.__requests.some(u => u.indexOf('offset=') >= 0);
+  out.freshAfterMoreRows = document.querySelectorAll('#patientsTableBody tr').length;
+
+  const pass = out.firstRows === 2 && out.firstHadOffset === false
+    && out.moreButtonExists && out.moreHadOffset && out.moreRows === 3
+    && out.freshAfterMoreHadOffset === false && out.freshAfterMoreRows >= 1;
+  document.title = (pass ? 'SMOKE7-PASS' : 'SMOKE7-FAIL')
+    + ' first=' + out.firstRows + '/' + out.firstHadOffset
+    + ' more=' + out.moreRows + '/' + out.moreHadOffset
+    + ' fresh=' + out.freshAfterMoreRows + '/' + out.freshAfterMoreHadOffset;
+})();
+</script>
+</body>
+</html>
