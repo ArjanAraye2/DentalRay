@@ -116,16 +116,24 @@ function createPatientStatusCell(patient){
  const td=document.createElement("td"),badge=document.createElement("span");
  badge.className=`status-badge ${patient.isActive?"active":"inactive"}`;badge.textContent=patient.isActive?"فعال":"غیرفعال";td.appendChild(badge);return td;
 }
-async function loadPatients(search=""){
+// وضعیت فهرست بیماران: صفحه، سورت و جستجوی زنده — بین فراخوانی‌ها حفظ می‌شود.
+const patientListState={offset:0,sortBy:"",sortDir:"asc",searchToken:0};
+async function loadPatients(search="",{append=false}={}){
  try{
-  setFormStatus(E.statusMessage,"در حال دریافت اطلاعات...",false);
+  if(!append)setFormStatus(E.statusMessage,"در حال دریافت اطلاعات...",false);
   const q=new URLSearchParams();if(search.trim())q.set("search",search.trim());q.set("includeInactive",E.includeInactivePatients.checked);
   // Reminder filters: patients with work outstanding, and follow-ups that are due.
   if(E.openStudiesOnly?.checked)q.set("openOnly","true");
   if(E.dueFollowUpOnly?.checked)q.set("dueOnly","true");
+  if(patientListState.offset>0&&!append)q.set("offset",String(patientListState.offset));
+  else if(append)q.set("offset",String(patientListState.offset));
+  if(patientListState.sortBy){q.set("sortBy",patientListState.sortBy);q.set("sortDir",patientListState.sortDir);}
+  const myToken=++patientListState.searchToken;
   const r=await fetch(`/api/patients?${q}`),x=await readApiJson(r);if(!r.ok)throw new Error(apiErrorMessage(r,x,"خطا در دریافت بیماران."));
+  if(myToken!==patientListState.searchToken)return; // پاسخِ یک درخواست قدیمی؛ نادیده.
   const s=x.statistics||{};E.statTotalPatients.textContent=s.totalPatients??0;E.statActivePatients.textContent=s.activePatients??0;E.statInactivePatients.textContent=s.inactivePatients??0;E.statPatientsWithStudies.textContent=s.patientsWithStudies??0;E.statPatientsWithOpenStudies.textContent=s.patientsWithOpenStudies??0;
-  E.patientsTableBody.replaceChildren();
+  if(!append)E.patientsTableBody.replaceChildren();
+  document.getElementById("patientsLoadMoreBox")?.remove();
   (x.patients||x||[]).forEach(p=>{
    const tr=document.createElement("tr");tr.tabIndex=0;tr.className="patient-list-row";tr.title="نمایش پرونده و مطالعات بیمار";
    const insurance = p.baseInsuranceName ? p.baseInsuranceName : (p.baseInsuranceTypeID ? "دارد" : "—");
@@ -152,8 +160,19 @@ async function loadPatients(search=""){
    tr.onclick=e=>{if(e.target.closest("button"))return;select();};tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select();}};
    E.patientsTableBody.appendChild(tr);
   });
-  setFormStatus(E.statusMessage,"",false);
- }catch(e){setFormStatus(E.statusMessage,e.message,true);}
+  patientListState.offset=(x.offset||0)+(x.count||0);
+  // سقفِ پنهانِ ۱۰۰ تایی دیگر پنهان نیست: شمارِ کل و دکمهٔ «بیشتر».
+  const total=x.totalCount??(x.patients||[]).length;
+  if(x.hasMore){
+   const box=document.createElement("div");box.id="patientsLoadMoreBox";box.className="patients-load-more";
+   const more=document.createElement("button");more.type="button";more.className="secondary-button";
+   more.textContent=`نمایش بیشتر (${(total-patientListState.offset).toLocaleString("fa-IR")} بیمار دیگر — کل ${(total).toLocaleString("fa-IR")})`;
+   more.addEventListener("click",()=>loadPatients(search,{append:true}));
+   box.appendChild(more);
+   E.patientsTableBody.parentElement.appendChild(box);
+  }
+  if(!append)setFormStatus(E.statusMessage,total>0?`${total.toLocaleString("fa-IR")} بیمار در فهرست`:"",false);
+ }catch(e){if(!append)setFormStatus(E.statusMessage,e.message,true);}
 }
 async function deletePatient(patient){
  const fullName=`${patient.firstName||""} ${patient.lastName||""}`.trim();
@@ -941,9 +960,34 @@ function openMergePatientForm(){E.mergePatientForm.reset();setFormStatus(E.merge
 async function mergePatient(){try{const code=normalizeDigits(E.mergeTargetNationalCode.value.trim());const tr=await fetch(`/api/patients/${encodeURIComponent(code)}`),target=await readApiJson(tr);if(!tr.ok)throw new Error(apiErrorMessage(tr,target,"بیمار مقصد پیدا نشد."));if(!await askConfirmation({title:"تأیید ادغام بیمار",message:`مبدأ: ${selectedPatient.nationalCode}\nمقصد: ${target.nationalCode}\nتمام مراجعه‌ها و تصاویر منتقل می‌شوند.`,confirmText:"انجام ادغام"}))return;const r=await fetch("/api/patients/merge",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sourcePatientID:selectedPatientID,targetPatientID:target.patientID})}),x=await readApiJson(r);if(!r.ok||!x.success)throw new Error(apiErrorMessage(r,x,"ادغام انجام نشد."));await loadPatients();await openPatient(target.patientID);showToast("ادغام با موفقیت انجام شد.");}catch(e){setFormStatus(E.mergePatientStatus,e.message,true);}}
 
 enableJalaliDateMask(E.newBirthDate);enableJalaliDateMask(E.editBirthDate);enableJalaliDateTimeMask(E.newStudyDate);enableJalaliDateMask(E.newFollowUpDate);enableJalaliDateMask(E.studyDetailsFollowUpDate);attachStatusToggle("new");attachStatusToggle("edit");window.ReSiRaiJalali?.enhanceAll(document);syncFollowUpVisibility("new");syncFollowUpVisibility("edit");
-E.searchButton.onclick=()=>loadPatients(E.patientSearch.value);E.clearSearchButton.onclick=()=>{E.patientSearch.value="";loadPatients();};E.patientSearch.onkeydown=e=>{if(e.key==="Enter")loadPatients(E.patientSearch.value);};E.includeInactivePatients.onchange=()=>loadPatients(E.patientSearch.value);
-E.openStudiesOnly.onchange=()=>loadPatients(E.patientSearch.value);
-E.dueFollowUpOnly.onchange=()=>{E.openStudiesOnly.checked=E.dueFollowUpOnly.checked||E.openStudiesOnly.checked;loadPatients(E.patientSearch.value);};E.newPatientButton.onclick=openNewPatientForm;E.newPatientForm.onsubmit=e=>{e.preventDefault();createPatient();};E.backToPatientsButton.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();showPatientsScreen();});
+// ---- فهرست بیماران: جستجوی زنده، سورت کلیکی و صفحابندی ---------------------
+// هر تغییر فیلتر/جستجو/سورت، صفحۀ فعلی را صفر می‌کند تا نتیجه‌ها جابه‌جا نشوند.
+function resetPatientList(){patientListState.offset=0;}
+E.searchButton.onclick=()=>{resetPatientList();loadPatients(E.patientSearch.value);};E.clearSearchButton.onclick=()=>{resetPatientList();E.patientSearch.value="";loadPatients();};E.patientSearch.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();resetPatientList();loadPatients(E.patientSearch.value);}};
+// جستجوی زنده: ۳۵۰ میلی‌ثانیه بعد از آخرین تایپ؛ درخواست‌های قدیمی با توکن رها می‌شوند.
+let patientSearchTimer=null;
+E.patientSearch.oninput=()=>{clearTimeout(patientSearchTimer);patientSearchTimer=setTimeout(()=>{resetPatientList();loadPatients(E.patientSearch.value);},350);};
+E.includeInactivePatients.onchange=()=>{resetPatientList();loadPatients(E.patientSearch.value);};
+// ---- سورتِ کلیکی سرستون‌های فهرست بیماران ----------------------------------
+// ستون‌های قابلِ سورت با data-sort مشخص می‌شوند؛ کلیک مجدد جهت را برمی‌گرداند.
+(function setupPatientSort(){
+ const table=document.querySelector(".patient-table-compact");if(!table)return;
+ const sortable=[["0","firstname"],["1","nationalcode"],["3","studies"],["4","lastvisit"]];
+ sortable.forEach(([colIndex,key])=>{
+  const th=table.querySelector(`thead th:nth-child(${Number(colIndex)+1})`);if(!th)return;
+  th.dataset.sort=key;th.classList.add("patient-sortable");th.title="برای مرتب‌سازی کلیک کنید";
+  th.addEventListener("click",()=>{
+   if(patientListState.sortBy===key)patientListState.sortDir=patientListState.sortDir==="asc"?"desc":"asc";
+   else{patientListState.sortBy=key;patientListState.sortDir="asc";}
+   resetPatientList();
+   table.querySelectorAll("thead th").forEach(x=>{x.classList.remove("sort-asc","sort-desc");delete x.dataset.arrow;});
+   th.classList.add(patientListState.sortDir==="asc"?"sort-asc":"sort-desc");
+   loadPatients(E.patientSearch.value);
+  });
+ });
+})();
+E.openStudiesOnly.onchange=()=>{resetPatientList();loadPatients(E.patientSearch.value);};
+E.dueFollowUpOnly.onchange=()=>{E.openStudiesOnly.checked=E.dueFollowUpOnly.checked||E.openStudiesOnly.checked;resetPatientList();loadPatients(E.patientSearch.value);};E.newPatientButton.onclick=openNewPatientForm;E.newPatientForm.onsubmit=e=>{e.preventDefault();createPatient();};E.backToPatientsButton.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();showPatientsScreen();});
 E.backToPatientDetailsButton?.addEventListener("click",()=>openPatient(selectedPatientID));
 E.backToStudyDetailsButton?.addEventListener("click",()=>{if(selectedStudy)openStudyDetails(selectedStudy);});
 E.studyDetailsImagesButton?.addEventListener("click",()=>{if(selectedStudy)openStudyImages(selectedStudy);});

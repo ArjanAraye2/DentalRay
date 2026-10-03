@@ -24,7 +24,8 @@ namespace ReSiRai.Api.Controllers
         // Patient identity/basic information is shared among authenticated ReSiRai users.
         // StudyAccessService is deliberately NOT applied to Patient discovery.
         [HttpGet]
-        public async Task<IActionResult> GetPatients(string? search = null, bool includeInactive = false, bool openOnly = false, bool dueOnly = false)
+        public async Task<IActionResult> GetPatients(string? search = null, bool includeInactive = false, bool openOnly = false, bool dueOnly = false,
+            int offset = 0, string? sortBy = null, string? sortDir = null)
         {
             // Statistics describe the complete patient population, while the list below
             // still respects the current search/include-inactive filters.
@@ -60,9 +61,34 @@ namespace ReSiRai.Api.Controllers
                     (p.FileNumber != null && p.FileNumber.Contains(text)));
             }
 
-            var patients = await query
-                .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
-                .Take(100)
+            // سورت کلیکی: فهرست ستون‌های مجاز، جهت صعودی/نزولی. مقدار پیش‌فرض
+            // همان نام‌خانوادگیِ قبلی است تا رفتار فعلی تغییر نکند.
+            bool descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+            IOrderedQueryable<Patient> ordered = (sortBy ?? "").Trim().ToLowerInvariant() switch
+            {
+                "lastvisit" => descending
+                    ? query.OrderByDescending(p => _context.RadiologyStudies.Where(s => s.PatientID == p.PatientID).Select(s => (DateTime?)s.StudyDate).Max() ?? DateTime.MinValue)
+                    : query.OrderBy(p => _context.RadiologyStudies.Where(s => s.PatientID == p.PatientID).Select(s => (DateTime?)s.StudyDate).Max() ?? DateTime.MinValue),
+                "studies" => descending
+                    ? query.OrderByDescending(p => _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID))
+                    : query.OrderBy(p => _context.RadiologyStudies.Count(s => s.PatientID == p.PatientID)),
+                "mobile" => descending ? query.OrderByDescending(p => p.Mobile) : query.OrderBy(p => p.Mobile),
+                "nationalcode" => descending ? query.OrderByDescending(p => p.NationalCode) : query.OrderBy(p => p.NationalCode),
+                "firstname" => descending ? query.OrderByDescending(p => p.FirstName) : query.OrderBy(p => p.FirstName),
+                _ => descending
+                    ? query.OrderByDescending(p => p.LastName).ThenByDescending(p => p.FirstName)
+                    : query.OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
+            };
+
+            // صفحابندی: تعداد کلِ نتیجهٔ فیلترشده برمی‌گردد تا UI بداند بازگشت
+            // «بیشتر» چه‌قدر باقی است؛ سقفِ هر صفحه ۱۰۰ است.
+            const int pageSize = 100;
+            offset = Math.Max(0, offset);
+            int totalCount = await ordered.CountAsync();
+
+            var patients = await ordered
+                .Skip(offset)
+                .Take(pageSize)
                 .Select(p => new
                 {
                     p.PatientID, p.NationalCode, p.FirstName, p.LastName,
@@ -100,6 +126,10 @@ namespace ReSiRai.Api.Controllers
             {
                 success = true,
                 count = patients.Count,
+                totalCount,
+                offset,
+                pageSize,
+                hasMore = offset + patients.Count < totalCount,
                 statistics = new { totalPatients, activePatients, inactivePatients, patientsWithStudies, patientsWithOpenStudies },
                 patients
             });
