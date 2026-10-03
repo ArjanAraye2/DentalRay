@@ -512,7 +512,9 @@ button {
     }
 
     .form-field textarea {
-        min-height: 96px;
+        /* ارتفاعِ ثابتِ بزرگ حذف شد: جعبه به‌اندازهٔ متنِ داخلش باز می‌شود
+           (field-sizing در پایینِ فایل)؛ اینجا فقط فاصلهٔ خط و کفِ حداقلی می‌ماند. */
+        min-height: 2.4em;
         line-height: 1.85;
     }
 
@@ -534,7 +536,7 @@ button {
 
     .form-field textarea {
         resize: vertical;
-        min-height: 90px;
+        min-height: 2.4em;
     }
 
 
@@ -3545,9 +3547,22 @@ table button {
    که واقعاً لازم است. */
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width {
     align-items: flex-start;
+    /* جعبهٔ خالی/کوتاه هم‌قدِ بقیهٔ ردیف‌ها بماند (padding عمودی نصف شود چون
+       flex خودش فاصلهٔ عمودی اضافه نمیدهد). */
+    padding-block: 3px;
 }
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item.full-width .info-label {
     padding-top: 2px;
+}
+
+/* فرمهای بیمار (ثبت/ویرایش): جعبهٔ آدرس و توضیحات به‌اندازهٔ متنِ داخلش باز
+   می‌شود — خالی = یک خط، پر = چند خط. مرورگرهای بدونِ field-sizing مقدار rows
+   را به‌عنوانِ سقفِ پیش‌فرض نگه می‌دارند. */
+textarea {
+    field-sizing: content;
+    min-height: 2.6em;
+    max-height: 22em;
+    resize: vertical;
 }
 
 #patientsSection + #patientDetailsSection .patient-overview-identity .info-item:nth-child(4) {
