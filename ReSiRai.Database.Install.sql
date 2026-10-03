@@ -173,7 +173,9 @@ IF COL_LENGTH(N'dbo.tblPatients',N'FileNumber') IS NULL ALTER TABLE dbo.tblPatie
 IF COL_LENGTH(N'dbo.tblPatients',N'ContactPreference') IS NULL ALTER TABLE dbo.tblPatients ADD ContactPreference NVARCHAR(20) NULL;
 GO
 
-/* دیکشنری بیمه‌ها: یک جدول برای پایه و تکمیلی، تفکیک با IsSupplementary. */
+/* دیکشنری بیمه‌ها: یک جدول برای پایه و تکمیلی، تفکیک با IsSupplementary.
+   درجِ هر ردیف فقط در نبودِ همان نام و نوع انجام می‌شود؛ پس اجرای دوبارهٔ
+   این فایل و ردیف‌های اضافه‌شدهٔ مدیر مشکلی ایجاد نمی‌کند. */
 IF OBJECT_ID(N'dbo.tblInsuranceTypes',N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tblInsuranceTypes(
@@ -185,13 +187,68 @@ BEGIN
     CREATE UNIQUE INDEX UX_tblInsuranceTypes_Name_Kind ON dbo.tblInsuranceTypes(InsuranceTypeName, IsSupplementary);
 END;
 GO
-IF NOT EXISTS(SELECT 1 FROM dbo.tblInsuranceTypes)
-BEGIN
-    INSERT INTO dbo.tblInsuranceTypes(InsuranceTypeName, IsSupplementary) VALUES
-        (N'آزاد / بدون بیمه',0),(N'تأمین اجتماعی',0),(N'خدمات درمانی',0),(N'نیروهای مسلح',0),
-        (N'آسیا',1),(N'پاسارگاد',1),(N'دانا',1),(N'البرز',1),(N'سامان',1),(N'ملت',1),(N'فولاد',1),
-        (N'بانک ملی',1),(N'بانک صادرات',1);
-END;
+INSERT INTO dbo.tblInsuranceTypes(InsuranceTypeName, IsSupplementary)
+SELECT v.Name, v.IsSupp
+FROM (VALUES
+    /* بیمه‌های پایه */
+    (N'آزاد / بدون بیمه',0),
+    (N'تأمین اجتماعی',0),
+    (N'تأمین اجتماعی (طرح روستایی و عشایری)',0),
+    (N'تأمین اجتماعی صنعت نفت',0),
+    (N'خدمات درمانی',0),
+    (N'نیروهای مسلح',0),
+    (N'بیمه سلامت',0),
+    (N'کمیته امداد امام خمینی (ره)',0),
+    (N'بهزیستی',0),
+    (N'بنیاد شهید و امور ایثارگران',0),
+    (N'بیمه اتباع',0),
+    /* شرکت‌های بیمهٔ تکمیلی */
+    (N'آسیا',1),
+    (N'پاسارگاد',1),
+    (N'پارسیان',1),
+    (N'دانا',1),
+    (N'البرز',1),
+    (N'سامان',1),
+    (N'ملت',1),
+    (N'دی',1),
+    (N'رازی',1),
+    (N'سینا',1),
+    (N'نوین',1),
+    (N'تعاون',1),
+    (N'خاور',1),
+    (N'کوثر',1),
+    (N'کارآفرین',1),
+    (N'میهن',1),
+    (N'تابان',1),
+    (N'آریا',1),
+    (N'آنکارا',1),
+    (N'امید (تأمین اجتماعی)',1),
+    (N'پاسار',1),
+    (N'پیشرو',1),
+    (N'ایران',1),
+    (N'صادرات',1),
+    (N'فولاد',1),
+    /* بیمه‌های گروهی کارکنان (بانک‌ها و سازمان‌ها) */
+    (N'بانک ملی',1),
+    (N'بانک صادرات',1),
+    (N'بانک ملت',1),
+    (N'بانک سپه',1),
+    (N'بانک تجارت',1),
+    (N'بانک رفاه کارگران',1),
+    (N'بانک شهر',1),
+    (N'بانک پاسارگاد',1),
+    (N'بانک مسکن',1),
+    (N'بانک کشاورزی',1),
+    (N'شرکت ملی نفت ایران',1),
+    (N'فولاد مبارکه',1),
+    (N'ذوب‌آهن اصفهان',1),
+    (N'خودگردان نیروهای مسلح',1),
+    (N'شهرداری',1),
+    (N'وزارت بهداشت و آموزش پزشکی',1)
+) AS v(Name, IsSupp)
+WHERE NOT EXISTS(
+    SELECT 1 FROM dbo.tblInsuranceTypes t
+    WHERE t.InsuranceTypeName = v.Name AND t.IsSupplementary = v.IsSupp);
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'UX_tblPatients_NationalCode' AND object_id=OBJECT_ID(N'dbo.tblPatients'))
     CREATE UNIQUE INDEX UX_tblPatients_NationalCode ON dbo.tblPatients(NationalCode);
